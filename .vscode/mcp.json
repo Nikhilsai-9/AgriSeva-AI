@@ -1,0 +1,25 @@
+{
+  "servers": {
+    "agriseva-golden": {
+      "type": "http",
+      "url": "http://localhost:9001/mcp"
+    },
+    "agriseva-pop": {
+      "type": "http",
+      "url": "http://localhost:9002/mcp"
+    },
+    "agriseva-market": {
+      "type": "http",
+      "url": "http://localhost:9003/mcp"
+    },
+    "agriseva-weather": {
+      "type": "http",
+      "url": "http://localhost:9004/mcp"
+
+    },
+    "agriseva-faq": {
+      "type": "http",
+      "url": "http://localhost:9005/mcp"
+    }
+  }
+}

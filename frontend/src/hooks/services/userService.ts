@@ -1,0 +1,352 @@
+import type { IUser, IUnverifiedUser, ReviewLevelCount, UserRole } from "@/types";
+import { apiFetch } from "../api/api-fetch";
+import type { IUsersNameResponse } from "../api/user/useGetAllUsers";
+import { formatDateLocal } from "@/utils/formatDate";
+import { env } from "@/config/env";
+
+const API_BASE_URL = env.apiBaseUrl();
+
+
+export type TrendGranularity =
+  | "hour"
+  | "day"
+  | "week"
+  | "month";
+
+/** One question a moderator currently holds, with its denormalised status. */
+export interface AssignedQuestion {
+  questionId: string;
+  status: string;
+}
+
+/** Statuses that mark a moderator "busy". Re-routed (and other) held questions do not. */
+export const BLOCKING_ASSIGNED_STATUSES = ["in-review", "duplicate"];
+
+export interface StfModerator {
+  _id: string;
+  name: string;
+  email: string;
+  isTrainingUser?: boolean;
+  /** The questions this moderator currently holds (empty when free). A moderator is
+   *  busy only while holding an entry in a blocking status; re-routed entries don't count. */
+  assignedQuestionIds?: AssignedQuestion[] | null;
+}
+
+export class UserService {
+  private _baseUrl = `${API_BASE_URL}/users`;
+
+  async getCurrentUser(): Promise<IUser | null> {
+    return apiFetch<IUser>(`${this._baseUrl}/me`);
+  }
+
+  /** `includeSelf` keeps the caller in the list — for flows where you may pick yourself
+   *  (a gate keeper / auditor taking a question). Omitted, the caller is excluded. */
+  async useGetAllUsers(includeSelf = false): Promise<IUsersNameResponse | null> {
+    return apiFetch<IUsersNameResponse>(
+      `${this._baseUrl}/all${includeSelf ? "?includeSelf=true" : ""}`,
+    );
+  }
+
+  /** All moderators ({_id, name, email}) — used for the report's moderator filter. */
+  async getModerators(): Promise<{ _id: string; name: string; email: string }[] | null> {
+    return apiFetch<{ _id: string; name: string; email: string }[]>(
+      `${this._baseUrl}/moderators`,
+    );
+  }
+
+  /**
+ * All users ({_id, name, email}) — based on the given roles.
+ */
+  async getUsersByRole(
+    roles: UserRole[],
+  ): Promise<{ _id: string; name: string; email: string }[] | null> {
+    const params = new URLSearchParams();
+    
+    roles.forEach((role) => {
+      params.append('role', role);
+    });
+
+    return apiFetch<{ _id: string; name: string; email: string }[]>(
+      `${this._baseUrl}/by-role?${params.toString()}`,
+    );
+  }
+
+
+  async edit(user: Partial<IUser>): Promise<void | null> {
+    return apiFetch<void>(`${this._baseUrl}/`, {
+      method: "PUT",
+      body: JSON.stringify({ ...user }),
+    });
+  }
+
+  async notificationDeletePreference(preference: string): Promise<void | null> {
+    return apiFetch<void>(`${this._baseUrl}/`, {
+      body: JSON.stringify({ preference }),
+      method: "PATCH"
+    })
+  }
+
+  async useGetAllExperts(page: number, limit: number, search: string, sort: string, filter: string): Promise<{ experts: IUser[]; totalExperts: number; totalPages: number } | null> {
+    return apiFetch<{ experts: IUser[]; totalExperts: number; totalPages: number }>(`${this._baseUrl}/list?page=${page}&limit=${limit}&search=${search}&sort=${sort}&filter=${filter}`);
+  }
+
+  async isBlockUser(userId: string, action: string): Promise<void | null> {
+    return apiFetch<void>(`${this._baseUrl}/expert`, {
+      body: JSON.stringify({ userId, action }),
+      method: "PATCH"
+    })
+  }
+
+  async toggleSTF(userId: string, action: string): Promise<void | null> {
+    return apiFetch<void>(`${this._baseUrl}/stf`, {
+      body: JSON.stringify({ userId, action }),
+      method: "PATCH",
+    });
+  }
+
+  async getStfModerators(): Promise<StfModerator[] | null> {
+    return apiFetch<StfModerator[]>(`${this._baseUrl}/stf-moderators`);
+  }
+
+  async updateUserStatus(userId: string, status: string) {
+    return apiFetch<{ message: string }>(`${this._baseUrl}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ userId, status }),
+    });
+  }
+
+  async updateUserActivity(userId: string, isActive: boolean): Promise<{ message: string } | null> {
+    return apiFetch<{ message: string }>(`${this._baseUrl}/activity`, {
+      method: "PATCH",
+      body: JSON.stringify({ userId, isActive }),
+    });
+  }
+
+  async toggleUserRole(userId: string, _currentRole: string, selectedRole?: string): Promise<IUser | null> {
+    // Admin targets can now be switched too — the backend (admin-only) is the source of truth.
+    if (!selectedRole) {
+      throw new Error("Please select a role");
+    }
+    return apiFetch<IUser>(`${this._baseUrl}/${userId}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role: selectedRole }),
+    });
+  }
+
+  async Getuser(email: string): Promise<IUser | null> {
+    return apiFetch<IUser | null>(
+      `${this._baseUrl}/details/${encodeURIComponent(email)}`
+    );
+  }
+  async getUserReviewLevel(userId?: string | undefined, startTime?: Date | undefined, endTime?: Date | undefined, role?: string, state?: string, crop?: string, domain?: string, status?: string, normalised_crop?: string): Promise<ReviewLevelCount[] | null> {
+    const params = new URLSearchParams();
+
+    if (startTime) {
+      params.append("startTime", formatDateLocal(startTime));
+    }
+
+    if (endTime) {
+      params.append("endTime", formatDateLocal(endTime));
+    }
+    if (userId) {
+      params.append("userId", userId)
+    }
+
+    if (role) {
+      params.append("role", role)
+    }
+    if (state) {
+      params.append("state", state)
+    }
+    if (crop) {
+      params.append("crop", crop)
+    }
+    if (domain) {
+      params.append("domain", domain)
+    }
+    if (status) {
+      params.append("status", status)
+    }
+    if (normalised_crop) {
+      params.append("normalised_crop", normalised_crop)
+    }
+    return apiFetch<ReviewLevelCount[]>(`${this._baseUrl}/review-level?${params.toString()}`);
+  }
+
+  async verifyUser(userId: string, isVerified: boolean): Promise<IUser | null> {
+    return apiFetch<IUser>(`${this._baseUrl}/${userId}/verify`, {
+      method: "PATCH",
+      body: JSON.stringify({ isVerified }),
+    });
+  }
+
+  async getUserHistory(userId: string, from?: string, to?: string): Promise<any> {
+    const params = new URLSearchParams({ userId });
+
+    if (from) {
+      const startDate = new Date(from);
+      if (!Number.isNaN(startDate.getTime())) {
+        params.append("startDateTime", startDate.toISOString());
+      }
+    }
+
+    if (to) {
+      const endDate = new Date(to);
+      if (!Number.isNaN(endDate.getTime())) {
+        params.append("endDateTime", endDate.toISOString());
+      }
+    }
+
+    return apiFetch<any>(`${this._baseUrl}/user-history?${params.toString()}`);
+  }
+
+  async getCallAgents(): Promise<IUser[] | null> {
+    return apiFetch<IUser[]>(`${this._baseUrl}/call-agents`);
+  }
+
+  async setCallAgentStatus(userId: string, isCallAgent: boolean, isCallAgentActive: boolean): Promise<IUser | null> {
+    return apiFetch<IUser>(`${this._baseUrl}/set-call-agents`, {
+      method: "POST",
+      body: JSON.stringify({ userId, isCallAgent, isCallAgentActive }),
+    });
+  }
+
+  async toggleCallAgentActive(userId: string): Promise<IUser | null> {
+    return apiFetch<IUser>(`${this._baseUrl}/call-agents/${userId}/toggle-active`, {
+      method: "PATCH",
+    });
+  }
+
+  async toggleAgentStatus(online: boolean): Promise<IUser | null> {
+    return apiFetch<IUser>(`${this._baseUrl}/call-agents/toggle-status`, {
+      method: "POST",
+      body: JSON.stringify({ online }),
+    });
+  }
+
+  async sendHeartbeat(): Promise<{ success: boolean } | null> {
+    return apiFetch<{ success: boolean }>(`${this._baseUrl}/call-agents/heartbeat`, {
+      method: "POST",
+    });
+  }
+
+  async markAgentAsAvailable(): Promise<IUser | null> {
+    return apiFetch<IUser>(`${this._baseUrl}/call-agents/available`, {
+      method: "POST",
+    });
+  }
+
+  /**
+   * Get unverified users with search capability
+   * @param page - Page number (default: 1)
+   * @param limit - Results per page (default: 10)
+   * @param search - Search query to filter users by name/email
+   * @returns Paginated list of unverified users
+   */
+  async getUnverifiedUsers(
+    page: number = 1,
+    limit: number = 10,
+    search: string = ""
+  ): Promise<{
+    users: IUnverifiedUser[];
+    totalUsers: number;
+    totalPages: number;
+  } | null> {
+    const analyticsBaseUrl = `${API_BASE_URL}/analytics`;
+    const params = new URLSearchParams();
+    params.append("page", page.toString());
+    params.append("limit", limit.toString());
+    if (search) params.append("search", search);
+
+    return apiFetch<{
+      users: IUnverifiedUser[];
+      totalUsers: number;
+      totalPages: number;
+    }>(
+      `${analyticsBaseUrl}/unverified-users?${params.toString()}`
+    );
+  }
+
+  /**
+   * Verify a user (set isVerified to true)
+   * @param userId - The ID of the user to verify
+   * @returns Updated user object
+   */
+  async verifyUserInAnalytics(
+    userId: string,
+    source: string = "agriseva",
+    isVerified: boolean = true,
+  ): Promise<{ success: boolean; message: string; user: IUser } | null> {
+    const analyticsBaseUrl = `${API_BASE_URL}/analytics`;
+    const params = new URLSearchParams();
+    params.append("source", source);
+
+    return apiFetch<{ success: boolean; message: string; user: IUser }>(
+      `${analyticsBaseUrl}/verify-user/${userId}?${params.toString()}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ isVerified }),
+      }
+    );
+  }
+
+  async toggleTrainingUserStatus(userId: string, action: string): Promise<void | null> {
+    return apiFetch<void>(`${this._baseUrl}/training-users`, {
+      body: JSON.stringify({ userId, action }),
+      method: "PATCH",
+    });
+  }
+
+  async getWorkingHours(
+    userId: string,
+    startDateTime: string,
+    endDateTime: string,
+  ): Promise<{ workingHours: number } | null> {
+    const params = new URLSearchParams({
+      userId,
+      startDateTime,
+      endDateTime,
+    });
+    return apiFetch<{ workingHours: number }>(
+      `${this._baseUrl}/working-hours?${params.toString()}`
+    );
+  }
+
+  async getReviewerLifecycle(
+    userId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<any> {
+    // console.log("getReviewerLifecycle---");
+
+    const params = new URLSearchParams();
+
+    params.append("userId", userId);
+    params.append("startDate", startDate);
+    params.append("endDate", endDate);
+
+    return apiFetch<any>(
+      `${this._baseUrl}/reviewer-lifecycle?${params.toString()}`,
+      {
+        method: "GET",
+      }
+    );
+  }
+
+    async getWorkingHoursTrends(
+      userId: string,
+      startDateTime: string,
+      endDateTime: string,
+      granularity: TrendGranularity,
+    ): Promise<any> {
+      const params = new URLSearchParams({
+        userId,
+        startDateTime,
+        endDateTime,
+        granularity
+      });
+      return apiFetch<any>(
+        `${this._baseUrl}/working-hours-trend?${params.toString()}`
+      );
+    }
+}

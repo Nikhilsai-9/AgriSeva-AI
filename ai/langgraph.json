@@ -1,0 +1,8 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "agriseva_agent": "./agriseva/agents/agriseva.py:graph",
+    "summary_agent": "./agriseva/agents/summary_agent.py:graph"
+    },
+  "env": ".env"
+}

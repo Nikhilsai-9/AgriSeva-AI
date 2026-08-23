@@ -1,0 +1,41 @@
+services:
+
+  mcp-agmarknet:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    command: fastmcp run agriseva/tools/market/market_agmarknet_tool.py --transport streamable-http --port 8001 --host 0.0.0.0
+    ports:
+      - "8001:8001"
+    env_file: .env
+    restart: unless-stopped
+
+  mcp-enam:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    command: fastmcp run agriseva/tools/market/market_enam_tool.py --transport streamable-http --port 8002 --host 0.0.0.0
+    ports:
+      - "8002:8002"
+    env_file: .env
+    restart: unless-stopped
+
+
+  mcp-location:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    command: fastmcp run agriseva/tools/location/location_tool.py --transport streamable-http --port 8004 --host 0.0.0.0
+    ports:
+      - "8004:8004"
+    env_file: .env
+    restart: unless-stopped
+
+  golden-api:
+    build:
+      context: .
+      dockerfile: agriseva/tools/golden/Dockerfile
+    ports:
+      - "8005:8005"
+    env_file: .env
+    restart: unless-stopped

@@ -1,0 +1,637 @@
+"use client";
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/atoms/card";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { TrendingUp, Database, CheckCircle2, Users, Clock, Search} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../atoms/select";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/atoms/dialog";
+import CountUp from "react-countup";
+import { useRestartOnView } from "@/hooks/ui/useRestartView";
+import { Spinner } from "@/components/atoms/spinner";
+import { TimePicker } from "./time-picker";
+import { TopRightBadge } from "../NewBadge";
+
+// Helper function to safely convert decimal hours to formatted "Xh Ym"
+// We convert entirely to minutes first to avoid floating point issues (e.g., "0h 60m")
+const formatTime = (decimalHours = 0) => {
+  const totalMinutes = Math.round(decimalHours * 60);
+  const hrs = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  const formattedHrs = new Intl.NumberFormat('en-IN').format(hrs);
+  return `${formattedHrs}h ${mins}m`;
+};
+
+const monthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+export interface GoldenDataset {
+  type: "year" | "month" | "week" | "day";
+  totalEntriesByType: number;
+  totalVerifiedByType: number;
+  verifiedEntries: number;
+  todayApproved?: number;
+  moderatorBreakdown?: { moderatorName: string; count: number, closedCount?: number, dynamicClosedCount?: number, duplicateClosedCount?: number, moderatorHours?: number, auditorHours?: number, gateKeeperHours?: number }[];
+  questionSourceBreakdown?: { whatsapp: number; agriseva: number };
+  questionsAnsweredWithin120Min?: { whatsapp: number; agriseva: number };
+  averageResponseTime?: { whatsapp: number; agriseva: number };
+   questionStateBreakdown?: {
+    whatsapp: { status: string; count: number }[];
+    agriseva: { status: string; count: number }[];
+  };
+  yearData: { month: string; entries: number; verified: number }[];
+  weeksData: { week: string; entries: number; verified: number }[];
+  dailyData: { day: string; entries: number; verified: number }[];
+  dayHourlyData: Record<
+    string,
+    { hour: string; entries: number; verified: number }[]
+  >;
+}
+
+export interface GoldenDatasetOverviewProps {
+  data: GoldenDataset;
+  isLoading?: boolean;
+  viewType: "year" | "month" | "week" | "day";
+  setViewType: (v: "year" | "month" | "week" | "day") => void;
+  selectedMonth: string;
+  setSelectedMonth: (m: string) => void;
+  selectedYear: string;
+  setSelectedYear: (m: string) => void;
+  selectedWeek: string;
+  setSelectedWeek: (w: string) => void;
+  selectedDay: string;
+  setSelectedDay: (d: string) => void;
+  customStartDateTime?: string;
+  setCustomStartDateTime: (d: string) => void;
+  customEndDateTime?: string;
+  setCustomEndDateTime: (d: string) => void;
+}
+
+export const GoldenDatasetOverview = ({
+  data,
+  isLoading,
+  viewType,
+  selectedYear,
+  setSelectedYear,
+  setViewType,
+  selectedMonth,
+  setSelectedMonth,
+  selectedWeek,
+  setSelectedWeek,
+  selectedDay,
+  setSelectedDay,
+  customStartDateTime,
+  setCustomStartDateTime,
+  customEndDateTime,
+  setCustomEndDateTime,
+}: GoldenDatasetOverviewProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modSearch, setModSearch] = useState("");
+
+  const {ref,key} = useRestartOnView()
+
+  const getLast10Years = () => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 10 }, (_, i) => currentYear - i);
+  };
+
+  const getTotals = () => {
+    if (viewType === "year") {
+      const total = data?.yearData?.reduce((sum, d) => sum + d?.entries, 0);
+      const verified = data?.yearData?.reduce((sum, d) => sum + d?.verified, 0);
+      return {
+        total,
+        verified,
+        lastEntry: data?.yearData[data?.yearData.length - 1].entries,
+      };
+    } else if (viewType === "month") {
+      const total = data?.weeksData?.reduce((sum, d) => sum + d?.entries, 0);
+      const verified = data?.weeksData?.reduce(
+        (sum, d) => sum + d?.verified,
+        0,
+      );
+      return { total, verified, lastEntry: total };
+    } else if (viewType === "week") {
+      const total = data?.dailyData?.reduce((sum, d) => sum + d?.entries, 0);
+      const verified = data?.dailyData?.reduce(
+        (sum, d) => sum + d?.verified,
+        0,
+      );
+      return { total, verified, lastEntry: total };
+    } else {
+      const dayData =
+        data?.dayHourlyData[selectedDay as keyof typeof data.dayHourlyData];
+      const total = dayData?.reduce((sum, d) => sum + d?.entries, 0);
+      const verified = dayData?.reduce((sum, d) => sum + d?.verified, 0);
+      return { total, verified, lastEntry: total };
+    }
+  };
+
+  // const totals = getTotals();
+
+  const getChartData = () => {
+    if (viewType === "year") return data?.yearData;
+    if (viewType === "month") return data?.weeksData;
+    if (viewType === "week") return data?.dailyData;
+    if (!data.dayHourlyData || !selectedDay) return undefined;
+    return data.dayHourlyData[selectedDay as keyof typeof data.dayHourlyData];
+  };
+
+  const getChartLabel = () => {
+    let baseLabel = "";
+    if (viewType === "year") baseLabel = "Monthly Overview - All 12 Months";
+    else if (viewType === "month") baseLabel = `${selectedMonth} - Weekly Breakdown`;
+    else if (viewType === "week") baseLabel = `${selectedMonth} ${selectedWeek} - Daily Breakdown`;
+    else if (viewType === "day") baseLabel = `${selectedMonth} ${selectedWeek} ${selectedDay} - Hourly Breakdown`;
+    
+    if (customStartDateTime && customEndDateTime) {
+      return `${baseLabel} (${customStartDateTime} - ${customEndDateTime})`;
+    }
+    return baseLabel;
+  };
+
+  const chartData = getChartData();
+
+   const moderatorBreakdown = data?.moderatorBreakdown ?? [];
+  const totalApprovals = moderatorBreakdown.reduce(
+    (sum, mod) => sum + mod.count,
+    0
+  );
+  // Push to GDB = questions closed as plain 'closed' (Notify User closes are
+  // dynamic_closed / duplicate_closed, which are excluded here).
+  const totalPushToGdb = moderatorBreakdown.reduce(
+    (sum, mod) => sum + (mod.closedCount ?? 0),
+    0
+  );
+  // Filter the breakdown list by moderator name (case-insensitive).
+  const filteredModerators = modSearch.trim()
+    ? moderatorBreakdown.filter((m) =>
+        m.moderatorName.toLowerCase().includes(modSearch.trim().toLowerCase()),
+      )
+    : moderatorBreakdown;
+
+  return (
+    <div ref={ref} className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Total Entries
+                </p>
+                <p className="text-3xl font-bold text-foreground">
+                  <CountUp key={`totalEntries-${key}`} end={data?.todayApproved ?? 0} duration={2} preserveValue />
+                  </p>
+                <p className="text-xs text-green-600 mt-2 font-medium">
+                  Total Questions Added in Golden DB  Today{" "}
+                </p>
+              </div>
+              <Database className="w-8 h-8 text-chart-1 opacity-60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Verified Entries
+                </p>
+                <p className="text-3xl font-bold text-foreground">
+                  <CountUp key={`verifiedEntries-${key}`} end={data?.verifiedEntries ?? 0} duration={2} preserveValue /> 
+                </p>
+                <p className="text-xs text-green-600 mt-2 font-medium">
+                  Total questions verified through review/approval process
+                </p>
+              </div>
+              <CheckCircle2 className="w-8 h-8 text-chart-2 opacity-60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Current Period
+                </p>
+                    <p className="text-3xl font-bold text-foreground cursor-help">
+                      <CountUp key={`currentPeriod-${key}`} end={data?.totalVerifiedByType ?? 0} duration={2} preserveValue /> 
+                    </p>
+                     {moderatorBreakdown.length > 0 && (
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogTrigger asChild>
+            <button className="mt-3 flex items-center gap-2 text-xs text-green-600 hover:text-green-700 font-medium hover:underline transition-colors">
+              <Users className="w-3.5 h-3.5" />
+              <span>
+                View moderator Approvals (
+                {moderatorBreakdown.length})
+              </span>
+            </button>
+          </DialogTrigger>
+          <DialogContent className="w-[70vw] sm:max-w-[70vw] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle className="text-primary">
+                Moderator / Auditor Approvals
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Total of {totalApprovals} approvals by{" "}
+                {moderatorBreakdown.length} moderators
+              </p>
+              <p className="text-sm font-medium text-primary mt-0.5">
+                Push to GDB (closed only): {totalPushToGdb}
+              </p>
+            </DialogHeader>
+
+              <div className="relative mt-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={modSearch}
+                  onChange={(e) => setModSearch(e.target.value)}
+                  placeholder="Search by name..."
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent pl-9 pr-3 py-2 text-sm outline-none focus:border-primary/50"
+                />
+              </div>
+
+              <div className="mt-4 max-h-[420px] overflow-y-auto scrollbar-hiding space-y-3">
+                {filteredModerators.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    No moderators match "{modSearch}".
+                  </p>
+                ) : filteredModerators.map((mod, idx) => {
+                  // Extract the distinct hours, defaulting to 0 if undefined/null
+                  const modHours = mod.moderatorHours ?? 0;
+                  const audHours = mod.auditorHours ?? 0;
+                  const gkHours = mod.gateKeeperHours ?? 0;
+
+                  // Calculate the total sum
+                  const totalHours = modHours + audHours + gkHours;
+
+                  // Format all values using the helper function
+                  const modDisplay = formatTime(modHours);
+                  const audDisplay = formatTime(audHours);
+                  const gkDisplay = formatTime(gkHours);
+                  const totalDisplay = formatTime(totalHours);
+
+                  const percentage = totalApprovals ? (mod.count / totalApprovals) * 100 : 0;
+                  const closedCount = mod.closedCount ?? 0;
+                  const dynamicClosedCount = mod.dynamicClosedCount ?? 0;
+                  const duplicateClosedCount = mod.duplicateClosedCount ?? 0;
+                  return (
+                    <div
+                      key={idx}
+                      className="p-3 border rounded-lg transition-colors"
+                    >
+                      {/* Top Section: User Info, Total Hours, and Count */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                            <span className="text-xs font-semibold text-green-700">
+                              {mod.moderatorName.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium dark:text-white text-gray-900 text-sm">
+                              {mod.moderatorName}
+                            </p>
+                            <p className="text-xs font-medium text-primary mt-0.5 flex items-center gap-1">
+                              <Clock size={12} className="text-primary" />
+                              {totalDisplay}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold dark:text-white text-primary">
+                            {mod.count}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Per-status counts */}
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+                        <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-300 font-medium">
+                          Closed: <strong>{closedCount}</strong>
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300 font-medium">
+                          Dynamic Closed: <strong>{dynamicClosedCount}</strong>
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300 font-medium">
+                          Duplicate Closed: <strong>{duplicateClosedCount}</strong>
+                        </span>
+                      </div>
+
+                      {/* Bottom Section: Breakdown of hours and Percentage */}
+                      <div className="mt-3 pt-2 border-t flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                          <span title="Moderator Hours">
+                            Mod: <strong className=" dark:text-white text-gray-700 font-medium">{modDisplay}</strong>
+                          </span>
+                          <span title="Auditor Hours">
+                            Aud: <strong className=" dark:text-white text-gray-700 font-medium">{audDisplay}</strong>
+                          </span>
+                          <span title="Gatekeeper Hours">
+                            GK: <strong className=" dark:text-white text-gray-700 font-medium">{gkDisplay}</strong>
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-medium dark:text-white text-gray-500">
+                          {percentage.toFixed(1)}% <span className="hidden sm:inline">of total approvals</span>
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+          </DialogContent>
+        </Dialog>
+      )}
+                <p className="text-xs text-green-600 mt-2 font-medium">
+                  Total questions verified in this period
+                </p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-chart-3 opacity-60" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Interactive Chart */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="mb-2">Golden Dataset Analytics</CardTitle>
+              <CardDescription>{getChartLabel()}</CardDescription>
+            </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setViewType("year")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                viewType === "year"
+                  ? "bg-primary text-white"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
+            >
+              Year
+            </button>
+            <button
+              onClick={() => setViewType("month")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                viewType === "month"
+                  ? "bg-primary text-white"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
+            >
+              Month
+            </button>
+            <button
+              onClick={() => setViewType("week")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                viewType === "week"
+                  ? "bg-primary text-white"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
+            >
+              Week
+            </button>
+            <button
+              onClick={() => setViewType("day")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                viewType === "day"
+                  ? "bg-primary text-white"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
+            >
+              Day
+            </button>
+          </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3 mt-4">
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Select Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {getLast10Years().map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(viewType === "month" ||
+              viewType === "week" ||
+              viewType === "day") && (
+                <>
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Select Month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {monthNames.map((month) => (
+                        <SelectItem key={month} value={month}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+
+            {(viewType === "week" || viewType === "day") && (
+              <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Select Week" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Week 1">Week 1</SelectItem>
+                  <SelectItem value="Week 2">Week 2</SelectItem>
+                  <SelectItem value="Week 3">Week 3</SelectItem>
+                  <SelectItem value="Week 4">Week 4</SelectItem>
+                  <SelectItem value="Week 5">Week 5</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+
+            {viewType === "day" && (
+              <Select value={selectedDay} onValueChange={setSelectedDay}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Select Day" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Mon">Mon</SelectItem>
+                  <SelectItem value="Tue">Tue</SelectItem>
+                  <SelectItem value="Wed">Wed</SelectItem>
+                  <SelectItem value="Thu">Thu</SelectItem>
+                  <SelectItem value="Fri">Fri</SelectItem>
+                  <SelectItem value="Sat">Sat</SelectItem>
+                  <SelectItem value="Sun">Sun</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Time Range Filters */}
+            <div className="flex gap-3 items-center ml-auto relative">
+              <TopRightBadge label="new" left={0} />
+              <TimePicker
+                value={customStartDateTime || ""}
+                onChange={setCustomStartDateTime}
+                label="Start Time"
+              />
+              <TimePicker
+                value={customEndDateTime || ""}
+                onChange={setCustomEndDateTime}
+                label="End Time"
+              />
+            </div>
+          </div>
+        </CardHeader>
+
+                <CardContent className="relative min-h-[350px]">
+          {isLoading && (
+            <div className="absolute inset-0 z-10 w-full h-full flex items-center justify-center bg-background/50 rounded-md">
+               <Spinner text="Fetching dashboard data..." fullScreen={false} />
+            </div>
+          )}
+
+          {/* Bar Chart for Year and Month views */}
+          {(viewType === "year" || viewType === "month") && (
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart
+                key={`chart-${key}`} 
+                data={chartData}
+                margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--color-border)"
+                />
+                <XAxis
+                  dataKey={viewType === "year" ? "month" : "week"}
+                  stroke="var(--color-muted-foreground)"
+                />
+                <YAxis stroke="var(--color-muted-foreground)" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "var(--radius)",
+                    color: "var(--color-foreground)",
+                  }}
+                />
+                <Legend />
+                 <Bar
+                  dataKey="entries"
+                  fill="var(--color-chart-1)"
+                  name="Total Entries"
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationBegin={0}
+                />
+                <Bar
+                  dataKey="verified"
+                  fill="var(--color-chart-2)"
+                  name="Verified Entries"
+                  isAnimationActive={true}
+                  animationDuration={800}
+                  animationBegin={200}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+
+          {/* Line Chart for Week and Day views */}
+          {(viewType === "week" || viewType === "day") && (
+            <ResponsiveContainer width="100%" height={350}>
+              <LineChart
+                key={`lineChart-${key}`}
+                data={chartData}
+                margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--color-border)"
+                />
+                <XAxis
+                  dataKey={viewType === "week" ? "day" : "hour"}
+                  stroke="var(--color-muted-foreground)"
+                />
+                <YAxis stroke="var(--color-muted-foreground)" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "var(--radius)",
+                    color: "var(--color-foreground)",
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="entries"
+                  stroke="var(--color-chart-1)"
+                  strokeWidth={2}
+                  name="Total Entries"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="verified"
+                  stroke="var(--color-chart-2)"
+                  strokeWidth={2}
+                  name="Verified Entries"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

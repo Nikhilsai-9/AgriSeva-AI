@@ -1,0 +1,209 @@
+"""Tests for deterministic translate_answer paths (empty_gdb vs synthesis)."""
+
+from __future__ import annotations
+
+import json
+
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+
+from agriseva.agents.answer_footers import FOOTER_SEPARATOR, build_expert_queue_content
+from agriseva.agents.prompts import EXPERT_QUEUE_REPLY_MARKER
+from agriseva.agents.state import TRANSLATE_PATH_EMPTY_GDB
+from agriseva.agents.translate_answer import translate_answer_node
+from agriseva.agents.translation_catalog import get_testing_disclaimer
+
+
+def _gdb_with_answer() -> dict:
+    return {
+        "is_exact": True,
+        "exact_match": {
+            "question": "Q",
+            "answer": "Grow barley with proper irrigation.",
+            "details": {
+                "source_name": "PAU",
+                "source_link": "https://example.edu",
+                "author_name": "Expert",
+            },
+        },
+    }
+
+
+def test_empty_gdb_path_catalog_only():
+    state = {
+        "messages": [
+            HumanMessage(content="Unknown crop question?"),
+            AIMessage(content=""),
+        ],
+        "plan": {
+            "translate_path": TRANSLATE_PATH_EMPTY_GDB,
+            "vocal_language": "English",
+            "script_language": "English",
+        },
+    }
+    import asyncio
+
+    result = asyncio.run(translate_answer_node(state, {}))
+    text = result["messages"][0].content
+    expected = build_expert_queue_content("English", "English")
+    assert text == expected
+    assert FOOTER_SEPARATOR in text
+    assert EXPERT_QUEUE_REPLY_MARKER in text
+    assert "Growing barley" not in text
+
+
+def test_synthesis_path_body_sources_testing_no_two_hour():
+    synthesis_body = "Growing barley in Punjab requires careful planning."
+    state = {
+        "messages": [
+            HumanMessage(content="How to grow barley?"),
+            AIMessage(content="", tool_calls=[{"id": "c1", "name": "gdb", "args": {}}]),
+            ToolMessage(
+                content=json.dumps(_gdb_with_answer()),
+                tool_call_id="c1",
+                name="gdb",
+            ),
+            AIMessage(content=synthesis_body),
+        ],
+        "plan": {
+            "translate_path": None,
+            "expert_queue": True,
+            "vocal_language": "English",
+            "script_language": "English",
+        },
+    }
+    import asyncio
+
+    result = asyncio.run(translate_answer_node(state, {}))
+    text = result["messages"][0].content
+    assert synthesis_body in text
+    assert FOOTER_SEPARATOR in text
+    assert text.index(FOOTER_SEPARATOR) > text.index(synthesis_body)
+    assert "PAU" in text
+    assert "Expert" in text
+    assert get_testing_disclaimer("English", "English") in text
+    assert EXPERT_QUEUE_REPLY_MARKER not in text
+
+
+def test_stale_expert_queue_flag_uses_synthesis_path():
+    """expert_queue=True without translate_path=empty_gdb must not drop synthesis body."""
+    synthesis_body = "Full advisory text from synthesizer."
+    state = {
+        "messages": [HumanMessage(content="Q"), AIMessage(content=synthesis_body)],
+        "plan": {
+            "expert_queue": True,
+            "vocal_language": "English",
+            "script_language": "English",
+        },
+    }
+    import asyncio
+
+    result = asyncio.run(translate_answer_node(state, {}))
+    text = result["messages"][0].content
+    assert synthesis_body in text
+    assert FOOTER_SEPARATOR in text
+    assert EXPERT_QUEUE_REPLY_MARKER not in text
+
+
+# -------- Follow-up path: skip translation --------
+
+def test_follow_up_path_does_not_translate_body(monkeypatch):
+    """When plan.is_follow_up=True, the LLM-produced body must NOT be re-translated.
+
+    Regression for: farmer typed "Muje telgu mai batao yaar" (Hindi input) but
+    asked for Telugu output. The follow-up LLM produced a Telugu body; the
+    pre-fix code would call _translate_body() against the (Hindi, English) plan
+    pair and clobber the Telugu body back into Hindi.
+    """
+    from agriseva.agents import translate_answer as ta_module
+
+    telugu_body = "తెలుగులో జవాబు"  # "Telugu answer"
+    calls: list[dict] = []
+
+    async def fake_translate_body(body, vocal, script, config):
+        calls.append({"body": body, "vocal": vocal, "script": script})
+        return f"TRANSLATED_TO_{vocal}:{body}"
+
+    monkeypatch.setattr(ta_module, "_translate_body", fake_translate_body)
+
+    state = {
+        "messages": [
+            HumanMessage(content="How to grow barley?"),
+            AIMessage(content="Use quality seed and proper irrigation."),
+            HumanMessage(content="Muje telgu mai batao yaar"),
+            AIMessage(content=telugu_body),
+        ],
+        "plan": {
+            "is_follow_up": True,
+            "follow_up_type": "language_change",
+            "vocal_language": "Hindi",          # input language (Hinglish)
+            "script_language": "English",       # input script (Latin)
+        },
+    }
+    import asyncio
+
+    result = asyncio.run(translate_answer_node(state, {}))
+    text = result["messages"][0].content
+    # The Telugu body must reach the farmer unchanged.
+    assert telugu_body in text
+    # _translate_body must NOT have been called.
+    assert calls == []
+
+
+def test_follow_up_path_still_appends_testing_disclaimer():
+    """Follow-up path skips translation but still appends the testing disclaimer."""
+    body = "Short answer in target language."
+    state = {
+        "messages": [
+            HumanMessage(content="Q1"),
+            AIMessage(content="A1"),
+            HumanMessage(content="in short"),
+            AIMessage(content=body),
+        ],
+        "plan": {
+            "is_follow_up": True,
+            "follow_up_type": "format_change",
+            "vocal_language": "English",
+            "script_language": "English",
+        },
+    }
+    import asyncio
+
+    result = asyncio.run(translate_answer_node(state, {}))
+    text = result["messages"][0].content
+    assert body in text
+    assert FOOTER_SEPARATOR in text
+    assert get_testing_disclaimer("English", "English") in text
+
+
+def test_non_follow_up_path_still_translates(monkeypatch):
+    """Regression: non-follow-up turn still translates when needed."""
+    from agriseva.agents import translate_answer as ta_module
+
+    calls: list[dict] = []
+
+    async def fake_translate_body(body, vocal, script, config):
+        calls.append({"body": body, "vocal": vocal, "script": script})
+        return f"TRANSLATED_TO_{vocal}:{body}"
+
+    def fake_needs_translation(script, vocal):
+        return True
+
+    monkeypatch.setattr(ta_module, "_translate_body", fake_translate_body)
+    monkeypatch.setattr(ta_module, "needs_translation", fake_needs_translation)
+
+    state = {
+        "messages": [
+            HumanMessage(content="How to grow barley?"),
+            AIMessage(content="Use quality seed."),
+        ],
+        "plan": {
+            "translate_path": None,
+            "vocal_language": "Hindi",
+            "script_language": "Devanagari",
+        },
+    }
+    import asyncio
+
+    result = asyncio.run(translate_answer_node(state, {}))
+    assert len(calls) == 1
+    assert calls[0]["vocal"] == "Hindi"

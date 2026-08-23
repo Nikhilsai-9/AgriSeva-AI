@@ -1,0 +1,140 @@
+import os
+import re
+from typing import Any, Optional
+
+_WHATSAPP_THREAD_ID_RE = re.compile(r"^(\d+)-\d{4}-\d{2}-\d{2}$")
+
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
+
+# Fast model for simple tasks (routing, classification, translation)
+CLAUDE_FAST = os.getenv("CLAUDE_FAST", "claude-haiku-4-5-20251001")
+
+# MiniMax (self-hosted, OpenAI-compatible) — used by every non-planner agent.
+# All three values must be provided via environment (.env) — no defaults for the secret.
+MINIMAX_BASE_URL = os.getenv("MINIMAX_BASE_URL", "http://100.100.108.41:8001/v1/")
+MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
+MINIMAX_MODEL = os.getenv("MINIMAX_MODEL", "MiniMaxAI/MiniMax-M2.7")
+
+# Task-specific model assignments
+# Translation & follow-up stay on Claude Sonnet (quality matters for farmer-facing text;
+# avoids the MiniMax wheat→sugarcane frequency-bias bug). Planner routes to MiniMax
+# (cheap & fast for routing/classification/rephrasing).
+SYNTHESIZE_MODEL = MINIMAX_MODEL      # Fast rephrasing/simple synthesis
+PLANNER_MODEL = MINIMAX_MODEL         # Planner uses MiniMax (routing/classification)
+SANITIZER_MODEL = MINIMAX_MODEL       # Relevance scoring
+TRANSLATE_MODEL = CLAUDE_MODEL        # Translation uses Claude Sonnet (avoid crop substitution)
+FOLLOW_UP_MODEL = CLAUDE_MODEL        # Translation/transformation - Sonnet for quality
+CROP_CLASSIFY_MODEL = MINIMAX_MODEL   # Binary classification
+
+
+def get_minimax_chat_model(**overrides):
+    """Return a ChatOpenAI instance wired to the self-hosted MiniMax endpoint.
+
+    Centralises the base_url/api_key wiring so non-planner agents only need to
+    pass model-specific overrides (max_tokens, temperature, etc.).
+    """
+    from langchain_openai import ChatOpenAI
+
+    return ChatOpenAI(
+        model=MINIMAX_MODEL,
+        base_url=MINIMAX_BASE_URL,
+        api_key=MINIMAX_API_KEY,
+        **overrides,
+    )
+
+REMOTE_IP = os.getenv("REMOTE_IP", "100.100.108.44")
+
+# Reviewer upload channel when LangGraph configurable.question_source is unset
+QUESTION_SOURCE = os.getenv("QUESTION_SOURCE", "AGRISEVA_AI").strip()
+
+
+def resolve_question_source(config: Optional[dict[str, Any]] = None) -> Optional[str]:
+    """
+    Prefer configurable.question_source from the run; else QUESTION_SOURCE from .env.
+
+    Reads os.getenv at call time so values work after load_dotenv() in agriseva.py.
+    """
+    configurable = (config or {}).get("configurable") or {}
+    explicit = configurable.get("question_source")
+    if explicit is not None and str(explicit).strip():
+        return str(explicit).strip()
+    env_source = os.getenv("QUESTION_SOURCE", QUESTION_SOURCE).strip()
+    if env_source:
+        return env_source
+    return None
+
+
+def resolve_thread_id(config: Optional[dict[str, Any]] = None) -> Optional[str]:
+    """Thread identifier from configurable.
+
+    For WhatsApp, thread_id is {phone}-{date} (e.g. 919541703420-2026-06-03).
+    For other channels, thread_id is whatever the platform sets (typically a UUID).
+    """
+    configurable = (config or {}).get("configurable") or {}
+    for key in ("thread_id", "thread"):
+        val = configurable.get(key)
+        if val is not None and str(val).strip():
+            return str(val).strip()
+    return None
+
+
+def _first_non_empty(*values: Any) -> str | None:
+    for value in values:
+        if value is not None and str(value).strip():
+            cleaned = str(value).strip()
+            # LibreChat leaves unresolved placeholders when user context is missing.
+            if cleaned.startswith("{{") and cleaned.endswith("}}"):
+                continue
+            return cleaned
+    return None
+
+
+def resolve_user_id(config: Optional[dict[str, Any]] = None) -> str | None:
+    """Resolve user identity from run config (configurable, metadata, thread_id)."""
+    cfg = config or {}
+    configurable = cfg.get("configurable") or {}
+    metadata = cfg.get("metadata") or {}
+
+    user_id = _first_non_empty(
+        configurable.get("user_id"),
+        configurable.get("phone_number"),
+        metadata.get("user_id"),
+        metadata.get("userId"),
+        metadata.get("phoneNumber"),
+    )
+    if user_id:
+        return user_id
+
+    thread_id = resolve_thread_id(cfg)
+    if thread_id:
+        match = _WHATSAPP_THREAD_ID_RE.match(thread_id)
+        if match:
+            return match.group(1)
+    return None
+
+
+def resolve_message_id(config: Optional[dict[str, Any]] = None) -> Optional[str]:
+    """Message identifier from configurable (set by langgraph-openai-adapter via x-message-id)."""
+    configurable = (config or {}).get("configurable") or {}
+    for key in ("message_id", "message"):
+        val = configurable.get(key)
+        if val is not None and str(val).strip():
+            return str(val).strip()
+    return None
+
+# gdb_agent reads this (not MCP_URLS["gdb"]). Set in ai/.env, e.g. http://100.100.108.41:8110
+GOLDEN_API_URL = f"http://{REMOTE_IP}:8110"
+
+MCP_URLS = {
+    "gdb":        f"http://{REMOTE_IP}:8110/v1/gdb/search",
+    "weather":    f"http://100.100.108.41:9017/mcp",
+    "soil":       f"http://{REMOTE_IP}:9008/mcp",
+    "enam":       f"http://{REMOTE_IP}:9002/mcp",
+    "agmarknet":  f"http://{REMOTE_IP}:9006/mcp",
+    "reviewer":   f"http://{REMOTE_IP}:9007/mcp",
+    "location":   f"http://{REMOTE_IP}:9000/mcp",
+    "schemes":    f"http://{REMOTE_IP}:9009/mcp",
+    "faq_video":  f"http://{REMOTE_IP}:9007/mcp",
+    "chemical_checker": f"http://{REMOTE_IP}:9101/mcp",
+    "daily_price": os.getenv("DAILY_PRICE_MCP_URL", f"http://{REMOTE_IP}:8111/mcp"),
+}
