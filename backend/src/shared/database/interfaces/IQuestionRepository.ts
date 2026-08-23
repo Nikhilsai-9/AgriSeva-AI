@@ -51,6 +51,8 @@ export interface IQuestionRepository {
     sources?: string[],
   ): Promise<{status: string; count: number}[]>;
 
+  count(filter?: Record<string, any>): Promise<number>;
+
   /**
    * Adds multiple questions for a specific context and user.
    * @param userId - The ID of the user creating the questions.

@@ -5512,12 +5512,12 @@ export class QuestionRepository implements IQuestionRepository {
     const chartData = results.map(r => {
       const dataObj = {
         date: r._id,
-        AgriSeva-AI: 0,
+        'AgriSeva-AI': 0,
         Moderator: 0,
       };
 
       r.counts.forEach((item: any) => {
-        if (item.source === 'AGRISEVA_AI') dataObj.AgriSeva-AI = item.count;
+        if (item.source === 'AGRISEVA_AI') dataObj['AgriSeva-AI'] = item.count;
         if (item.source === 'AGRI_EXPERT') dataObj.Moderator = item.count;
       });
 

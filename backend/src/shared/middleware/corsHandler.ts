@@ -1,6 +1,6 @@
 import cors from 'cors';
 import {Request, Response, NextFunction} from 'express';
-import { appConfig } from '../config/app.js';
+import { appConfig } from '../../config/app.js';
 
 // Configure CORS options — origins are driven by APP_ORIGINS env var.
 // Set APP_ORIGINS in .env for local dev, and as a deployment env var in production.

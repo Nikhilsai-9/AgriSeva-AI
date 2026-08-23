@@ -569,11 +569,11 @@ export interface ResponseAdherenceTable {
   manualdynamicSchemesStaticDynamicCount: number;
 
   totalDynamicWhatsappCount: number;
-  totalDynamicAgriSeva-AICount: number;
+  totalDynamicAgriSevaCount: number;
   totalDynamicManualCount: number;
 
   totalStaticDynamicWhatsappCount: number;
-  totalStaticDynamicAgriSeva-AICount: number;
+  totalStaticDynamicAgriSevaCount: number;
   totalStaticDynamicManualCount: number;
 
   whatsAppAnsweredAfter120Min: number;

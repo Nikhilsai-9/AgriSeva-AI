@@ -1917,7 +1917,7 @@ export class ChatbotRepository implements IChatbotRepository {
           whatsapp.dynamicWeatherDynamicCount +
           whatsapp.dynamicMarketDynamicCount +
           whatsapp.dynamicSchemesDynamicCount,
-        totalDynamicAgriSeva-AICount:
+        totalDynamicAgriSevaCount:
           agriseva.dynamicWeatherDynamicCount +
           agriseva.dynamicWeatherDynamicCount +
           agriseva.dynamicSchemesDynamicCount,
@@ -1930,7 +1930,7 @@ export class ChatbotRepository implements IChatbotRepository {
           whatsapp.dynamicWeatherStaticDynamicCount +
           whatsapp.dynamicMarketStaticDynamicCount +
           whatsapp.dynamicSchemesStaticDynamicCount,
-        totalStaticDynamicAgriSeva-AICount:
+        totalStaticDynamicAgriSevaCount:
           agriseva.dynamicWeatherStaticDynamicCount +
           agriseva.dynamicMarketStaticDynamicCount +
           agriseva.dynamicSchemesStaticDynamicCount,

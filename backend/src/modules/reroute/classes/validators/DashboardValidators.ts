@@ -242,7 +242,7 @@ export class DashboardResponse {
   @JSONSchema({description: 'Question contribution trends'})
   questionContributionTrend!: {
     date: string;
-    AgriSeva-AI: number;
+    'AgriSeva-AI': number;
     Moderator: number;
   }[];
 

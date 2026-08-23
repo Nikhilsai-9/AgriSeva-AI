@@ -100,7 +100,7 @@ export class AnswerRepository implements IAnswerRepository {
       );
     }
   }
-  async addAgriSeva-AIAnswer(
+  async addAgriSevaAnswer(
     questionId: string,
     userId: string,
     answer: string,

@@ -37,7 +37,7 @@ export interface IAnswerRepository {
     approvedBy?: string,
   ): Promise<{insertedId: string}>;
 
-  addAgriSeva-AIAnswer(
+  addAgriSevaAnswer(
     questionId: string,
     userId: string,
     answer: string,

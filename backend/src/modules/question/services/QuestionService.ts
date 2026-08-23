@@ -2204,9 +2204,9 @@ export class QuestionService extends BaseService implements IQuestionService {
     }
 
     let allExpertIds: string[] = [];
-      const isAgriSeva-AI = question.source == 'AGRISEVA_AI' ? true : false;
+      const isAgriSeva = question.source == 'AGRISEVA_AI' ? true : false;
       const isTrainingQuestion = question.isTrainingQuestion === true;
-      if (isAgriSeva-AI) {
+      if (isAgriSeva) {
         const users = await this.userRepo.getExpertsWithFallback(
           details,
           session,

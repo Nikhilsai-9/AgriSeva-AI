@@ -3813,11 +3813,11 @@ export class ChatbotService extends BaseService implements IChatbotService {
         manualdynamicSchemesStaticDynamicCount: 0,
 
         totalDynamicWhatsappCount: 0,
-        totalDynamicAgriSeva-AICount: 0,
+        totalDynamicAgriSevaCount: 0,
         totalDynamicManualCount: 0,
 
         totalStaticDynamicWhatsappCount: 0,
-        totalStaticDynamicAgriSeva-AICount: 0,
+        totalStaticDynamicAgriSevaCount: 0,
         totalStaticDynamicManualCount: 0,
 
         whatsAppAnsweredAfter120Min: 0,

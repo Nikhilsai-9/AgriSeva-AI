@@ -311,7 +311,7 @@ export class QuestionContributionTrend {
   date!: string;
 
   @JSONSchema({description: 'Number of contributions by AgriSeva-AI', example: 5})
-  AgriSeva-AI!: number;
+  'AgriSeva-AI'!: number;
 
   @JSONSchema({description: 'Number of contributions by Moderator', example: 3})
   Moderator!: number;

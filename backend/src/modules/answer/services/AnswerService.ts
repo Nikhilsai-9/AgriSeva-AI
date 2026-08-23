@@ -2396,10 +2396,10 @@ answer: ${updates.answer}`;
     updates: UpdateAnswerBody,
   ): Promise<{ modifiedCount: number }> {
     const llmResult = await this._withTransaction(async (session: ClientSession) => {
-      const isAgriSeva-AI = updates.source === 'AGRISEVA_AI';
+      const isAgriSeva = updates.source === 'AGRISEVA_AI';
       const isWhatsApp = updates.source === 'WHATSAPP';
 
-      if (!isAgriSeva-AI && !isWhatsApp) {
+      if (!isAgriSeva && !isWhatsApp) {
         throw new BadRequestError(
           'Only AGRISEVA_AI or WHATSAPP sources are supported for this action',
         );
@@ -2479,7 +2479,7 @@ answer: ${updates.answer}`;
         let queue: ObjectId[] = [];
         let initialExpert: any = null;
 
-      if (isAgriSeva-AI) {
+      if (isAgriSeva) {
         // Special Task Force allocation for AgriSeva-AI (4 experts)
         const taskForceExperts = await this.userRepo.getExpertsWithFallback(
           question.details,
