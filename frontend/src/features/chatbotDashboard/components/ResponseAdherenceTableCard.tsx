@@ -137,11 +137,11 @@ type ResponseAdherenceTableData = {
   manualdynamicSchemesStaticDynamicCount: number;
 
   totalDynamicWhatsappCount: number;
-  totalDynamicAgriSeva-AICount: number;
+  totalDynamicAgriSevaCount: number;
   totalDynamicManualCount: number;
 
   totalStaticDynamicWhatsappCount: number;
-  totalStaticDynamicAgriSeva-AICount: number;
+  totalStaticDynamicAgriSevaCount: number;
   totalStaticDynamicManualCount: number;
 
   whatsAppAnsweredAfter120Min: number;
@@ -354,11 +354,11 @@ const DEFAULT_DATA: ResponseAdherenceTableData = {
   manualdynamicSchemesStaticDynamicCount: 0,
 
   totalDynamicWhatsappCount: 0,
-  totalDynamicAgriSeva-AICount: 0,
+  totalDynamicAgriSevaCount: 0,
   totalDynamicManualCount: 0,
 
   totalStaticDynamicWhatsappCount: 0,
-  totalStaticDynamicAgriSeva-AICount: 0,
+  totalStaticDynamicAgriSevaCount: 0,
   totalStaticDynamicManualCount: 0,
 
   whatsAppAnsweredAfter120Min: 0,
@@ -659,12 +659,12 @@ export function ResponseAdherenceTableCard({
     {id: "answered120DuplicateClosed",field: "Duplicate Closed within 120 minutes",whatsapp: `${d.answeredWithin120MinDuplicateClosedwhatsapp} / ${d.whatsappAnsweredWithin120Min}`,agriSeva: `${d.answeredWithin120MinDuplicateClosedagriseva} / ${d.agrisevaAnsweredWithin120Min}`,manual: `${d.answeredWithin120MinDuplicateClosedmanual} / ${d.manualAnsweredWithin120Min}`,notes: ""},  
     { id: "duplicate", field: "Marked Duplicate (Fetched from GDB)", whatsapp: d.whatsappMarkedDuplicate, agriSeva: d.agrisevaMarkedDuplicate, manual: d.manualMarkedDuplicate, notes: "" },
 
-    { id: "totalDynamic", field: "Total - Dynamic", whatsapp: d.totalDynamicWhatsappCount, agriSeva: d.totalDynamicAgriSeva-AICount, manual: d.totalDynamicManualCount, notes: "" },
+    { id: "totalDynamic", field: "Total - Dynamic", whatsapp: d.totalDynamicWhatsappCount, agriSeva: d.totalDynamicAgriSevaCount, manual: d.totalDynamicManualCount, notes: "" },
     { id: "dynamicWeather", field: "Dynamic - Weather", whatsapp: d.whatsappdynamicWeatherDynamicCount, agriSeva: d.agrisevadynamicWeatherDynamicCount, manual: d.manualdynamicWeatherDynamicCount, notes: "" },
     { id: "dynamicMarket", field: "Dynamic - Market", whatsapp: d.whatsappdynamicMarketDynamicCount, agriSeva: d.agrisevadynamicMarketDynamicCount, manual:d.manualdynamicMarketDynamicCount, notes: "" },
     { id: "dynamicSchemes", field: "Dynamic - Schemes", whatsapp: d.whatsappdynamicSchemesDynamicCount, agriSeva: d.agrisevadynamicSchemesDynamicCount, manual: d.manualdynamicSchemesDynamicCount, notes: "" },
 
-    { id: "totalStaticDynamic", field: "Total - Static Dynamic", whatsapp: d.totalStaticDynamicWhatsappCount, agriSeva: d.totalStaticDynamicAgriSeva-AICount, manual: d.totalStaticDynamicManualCount, notes: "" },
+    { id: "totalStaticDynamic", field: "Total - Static Dynamic", whatsapp: d.totalStaticDynamicWhatsappCount, agriSeva: d.totalStaticDynamicAgriSevaCount, manual: d.totalStaticDynamicManualCount, notes: "" },
     { id: "staticdynamicWeather", field: "Static Dynamic - Weather", whatsapp: d.whatsappdynamicWeatherStaticDynamicCount, agriSeva: d.agrisevadynamicWeatherStaticDynamicCount, manual: d.manualdynamicWeatherStaticDynamicCount, notes: "" },
     { id: "staticdynamicMarket", field: "Static Dynamic - Market", whatsapp: d.whatsappdynamicMarketStaticDynamicCount, agriSeva: d.agrisevadynamicMarketStaticDynamicCount, manual:d.manualdynamicMarketStaticDynamicCount, notes: "" },
     { id: "staticdynamicSchemes", field: "Static Dynamic - Schemes", whatsapp: d.whatsappdynamicSchemesStaticDynamicCount, agriSeva: d.agrisevadynamicSchemesStaticDynamicCount, manual: d.manualdynamicSchemesStaticDynamicCount, notes: "" },
@@ -843,7 +843,7 @@ export function ResponseAdherenceTableCard({
         "Total dynamic Weather, Market, and Schemes questions. These are handled through dynamic data or tool-based processing.",
       type: "data",
       wa: d.totalDynamicWhatsappCount,
-      as: d.totalDynamicAgriSeva-AICount,
+      as: d.totalDynamicAgriSevaCount,
       manual: d.totalDynamicManualCount,
     },
     {
@@ -884,7 +884,7 @@ export function ResponseAdherenceTableCard({
         "Total Weather, Market, and Schemes questions tagged as Static Dynamic.",
       type: "data",
       wa: d.totalStaticDynamicWhatsappCount,
-      as: d.totalStaticDynamicAgriSeva-AICount,
+      as: d.totalStaticDynamicAgriSevaCount,
       manual: d.totalStaticDynamicManualCount,
     },
     {

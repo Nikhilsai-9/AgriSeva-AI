@@ -10,24 +10,24 @@ import { TopRightBadge } from "../NewBadge";
 
 interface ResponseAdherenceProps {
   totalWhatsapp: number;
-  totalAgriSeva-AI: number;
+  totalAgriSeva: number;
   answeredWithin120WhatsApp: number;
-  answeredWithin120AgriSeva-AI: number;
+  answeredWithin120AgriSeva: number;
 }
 
 export const ResponseAdherence = ({
   totalWhatsapp,
-  totalAgriSeva-AI,
+  totalAgriSeva,
   answeredWithin120WhatsApp,
-  answeredWithin120AgriSeva-AI,
+  answeredWithin120AgriSeva,
 }: ResponseAdherenceProps) => {
   // Calculate adherence percentages
   const whatsappAdherence = totalWhatsapp > 0 
     ? (answeredWithin120WhatsApp / totalWhatsapp) * 100 
     : 0;
   
-  const agrisevaAdherence = totalAgriSeva-AI > 0 
-    ? (answeredWithin120AgriSeva-AI / totalAgriSeva-AI) * 100 
+  const agrisevaAdherence = totalAgriSeva > 0 
+    ? (answeredWithin120AgriSeva / totalAgriSeva) * 100 
     : 0;
 
   return (
@@ -78,7 +78,7 @@ export const ResponseAdherence = ({
                 />%
               </span>
               <p className="text-xs text-muted-foreground mt-1">
-                {answeredWithin120AgriSeva-AI} of {totalAgriSeva-AI} questions
+                {answeredWithin120AgriSeva} of {totalAgriSeva} questions
               </p>
             </div>
           </div>

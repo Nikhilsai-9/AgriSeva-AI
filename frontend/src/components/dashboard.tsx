@@ -428,9 +428,9 @@ export const Dashboard = () => {
           <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <ResponseAdherence
               totalWhatsapp={goldenData.questionSourceBreakdown.whatsapp}
-              totalAgriSeva-AI={goldenData.questionSourceBreakdown.agriseva}
+              totalAgriSeva={goldenData.questionSourceBreakdown.agriseva}
               answeredWithin120WhatsApp={goldenData.questionsAnsweredWithin120Min.whatsapp}
-              answeredWithin120AgriSeva-AI={goldenData.questionsAnsweredWithin120Min.agriseva}
+              answeredWithin120AgriSeva={goldenData.questionsAnsweredWithin120Min.agriseva}
             />
             {goldenData?.averageResponseTime && (
               <AverageResponseTime

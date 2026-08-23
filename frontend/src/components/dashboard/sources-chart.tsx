@@ -29,7 +29,7 @@ const chartConfig = {
   visitors: {
     label: "Visitors",
   },
-  AgriSeva-AI: {
+  "AgriSeva-AI": {
     label: "AgriSeva-AI",
     color: "var(--chart-1)",
   },
@@ -41,7 +41,7 @@ const chartConfig = {
 
 export interface QuestionContributionTrend {
   date: string;
-  AgriSeva-AI: number;
+  "AgriSeva-AI": number;
   Moderator: number;
 }
 
@@ -101,12 +101,12 @@ export const SourcesChart: React.FC<SourcesChartProps> = ({
               <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
-                  stopColor="var(--color-AgriSeva-AI)"
+                  stopColor="var(--color-agriseva)"
                   stopOpacity={0.8}
                 />
                 <stop
                   offset="95%"
-                  stopColor="var(--color-AgriSeva-AI)"
+                  stopColor="var(--color-agriseva)"
                   stopOpacity={0.1}
                 />
               </linearGradient>
@@ -163,7 +163,7 @@ export const SourcesChart: React.FC<SourcesChartProps> = ({
               dataKey="AgriSeva-AI"
               type="natural"
               fill="url(#fillDesktop)"
-              stroke="var(--color-AgriSeva-AI)"
+              stroke="var(--color-agriseva)"
               stackId="a"
             />
             <ChartLegend content={<ChartLegendContent />} />

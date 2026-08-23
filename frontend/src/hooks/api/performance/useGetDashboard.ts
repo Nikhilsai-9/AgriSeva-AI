@@ -15,7 +15,7 @@ export interface DashboardAnalyticsResponse {
   goldenDataset: GoldenDataset;
   questionContributionTrend: {
     date: string;
-    AgriSeva-AI: number;
+    'AgriSeva-AI': number;
     Moderator: number;
   }[];
   statusOverview: StatusOverview;
