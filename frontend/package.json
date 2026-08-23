@@ -110,5 +110,12 @@
     "workerDirectory": [
       "public"
     ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "core-js",
+      "wasm-pack",
+      "esbuild"
+    ]
   }
 }
