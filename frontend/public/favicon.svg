@@ -1,0 +1,30 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Speech Bubble on Top Right -->
+  <g>
+    <rect x="52" y="6" width="42" height="30" rx="9" fill="#F97352" />
+    <polygon points="62,36 54,46 72,36" fill="#F97352" />
+    <line x1="61" y1="16" x2="85" y2="16" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" />
+    <line x1="61" y1="24" x2="79" y2="24" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" />
+  </g>
+
+  <!-- Robot Antenna -->
+  <circle cx="34" cy="20" r="5" fill="#F97352" />
+  <line x1="34" y1="25" x2="34" y2="34" stroke="#F97352" stroke-width="4" stroke-linecap="round" />
+
+  <!-- Robot Ears / Side Nodes -->
+  <rect x="8" y="50" width="10" height="18" rx="5" fill="#F97352" />
+  <rect x="50" y="50" width="10" height="18" rx="5" fill="#F97352" />
+
+  <!-- Robot Face Box -->
+  <rect x="13" y="34" width="42" height="44" rx="16" fill="#F97352" />
+
+  <!-- Inner Face Screen -->
+  <rect x="18" y="39" width="32" height="34" rx="12" fill="#FFF1EE" />
+
+  <!-- Eyes -->
+  <circle cx="26" cy="52" r="3" fill="#F97352" />
+  <circle cx="42" cy="52" r="3" fill="#F97352" />
+
+  <!-- Smile -->
+  <path d="M 29 60 Q 34 66 39 60" stroke="#F97352" stroke-width="2.5" stroke-linecap="round" fill="none" />
+</svg>
