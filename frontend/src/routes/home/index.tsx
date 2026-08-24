@@ -40,8 +40,15 @@ function RouteComponent() {
     }
   }, [user, currentUser, navigate]);
 
-  // Don't render anything until we know the role — prevents PlaygroundPage flash for pae_expert
-  if (!user || isLoading || currentUser?.role === "pae_expert" || isCoordinatorRole(currentUser?.role)) return null;
+  // While loading user auth state or redirecting
+  if (!user || isLoading || currentUser?.role === "pae_expert" || isCoordinatorRole(currentUser?.role)) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground gap-4">
+        <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+        <p className="text-sm font-medium text-muted-foreground animate-pulse">Loading AgriSeva-AI...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen min-w-screen p-4 relative flex flex-col overflow-hidden">
