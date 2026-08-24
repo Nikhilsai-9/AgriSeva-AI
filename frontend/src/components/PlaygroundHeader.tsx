@@ -6,6 +6,7 @@ import { HoverCard } from "./atoms/hover-card";
 import { NotificationModal } from "./NotificationModal";
 import { TabsList, TabsTrigger } from "@/components/atoms/tabs";
 import { canManageUsers } from "@/lib/roles";
+import { AgriSevaBrand } from "./AgriSevaBrand";
 import type { IUser } from "@/types";
 
 export function PlaygroundHeader({
@@ -23,14 +24,10 @@ export function PlaygroundHeader({
 }) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex items-center justify-between gap-4 px-4 py-3">
-        {/* Logo */}
-        <div className="flex items-center gap-3 shrink-0">
-          <img
-            src="/annam-logo.png"
-            alt="Annam Logo"
-            className="h-10 w-auto md:h-14"
-          />
+      <div className="mx-auto flex items-center justify-between gap-4 px-4 py-2.5">
+        {/* AgriSeva Brand Logo & Tagline */}
+        <div className="flex items-center shrink-0 cursor-pointer">
+          <AgriSevaBrand size="sm" showSlogan={true} />
         </div>
 
         <div className="flex-1 md:flex justify-center min-w-0 hidden ">

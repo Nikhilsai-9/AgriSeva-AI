@@ -90,6 +90,7 @@ import { SourceTabsHeader } from "./components/SourceTabs";
 import { QueryInsightsSection } from "./components/QueryInsightsSection";
 import { useDashboardHandlers } from "./hooks/useDashboardHandlers";
 import { ACCAnalyticsDashboard } from "@/components/ACCAnalyticsDashboard";
+import { AgriSevaBrand } from "@/components/AgriSevaBrand";
 
 // ─── Lazy Loaded Components ──────────────────────────────────────────────────
 const LazyUserGrowthChart = React.lazy(
@@ -574,6 +575,15 @@ export function AnnamDashboard_dev({
             )}
 
             <div className="flex-1 overflow-y-auto px-5 pb-5">
+              {/* AgriSeva-AI Hero Branding Banner */}
+              <div className="my-4 p-4 md:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-green-500/5 to-orange-500/10 border border-emerald-500/20 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <AgriSevaBrand size="lg" showSlogan={true} />
+                <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Live AI Agricultural Advisor
+                </div>
+              </div>
+
               {!mapView && source !== "acc" && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-stretch">
                   <ClosedQuestionsCard

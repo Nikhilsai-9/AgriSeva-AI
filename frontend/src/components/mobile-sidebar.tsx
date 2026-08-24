@@ -18,6 +18,7 @@ import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { canManageUsers, isCoordinatorRole } from "@/lib/roles";
 import { Sheet, SheetContent, SheetTrigger } from "./atoms/sheet";
+import { AgriSevaBrand } from "./AgriSevaBrand";
 
 const SidebarButton = ({
   label,
@@ -192,18 +193,8 @@ export const MobileSidebar = ({
         "
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b bg-muted/30">
-          <div className="flex items-center gap-3">
-            <img
-              src="/logo.png"
-              alt="logo"
-              className="h-10 w-10 object-contain"
-            />
-            <div>
-              <h2 className="font-semibold text-lg">Review System</h2>
-              <p className="text-xs text-muted-foreground">AgriSeva-AI</p>
-            </div>
-          </div>
+        <div className="flex items-center justify-between px-5 py-4 border-b bg-muted/30">
+          <AgriSevaBrand size="sm" showSlogan={true} />
         </div>
 
         {/* Navigation */}
