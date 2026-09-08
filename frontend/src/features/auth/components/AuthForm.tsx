@@ -119,6 +119,8 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
               to: "/user/$userId",
               params: { userId: result.appUser?._id || result.user.uid },
             });
+          } else if (result.appUser?.role === "pae_expert") {
+            navigate({ to: "/pae-expert" });
           } else {
             navigate({ to: "/home" });
           }
@@ -159,12 +161,23 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
     try {
       const result = await loginWithGoogle();
       if (result) {
+        let appUser: any = null;
         try {
-          await authService.loginWithGoogle(result);
+          const syncRes = await authService.loginWithGoogle(result);
+          appUser = syncRes?.data?.user;
         } catch (backendSyncErr) {
           console.warn("Backend Google sync notice:", backendSyncErr);
         }
-        navigate({ to: "/home" });
+        if (isCoordinatorRole(appUser?.role)) {
+          navigate({
+            to: "/user/$userId",
+            params: { userId: appUser?._id || result.user.uid },
+          });
+        } else if (appUser?.role === "pae_expert") {
+          navigate({ to: "/pae-expert" });
+        } else {
+          navigate({ to: "/home" });
+        }
       }
     } catch (err: any) {
       const msg = err?.message || "Failed to sign in with Google.";
