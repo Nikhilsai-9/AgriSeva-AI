@@ -136,7 +136,7 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
       email: body.email,
       firstName: body.firstName,
       lastName: body.lastName || '',
-      role: 'pae_expert',
+      role: 'user',
     };
 
     // create the user in the database will happen on the first successful login after email verification.
@@ -161,7 +161,7 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
       email: body.email,
       firstName: body.firstName,
       lastName: body.lastName,
-      role: 'pae_expert',
+      role: 'user',
     };
 
     let createdUserId: string;
@@ -363,7 +363,7 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
         email: email,
         firstName: names[0] || email.split('@')[0],
         lastName: names.slice(1).join(' ') || '',
-        role: 'pae_expert',
+        role: 'user',
         isVerified: false,
       };
 
