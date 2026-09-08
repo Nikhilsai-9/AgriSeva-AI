@@ -229,7 +229,7 @@ export function LandingPage() {
           z-index: 3;
           width: 100%;
           max-width: 100%;
-          padding: 36px clamp(32px, 3vw, 48px) 0;
+          padding: 36px clamp(40px, 3.5vw, 56px) 0;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -237,33 +237,33 @@ export function LandingPage() {
         .agriseva-landing-wrapper .brand {
           font-family: 'Poppins', sans-serif;
           font-weight: 700;
-          font-size: 30px;
-          letter-spacing: -0.5px;
+          font-size: 28px;
+          letter-spacing: -0.4px;
           color: var(--ink);
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 11px;
           text-decoration: none;
           flex-shrink: 0;
         }
         .agriseva-landing-wrapper .brand .brand-logo-img {
-          width: 38px;
-          height: 38px;
+          width: 34px;
+          height: 34px;
           object-fit: contain;
           display: block;
         }
         .agriseva-landing-wrapper .nav-group {
           display: flex;
           align-items: center;
-          gap: 32px;
+          gap: 30px;
           flex-shrink: 0;
         }
         .agriseva-landing-wrapper .navlinks {
           display: flex;
           align-items: center;
-          gap: 36px;
+          gap: 34px;
           font-weight: 600;
-          font-size: 17px;
+          font-size: 16.5px;
           color: #33493c;
           margin: 0;
         }
@@ -272,7 +272,7 @@ export function LandingPage() {
         .agriseva-landing-wrapper .nav-actions {
           display: inline-flex;
           align-items: center;
-          gap: 16px;
+          gap: 20px;
           flex-shrink: 0;
           margin: 0;
         }
