@@ -232,7 +232,7 @@ export function LandingPage() {
           padding: 36px clamp(32px, 3vw, 48px) 0;
           display: flex;
           align-items: center;
-          justify-content: flex-start;
+          justify-content: space-between;
         }
         .agriseva-landing-wrapper .brand {
           font-family: 'Poppins', sans-serif;
@@ -252,23 +252,29 @@ export function LandingPage() {
           object-fit: contain;
           display: block;
         }
+        .agriseva-landing-wrapper .nav-group {
+          display: flex;
+          align-items: center;
+          gap: 32px;
+          flex-shrink: 0;
+        }
         .agriseva-landing-wrapper .navlinks {
           display: flex;
+          align-items: center;
           gap: 36px;
           font-weight: 600;
           font-size: 17px;
           color: #33493c;
-          margin-left: clamp(36px, 3.5vw, 56px);
-          margin-right: 0;
+          margin: 0;
         }
         .agriseva-landing-wrapper .navlinks a { text-decoration: none; color: inherit; transition: color .2s; }
         .agriseva-landing-wrapper .navlinks a:hover { color: var(--green-deep); }
         .agriseva-landing-wrapper .nav-actions {
           display: inline-flex;
           align-items: center;
-          gap: 12px;
+          gap: 16px;
           flex-shrink: 0;
-          margin-left: auto;
+          margin: 0;
         }
         .agriseva-landing-wrapper .cart {
           display: inline-flex;
@@ -972,7 +978,9 @@ export function LandingPage() {
         /* ---------- RESPONSIVE ---------- */
         @media (max-width: 1024px) {
           .agriseva-landing-wrapper .nav { padding: 32px 28px 0; }
-          .agriseva-landing-wrapper .navlinks { gap: 20px; font-size: 15px; margin-left: 24px; margin-right: 0; }
+          .agriseva-landing-wrapper .nav-group { gap: 20px; }
+          .agriseva-landing-wrapper .navlinks { gap: 20px; font-size: 15px; margin: 0; }
+          .agriseva-landing-wrapper .nav-actions { gap: 12px; margin: 0; }
           .agriseva-landing-wrapper .hero-inner { padding: 48px 40px 0; }
           .agriseva-landing-wrapper .headline { font-size: 54px; letter-spacing: -1.5px; line-height: 1.12; }
           .agriseva-landing-wrapper .products,
@@ -1001,8 +1009,14 @@ export function LandingPage() {
             padding: 24px 20px 0;
             justify-content: space-between;
           }
-          .agriseva-landing-wrapper .navlinks { order: 3; width: 100%; justify-content: center; gap: 20px; font-size: 15px; margin: 0; }
-          .agriseva-landing-wrapper .nav-actions { margin-left: 0; }
+          .agriseva-landing-wrapper .nav-group {
+            order: 3;
+            width: 100%;
+            flex-direction: column;
+            gap: 16px;
+          }
+          .agriseva-landing-wrapper .navlinks { width: 100%; justify-content: center; gap: 20px; font-size: 15px; margin: 0; }
+          .agriseva-landing-wrapper .nav-actions { width: 100%; justify-content: center; margin: 0; }
           .agriseva-landing-wrapper .brand { font-size: 24px; }
           .agriseva-landing-wrapper .cart { padding: 11px 18px; font-size: 14px; }
 
@@ -1089,22 +1103,24 @@ export function LandingPage() {
               />
               <span>AgriSeva-AI</span>
             </a>
-            <div className="navlinks">
-              <a href="#how-it-works">{t("nav.howItWorks", "How It Works")}</a>
-              <a href="#features">{t("nav.features", "Features")}</a>
-              <a href="#simulation">{t("nav.simulation", "Simulation")}</a>
-              <a href="#impact">{t("nav.impact", "Impact")}</a>
-            </div>
-            <div className="nav-actions">
-              <LanguageSwitcher variant="light" />
-              <button
-                onClick={() => navigate({ to: user ? "/home" : "/auth" })}
-                className="cart cursor-pointer"
-                id="nav-demo-btn"
-                aria-label={user ? t("nav.dashboardCta", "Dashboard →") : t("nav.getStartedCta", "Get Started →")}
-              >
-                {user ? t("nav.dashboardCta", "Dashboard →") : t("nav.getStartedCta", "Get Started →")}
-              </button>
+            <div className="nav-group">
+              <div className="navlinks">
+                <a href="#how-it-works">{t("nav.howItWorks", "How It Works")}</a>
+                <a href="#features">{t("nav.features", "Features")}</a>
+                <a href="#simulation">{t("nav.simulation", "Simulation")}</a>
+                <a href="#impact">{t("nav.impact", "Impact")}</a>
+              </div>
+              <div className="nav-actions">
+                <LanguageSwitcher variant="light" />
+                <button
+                  onClick={() => navigate({ to: user ? "/home" : "/auth" })}
+                  className="cart cursor-pointer"
+                  id="nav-demo-btn"
+                  aria-label={user ? t("nav.dashboardCta", "Dashboard →") : t("nav.getStartedCta", "Get Started →")}
+                >
+                  {user ? t("nav.dashboardCta", "Dashboard →") : t("nav.getStartedCta", "Get Started →")}
+                </button>
+              </div>
             </div>
           </nav>
 
