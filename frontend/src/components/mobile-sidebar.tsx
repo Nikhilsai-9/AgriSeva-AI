@@ -19,6 +19,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { canManageUsers, isCoordinatorRole } from "@/lib/roles";
 import { Sheet, SheetContent, SheetTrigger } from "./atoms/sheet";
 import { AgriSevaBrand } from "./AgriSevaBrand";
+import { useTranslation } from "@/locales";
 
 const SidebarButton = ({
   label,
@@ -66,6 +67,7 @@ export const MobileSidebar = ({
   setTab: (value: string) => void;
   setChatbotSource: (value: "whatsapp" | "annam" | "acc") => void;
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(
@@ -100,23 +102,23 @@ export const MobileSidebar = ({
     user.role !== "call_agent" &&
     user.role !== "gate_keeper" &&
     user.role !== "auditor"
-      ? [{ id: "performance", label: "Dashboard", icon: BarChart3 }]
+      ? [{ id: "performance", label: t("sidebar.dashboard", "Dashboard"), icon: BarChart3 }]
       : []),
 
     ...(user && (user.role === "gate_keeper" || user.role === "auditor")
-      ? [{ id: "roleDashboard", label: "Dashboard", icon: BarChart3 }]
+      ? [{ id: "roleDashboard", label: t("sidebar.dashboard", "Dashboard"), icon: BarChart3 }]
       : []),
 
     ...(user && user.role === "expert"
-      ? [{ id: "expertPerformance", label: "Dashboard", icon: BarChart3 }]
+      ? [{ id: "expertPerformance", label: t("sidebar.dashboard", "Dashboard"), icon: BarChart3 }]
       : []),
 
     ...(user && user.role === "expert"
-      ? [{ id: "questions", label: "Questions", icon: MessageSquare }]
+      ? [{ id: "questions", label: t("sidebar.questions", "Questions"), icon: MessageSquare }]
       : []),
 
     ...(user && user.role !== "call_agent"
-      ? [{ id: "all_questions", label: "All Questions", icon: List }]
+      ? [{ id: "all_questions", label: t("sidebar.allQuestions", "All Questions"), icon: List }]
       : []),
 
     ...(user && canManageUsers(user.role)
@@ -124,25 +126,27 @@ export const MobileSidebar = ({
           {
             id: "user_management",
             label:
-              user.role === "admin" ? "User Management" : "Expert Management",
+              user.role === "admin"
+                ? t("sidebar.userManagement", "User Management")
+                : t("sidebar.expertManagement", "Expert Management"),
             icon: Users,
           },
         ]
       : []),
 
     ...(user && user.role !== "expert" && user.role !== "call_agent"
-      ? [{ id: "request_queue", label: "Flags Reported", icon: AlertTriangle }]
+      ? [{ id: "request_queue", label: t("sidebar.flagsReported", "Flags Reported"), icon: AlertTriangle }]
       : []),
 
     ...(user && user.role !== "call_agent"
-      ? [{ id: "upload", label: "Agents Interface", icon: Upload }]
+      ? [{ id: "upload", label: t("sidebar.agentsInterface", "Agents Interface"), icon: Upload }]
       : []),
 
     ...(user && user.role === "call_agent"
       ? [
-          { id: "call_dashboard", label: "Call Dashboard", icon: TrendingUp },
-          { id: "call_interface", label: "Call Interface", icon: Phone },
-          { id: "call_history", label: "Call History", icon: Clock },
+          { id: "call_dashboard", label: t("sidebar.callDashboard", "Call Dashboard"), icon: TrendingUp },
+          { id: "call_interface", label: t("sidebar.callInterface", "Call Interface"), icon: Phone },
+          { id: "call_history", label: t("sidebar.callHistory", "Call History"), icon: Clock },
         ]
       : []),
 
@@ -150,24 +154,24 @@ export const MobileSidebar = ({
       ? [
           {
             id: "chatbotanalytics",
-            label: "Chatbot Analytics",
+            label: t("sidebar.chatbotAnalytics", "Chatbot Analytics"),
             icon: Bot,
           },
         ]
       : []),
 
     ...(user && user.role === "admin"
-      ? [{ id: "data_processing", label: "Data Processing", icon: Database }]
+      ? [{ id: "data_processing", label: t("sidebar.dataProcessing", "Data Processing"), icon: Database }]
       : []),
 
     ...(user && !isCoordinator && user.role !== "call_agent"
-      ? [{ id: "history", label: "History", icon: History }]
+      ? [{ id: "history", label: t("sidebar.history", "History"), icon: History }]
       : []),
     ...(user && !isCoordinator && user.role !== "call_agent"
       ? [
           {
             id: "whatsapp_history",
-            label: "WhatsApp History",
+            label: t("sidebar.whatsappHistory", "WhatsApp History"),
             icon: MessageSquare,
           },
         ]

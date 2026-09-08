@@ -37,6 +37,7 @@ import { Clock, CheckCircle } from "lucide-react";
 import { useCheckIn } from "@/hooks/api/performance/useCheckIn";
 import { useBlockUser } from "@/hooks/api/user/useBlockUser";
 import type { IUser } from "@/types";
+import { useTranslation } from "@/locales";
 
 export type ViewType = "year" | "month" | "week" | "day";
 
@@ -46,6 +47,7 @@ export type ViewType = "year" | "month" | "week" | "day";
  *  Reuses the existing check-in + block/unblock endpoints; for a moderator,
  *  isBlocked is the availability flag (checked-in = not blocked). */
 const ModeratorCheckInControl = ({ user }: { user?: IUser | null }) => {
+  const { t } = useTranslation();
   const { checkIn, isPending: isCheckingIn } = useCheckIn();
   const blockUser = useBlockUser();
 
@@ -137,7 +139,7 @@ const ModeratorCheckInControl = ({ user }: { user?: IUser | null }) => {
           <Clock className="w-5 h-5 text-green-500" />
         )}
         <span className="text-sm font-medium">
-          {checkedIn ? "Check Out" : "Check In"}
+          {checkedIn ? t("dashboard.checkOut", "Check Out") : t("dashboard.checkIn", "Check In")}
         </span>
       </button>
     </div>
@@ -145,7 +147,7 @@ const ModeratorCheckInControl = ({ user }: { user?: IUser | null }) => {
 };
 
 export const Dashboard = () => {
-
+  const { t } = useTranslation();
   localStorage.removeItem("animationsEnabled");
 
   // ---- Golden Dataset Overview state filters ----- //
@@ -261,7 +263,7 @@ export const Dashboard = () => {
   const [reportEnd, setReportEnd] = useState("");
   const handleSendCronReport = async () => {
     if (reportStart && reportEnd && reportEnd < reportStart) {
-      toast.error("End date can't be before start date");
+      toast.error(t("dashboard.dateOrderError", "End date can't be before start date"));
       return;
     }
     setSendingReport(true);
@@ -276,11 +278,11 @@ export const Dashboard = () => {
           ? `Report for ${range.startDate}${
               range.endDate !== range.startDate ? ` to ${range.endDate}` : ""
             } sent successfully`
-          : "Cron snapshot report sent successfully",
+          : t("dashboard.reportSentSuccess", "Report sent successfully"),
       );
       setSendingReport(false);
     } catch (err) {
-      toast.error("Failed to send cron snapshot report");
+      toast.error(t("dashboard.reportSentFailed", "Failed to send cron snapshot report"));
       console.error("Failed to fetch cron snapshot", err);
       setSendingReport(false);
     }
@@ -314,11 +316,11 @@ export const Dashboard = () => {
           <div>
             <h1 className="text-3xl font-bold text-foreground">
               {user?.role === "admin"
-                ? "Admin Dashboard"
-                : "Moderator Dashboard"}
+                ? t("dashboard.adminDashboard", "Admin Dashboard")
+                : t("dashboard.moderatorDashboard", "Moderator Dashboard")}
             </h1>
             <p className="text-muted-foreground mt-1">
-              Monitor content moderation and expert performance
+              {t("dashboard.monitorSubtitle", "Monitor content moderation and expert performance")}
             </p>
           </div>
 
@@ -332,7 +334,7 @@ export const Dashboard = () => {
         <div className="mb-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-2 xl:items-stretch">
           <LoadingWrapper
             loading={isOverviewLoading}
-            text="Fetching role overview..."
+            text={t("dashboard.fetchingRole", "Fetching role overview...")}
             className="xl:h-full"
           >
             <ModeratorsOverview
@@ -352,7 +354,7 @@ export const Dashboard = () => {
           </LoadingWrapper>
           <LoadingWrapper
             loading={isOverviewLoading}
-            text="Fetching approval stats..."
+            text={t("dashboard.fetchingApproval", "Fetching approval stats...")}
             className="xl:h-full"
           >
             <ApprovalRateCard
@@ -543,7 +545,7 @@ export const Dashboard = () => {
       {user?.role === "admin" && (
         <div className="flex flex-wrap items-end justify-end gap-3 px-6">
           <div className="flex flex-col">
-            <label className="text-xs text-muted-foreground mb-1">From</label>
+            <label className="text-xs text-muted-foreground mb-1">{t("dashboard.from", "From")}</label>
             <input
               type="date"
               value={reportStart}
@@ -553,7 +555,7 @@ export const Dashboard = () => {
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-xs text-muted-foreground mb-1">To</label>
+            <label className="text-xs text-muted-foreground mb-1">{t("dashboard.to", "To")}</label>
             <input
               type="date"
               value={reportEnd}
@@ -585,7 +587,7 @@ export const Dashboard = () => {
               }}
               className="px-3 py-1.5 rounded-md border border-input text-sm hover:bg-muted transition-all"
             >
-              Clear (Today)
+              {t("dashboard.clearToday", "Clear (Today)")}
             </button>
           )}
           <button
@@ -593,7 +595,7 @@ export const Dashboard = () => {
             className="px-4 py-2 rounded-md bg-green-500 text-white text-sm hover:bg-green-600 shadow-md transition-all relative disabled:opacity-60"
             disabled={sendingReport}
           >
-            {sendingReport ? "Sending Report..." : "Send Report"}
+            {sendingReport ? t("dashboard.sendingReport", "Sending Report...") : t("dashboard.sendReport", "Send Report")}
           </button>
         </div>
       )}
@@ -695,12 +697,13 @@ export const ChristmasCap = ({ className = "" }: { className?: string }) => {
 };
 
 export const HolidayBanner = () => {
+  const { t } = useTranslation();
   return (
     <div className="w-full bg-gradient-to-r from-christmas-pine via-christmas-green to-christmas-pine py-2 px-4">
       <div className="flex items-center justify-center gap-3">
         <span className="text-christmas-gold shimmer-gold">✦</span>
         <p className="text-sm font-medium text-primary-foreground tracking-wide">
-          Season's Greetings from the Moderation Team
+          {t("dashboard.seasonGreetings", "Season's Greetings from the Moderation Team")}
         </p>
         <span className="text-christmas-gold shimmer-gold">✦</span>
       </div>

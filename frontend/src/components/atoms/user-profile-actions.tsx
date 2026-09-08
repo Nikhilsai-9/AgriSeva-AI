@@ -16,6 +16,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
 import { isCoordinatorRole } from "@/lib/roles";
 import { Badge } from "./badge";
+import { useTranslation } from "@/locales";
 
 import {
   AlertDialog,
@@ -54,6 +55,7 @@ interface UserDropdownProps {
 }
 
 export function UserDropdown({ user, onLogout }: UserDropdownProps) {
+  const { t } = useTranslation();
   const [imgError, setImgError] = React.useState(false);
   const navigate = useNavigate();
   const { data: userWithRole } = useGetCurrentUser({});
@@ -137,7 +139,9 @@ export function UserDropdown({ user, onLogout }: UserDropdownProps) {
           className="text-foreground focus:text-foreground cursor-pointer mb-2"
         >
           <User className="mr-2 h-4 w-4" />
-          {isCoordinator ? "Coordinator Profile" : "Profile"}
+          {isCoordinator
+            ? t("userProfile.coordinatorProfile", "Coordinator Profile")
+            : t("userProfile.profile", "Profile")}
         </DropdownMenuItem>
 
         {(userWithRole?.role === "admin" ||
@@ -150,12 +154,12 @@ export function UserDropdown({ user, onLogout }: UserDropdownProps) {
             className="text-foreground focus:text-foreground cursor-pointer mb-2 relative"
           >
             <CheckCheck className="mr-2 h-4 w-4" />
-            View Audit
+            {t("userProfile.viewAudit", "View Audit")}
             <Badge
               variant="default"
               className="absolute -top-1 right-2 h-4 text-[9px] px-1.5 py-0 bg-red-500 text-white hover:bg-red-600 border-0 font-medium shadow-sm"
             >
-              New
+              {t("userProfile.badgeNew", "New")}
             </Badge>
           </DropdownMenuItem>
         )}
@@ -165,28 +169,20 @@ export function UserDropdown({ user, onLogout }: UserDropdownProps) {
         {!isCoordinator &&
           userWithRole?.role !== "gate_keeper" &&
           userWithRole?.role !== "auditor" && (
-        <DropdownMenuItem
-          onClick={handleViewHistory}
-          className="text-foreground focus:text-foreground cursor-pointer mb-2 relative"
-        >
-          <NotepadText className="mr-2 h-4 w-4" />
-          History
-          <Badge
-            variant="default"
-            className="absolute -top-1 right-2 h-4 text-[9px] px-1.5 py-0 bg-red-500 text-white hover:bg-red-600 border-0 font-medium shadow-sm"
+          <DropdownMenuItem
+            onClick={handleViewHistory}
+            className="text-foreground focus:text-foreground cursor-pointer mb-2 relative"
           >
-            New
-          </Badge>
-        </DropdownMenuItem>
+            <NotepadText className="mr-2 h-4 w-4" />
+            {t("userProfile.history", "History")}
+            <Badge
+              variant="default"
+              className="absolute -top-1 right-2 h-4 text-[9px] px-1.5 py-0 bg-red-500 text-white hover:bg-red-600 border-0 font-medium shadow-sm"
+            >
+              {t("userProfile.badgeNew", "New")}
+            </Badge>
+          </DropdownMenuItem>
         )}
-
-        {/* <DropdownMenuItem
-          onClick={handleLogout}
-          className="text-red-600 focus:text-red-600 cursor-pointer"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </DropdownMenuItem> */}
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -195,29 +191,29 @@ export function UserDropdown({ user, onLogout }: UserDropdownProps) {
               className="text-red-600 focus:text-red-600 cursor-pointer"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Logout
+              {t("userProfile.logout", "Logout")}
             </DropdownMenuItem>
           </AlertDialogTrigger>
 
           <AlertDialogContent className="sm:max-w-md rounded-2xl">
             <AlertDialogHeader>
               <AlertDialogTitle>
-                Are you sure you want to log out?
+                {t("userProfile.logoutConfirmTitle", "Are you sure you want to log out?")}
               </AlertDialogTitle>
 
               <AlertDialogDescription>
-                You will need to log in again to access your account.
+                {t("userProfile.logoutConfirmDesc", "You will need to log in again to access your account.")}
               </AlertDialogDescription>
             </AlertDialogHeader>
 
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t("userProfile.cancel", "Cancel")}</AlertDialogCancel>
 
               <AlertDialogAction
                 onClick={handleLogout}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Logout
+                {t("userProfile.logout", "Logout")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

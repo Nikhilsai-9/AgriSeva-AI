@@ -20,6 +20,7 @@ import {
 } from "@/components/atoms/select";
 import CountUp from "react-countup";
 import { useRestartOnView } from "@/hooks/ui/useRestartView";
+import { useTranslation } from "@/locales";
 
 export interface UserRoleOverview {
   role: string;
@@ -127,6 +128,7 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
   onEndTimeChange,
   onUserTypeFilterChange,
 }) => {
+  const { t } = useTranslation();
   const total = data.reduce((acc, item) => acc + item.count, 0);
   const { ref, key } = useRestartOnView();
   const roleRows = data.map((item) => {
@@ -149,9 +151,9 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
     <Card ref={ref} className="flex flex-col">
       <CardHeader className="flex flex-col gap-4 pb-0 2xl:flex-row 2xl:items-start 2xl:justify-between">
         <div className="min-w-0 space-y-1">
-          <CardTitle>Role Overview</CardTitle>
+          <CardTitle>{t("dashboard.userRolesOverview", "Role Overview")}</CardTitle>
           <CardDescription>
-            Active users by role for the selected time window
+            {t("dashboard.distOfUsers", "Active users by role for the selected time window")}
           </CardDescription>
         </div>
 
@@ -179,7 +181,7 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
                 onChange={(e) => onStartTimeChange(e.target.value)}
                 className="h-9 w-full min-w-0 rounded-md border bg-background px-3 text-sm"
               />
-              <span className="text-sm text-muted-foreground sm:text-center">to</span>
+              <span className="text-sm text-muted-foreground sm:text-center">{t("dashboard.to", "to")}</span>
               <input
                 type="time"
                 value={endTime}
@@ -223,14 +225,14 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
               <span className="text-3xl font-bold">
                 <CountUp key={key} end={total} duration={2} preserveValue />
               </span>
-              <span className="text-sm text-muted-foreground">Total Users</span>
+              <span className="text-sm text-muted-foreground">{t("dashboard.allUsers", "Total Users")}</span>
             </div>
           </div>
 
           <div className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold text-foreground">
-                Role Breakdown
+                {t("dashboard.userRolesOverview", "Role Breakdown")}
               </h3>
               <div className="flex items-center gap-2">
                 {isAdmin && onUserTypeFilterChange && (
@@ -241,12 +243,12 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
                     }
                   >
                     <SelectTrigger className="h-8 w-[110px] text-xs">
-                      <SelectValue placeholder="Filter" />
+                      <SelectValue placeholder={t("common.filter", "Filter")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="all">{t("common.all", "All")}</SelectItem>
                       <SelectItem value="tmu">TMU</SelectItem>
-                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="normal">{t("dashboard.normalUsers", "Normal")}</SelectItem>
                     </SelectContent>
                   </Select>
                 )}

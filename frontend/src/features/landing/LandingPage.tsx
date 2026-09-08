@@ -1,10 +1,16 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAuthStore } from "@/stores/auth-store";
+import { useLanguageStore } from "@/stores/language-store";
+import { useTranslation } from "@/locales";
+import { LanguageGateway } from "@/components/LanguageGateway";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export function LandingPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { hasHydrated, hasSelectedLanguage } = useLanguageStore();
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Attach simulation and modal handlers to window for complete fidelity with original platform
@@ -103,20 +109,20 @@ export function LandingPage() {
 
       if (riskBadge && explainEl) {
         if (rain < -20 || water < 65 || simProfit < 250) {
-          riskBadge.textContent = "High";
+          riskBadge.textContent = t("simulator.high", "High");
           riskBadge.style.background = "#feebc8";
           riskBadge.style.color = "#c05621";
           explainEl.textContent =
             "Severe water deficit detected. Recommend drought-tolerant crop cultivar and protective mulch application to hedge against yield collapse.";
         } else if (rain < 0 || fert > 20 || water < 85) {
-          riskBadge.textContent = "Moderate";
+          riskBadge.textContent = t("simulator.moderate", "Moderate");
           riskBadge.style.background = "#eafaf1";
           riskBadge.style.color = "var(--green-deep)";
           explainEl.textContent = `Under ${rain}% rainfall and ${
             fert > 0 ? "+" : ""
           }${fert}% input cost, adopting deficit irrigation with split-nitrogen application preserves net profit while curtailing volatility.`;
         } else {
-          riskBadge.textContent = "Low";
+          riskBadge.textContent = t("simulator.low", "Low");
           riskBadge.style.background = "#e6fffa";
           riskBadge.style.color = "#234e52";
           explainEl.textContent =
@@ -150,7 +156,19 @@ export function LandingPage() {
     return () => {
       authButtons.forEach((btn) => btn.removeEventListener("click", handleAuthClick));
     };
-  }, [navigate]);
+  }, [navigate, t]);
+
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen w-full bg-[#070c0a] flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!hasSelectedLanguage) {
+    return <LanguageGateway />;
+  }
 
   return (
     <div className="agriseva-landing-wrapper w-full min-h-screen">
@@ -1059,34 +1077,40 @@ export function LandingPage() {
               <span>AgriSeva-AI</span>
             </a>
             <div className="navlinks">
-              <a href="#how-it-works">How It Works</a>
-              <a href="#features">Features</a>
-              <a href="#simulation">Simulation</a>
-              <a href="#impact">Impact</a>
+              <a href="#how-it-works">{t("nav.howItWorks", "How It Works")}</a>
+              <a href="#features">{t("nav.features", "Features")}</a>
+              <a href="#simulation">{t("nav.simulation", "Simulation")}</a>
+              <a href="#impact">{t("nav.impact", "Impact")}</a>
             </div>
-            <button
-              onClick={() => navigate({ to: user ? "/home" : "/auth" })}
-              className="cart cursor-pointer"
-              id="nav-demo-btn"
-              aria-label={user ? "Go to Dashboard" : "Get Started"}
-            >
-              {user ? "Dashboard →" : "Get Started →"}
-            </button>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "12px" }}>
+              <LanguageSwitcher />
+              <button
+                onClick={() => navigate({ to: user ? "/home" : "/auth" })}
+                className="cart cursor-pointer"
+                id="nav-demo-btn"
+                aria-label={user ? t("nav.dashboardCta", "Dashboard →") : t("nav.getStartedCta", "Get Started →")}
+              >
+                {user ? t("nav.dashboardCta", "Dashboard →") : t("nav.getStartedCta", "Get Started →")}
+              </button>
+            </div>
           </nav>
 
           <div className="hero-inner">
             <span className="eyebrow">
-              <span className="pulse"></span>AI-POWERED AGRICULTURAL INTELLIGENCE
+              <span className="pulse"></span>{t("hero.eyebrow", "AI-POWERED AGRICULTURAL INTELLIGENCE")}
             </span>
 
             <h1 className="headline">
-              <span className="l1">Every Farmer a King,</span>
+              <span className="l1">{t("hero.headlineL1", "Every Farmer a King,")}</span>
               <br />
-              <span className="l2">with AI by their side.</span>
+              <span className="l2">{t("hero.headlineL2", "with AI by their side.")}</span>
             </h1>
 
             <p className="subtitle">
-              AgriSeva-AI is an intelligent agricultural advisory platform providing AI guidance, multilingual voice assistance, live weather, soil insights, India-wide mandi market prices, chemical safety verification, and verified expert support.
+              {t(
+                "hero.subtitle",
+                "AgriSeva-AI is an intelligent agricultural advisory platform providing AI guidance, multilingual voice assistance, live weather, soil insights, India-wide mandi market prices, chemical safety verification, and verified expert support."
+              )}
             </p>
 
             <div className="cta-row">
@@ -1094,9 +1118,9 @@ export function LandingPage() {
                 onClick={() => navigate({ to: user ? "/home" : "/auth" })}
                 className="btn-primary cursor-pointer"
                 id="hero-demo-btn"
-                aria-label="Get Started with AgriSeva-AI"
+                aria-label={user ? t("hero.ctaPrimaryDashboard", "Go to Dashboard →") : t("hero.ctaPrimary", "Get Started with AgriSeva-AI →")}
               >
-                {user ? "Go to Dashboard →" : "Get Started with AgriSeva-AI →"}
+                {user ? t("hero.ctaPrimaryDashboard", "Go to Dashboard →") : t("hero.ctaPrimary", "Get Started with AgriSeva-AI →")}
               </button>
               <button
                 className="btn-ghost"
@@ -1105,22 +1129,22 @@ export function LandingPage() {
                   if (el) el.scrollIntoView({ behavior: "smooth" });
                 }}
               >
-                Explore How It Works
+                {t("hero.ctaSecondary", "Explore How It Works")}
               </button>
             </div>
 
             <div className="stats">
               <div className="stat">
-                <div className="num">24/7</div>
-                <div className="lbl">AI ADVISORY</div>
+                <div className="num">{t("hero.statAdvisory", "24/7")}</div>
+                <div className="lbl">{t("hero.statAdvisoryLbl", "AI ADVISORY")}</div>
               </div>
               <div className="stat">
-                <div className="num">VOICE</div>
-                <div className="lbl">MULTILINGUAL AI</div>
+                <div className="num">{t("hero.statVoice", "VOICE")}</div>
+                <div className="lbl">{t("hero.statVoiceLbl", "MULTILINGUAL AI")}</div>
               </div>
               <div className="stat">
-                <div className="num">ALL-INDIA</div>
-                <div className="lbl">MANDI PRICES</div>
+                <div className="num">{t("hero.statMandi", "ALL-INDIA")}</div>
+                <div className="lbl">{t("hero.statMandiLbl", "MANDI PRICES")}</div>
               </div>
             </div>
           </div>
@@ -1130,78 +1154,90 @@ export function LandingPage() {
         <section className="products" id="simulation">
           <div className="sec-head">
             <h2>
-              Agricultural Advisory
+              {t("solutions.secTitle", "Agricultural Advisory")}
               <br />
-              <span className="faded">&amp; Farm Intelligence</span>
+              <span className="faded">{t("solutions.secFaded", "& Farm Intelligence")}</span>
             </h2>
             <p>
-              Access AI-powered crop guidance, India-wide mandi market prices, and expert assistance tailored to your farming needs.
+              {t(
+                "solutions.secDesc",
+                "Access AI-powered crop guidance, India-wide mandi market prices, and expert assistance tailored to your farming needs."
+              )}
             </p>
           </div>
 
           <div className="grid">
             <article className="card">
               <div className="imgwrap">
-                <span className="tag">AI Advisory</span>
+                <span className="tag">{t("solutions.advisoryTag", "AI Advisory")}</span>
                 <img
                   src="https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80"
-                  alt="AI-powered crop guidance in golden wheat field"
+                  alt={t("accessibility.aiGuidanceWheatAlt", "AI-powered crop guidance in golden wheat field")}
                 />
               </div>
               <div className="body">
                 <div className="row">
-                  <span className="name">AI Crop Advisory</span>
-                  <span className="price">Smart Guidance</span>
+                  <span className="name">{t("solutions.advisoryTitle", "AI Crop Advisory")}</span>
+                  <span className="price">{t("solutions.advisoryPrice", "Smart Guidance")}</span>
                 </div>
                 <p className="desc">
-                  Get AI-powered guidance for crop care, farming decisions, and agricultural questions across all stages of cultivation.
+                  {t(
+                    "solutions.advisoryDesc",
+                    "Get AI-powered guidance for crop care, farming decisions, and agricultural questions across all stages of cultivation."
+                  )}
                 </p>
                 <button className="add cursor-pointer" onClick={() => (window as any).openDemoModal()}>
-                  Simulate Crop Scenarios
+                  {t("solutions.advisoryBtn", "Simulate Crop Scenarios")}
                 </button>
               </div>
             </article>
 
             <article className="card">
               <div className="imgwrap">
-                <span className="tag">Market Discovery</span>
+                <span className="tag">{t("solutions.mandiTag", "Market Discovery")}</span>
                 <img
                   src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80"
-                  alt="Market price discovery across agricultural mandis"
+                  alt={t("accessibility.marketDiscoveryAlt", "Market price discovery across agricultural mandis")}
                 />
               </div>
               <div className="body">
                 <div className="row">
-                  <span className="name">Market Price Discovery</span>
-                  <span className="price">Mandi Information</span>
+                  <span className="name">{t("solutions.mandiTitle", "Market Price Discovery")}</span>
+                  <span className="price">{t("solutions.mandiPrice", "Mandi Information")}</span>
                 </div>
                 <p className="desc">
-                  Find India-wide crop market-price information across agricultural markets to discover current fair market value.
+                  {t(
+                    "solutions.mandiDesc",
+                    "Find India-wide crop market-price information across agricultural markets to discover current fair market value."
+                  )}
                 </p>
                 <button className="add cursor-pointer" onClick={() => (window as any).openDemoModal()}>
-                  Explore Market Values
+                  {t("solutions.mandiBtn", "Explore Market Values")}
                 </button>
               </div>
             </article>
 
             <article className="card">
               <div className="imgwrap">
-                <span className="tag">Safety &amp; Experts</span>
+                <span className="tag">{t("solutions.safetyTag", "Safety & Experts")}</span>
                 <img
                   src="https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=800&q=80"
-                  alt="Chemical verification and expert assistance"
+                  alt={t("accessibility.chemSafetyAlt", "Chemical verification and expert assistance")}
                 />
               </div>
               <div className="body">
                 <div className="row">
-                  <span className="name">Chemical Safety &amp; Experts</span>
-                  <span className="price">Verified Care</span>
+                  <span className="name">{t("solutions.safetyTitle", "Chemical Safety & Experts")}</span>
+                  <span className="price">{t("solutions.safetyPrice", "Verified Care")}</span>
                 </div>
                 <p className="desc">
-                  Verify agricultural chemicals before use and escalate complex farming questions to verified agricultural experts.
+                  {t(
+                    "solutions.safetyDesc",
+                    "Verify agricultural chemicals before use and escalate complex farming questions to verified agricultural experts."
+                  )}
                 </p>
                 <button className="add cursor-pointer" onClick={() => (window as any).openDemoModal()}>
-                  Explore Safety &amp; Experts
+                  {t("solutions.safetyBtn", "Explore Safety & Experts")}
                 </button>
               </div>
             </article>
@@ -1212,12 +1248,15 @@ export function LandingPage() {
         <section className="values" id="features">
           <div className="sec-head">
             <h2>
-              Farming Intelligence
+              {t("values.secTitle", "Farming Intelligence")}
               <br />
-              <span className="faded">Every Step of the Season</span>
+              <span className="faded">{t("values.secFaded", "Every Step of the Season")}</span>
             </h2>
             <p>
-              AgriSeva-AI brings useful agricultural intelligence closer to farmers to support better day-to-day decisions.
+              {t(
+                "values.secDesc",
+                "AgriSeva-AI brings useful agricultural intelligence closer to farmers to support better day-to-day decisions."
+              )}
             </p>
           </div>
           <div className="values-grid">
@@ -1237,8 +1276,8 @@ export function LandingPage() {
                   <path d="M8 19v2M8 13v2M12 21v2M12 15v2M16 19v2M16 13v2" />
                 </svg>
               </div>
-              <h4>Weather Intelligence</h4>
-              <p>Use weather information to make better day-to-day farming decisions and plan field operations effectively.</p>
+              <h4>{t("values.weatherTitle", "Weather Intelligence")}</h4>
+              <p>{t("values.weatherDesc", "Use weather information to make better day-to-day farming decisions and plan field operations effectively.")}</p>
             </div>
             <div className="value">
               <div className="vicon">
@@ -1255,8 +1294,8 @@ export function LandingPage() {
                   <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
                 </svg>
               </div>
-              <h4>Soil Information</h4>
-              <p>Understand soil-related information to support better crop choices, nutrient application, and irrigation planning.</p>
+              <h4>{t("values.soilTitle", "Soil Information")}</h4>
+              <p>{t("values.soilDesc", "Understand soil-related information to support better crop choices, nutrient application, and irrigation planning.")}</p>
             </div>
             <div className="value">
               <div className="vicon">
@@ -1274,8 +1313,8 @@ export function LandingPage() {
                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
               </div>
-              <h4>Agricultural Safety</h4>
-              <p>Verify agricultural chemicals and receive safety-focused guidance before applying treatments on your crops.</p>
+              <h4>{t("values.safetyTitle", "Agricultural Safety")}</h4>
+              <p>{t("values.safetyDesc", "Verify agricultural chemicals and receive safety-focused guidance before applying treatments on your crops.")}</p>
             </div>
             <div className="value">
               <div className="vicon">
@@ -1293,8 +1332,8 @@ export function LandingPage() {
                   <polyline points="17 6 23 6 23 12" />
                 </svg>
               </div>
-              <h4>Market Price Discovery</h4>
-              <p>Find India-wide crop market-price information across agricultural markets to discover current fair market value.</p>
+              <h4>{t("values.mandiTitle", "Market Price Discovery")}</h4>
+              <p>{t("values.mandiDesc", "Find India-wide crop market-price information across agricultural markets to discover current fair market value.")}</p>
             </div>
           </div>
         </section>
@@ -1303,51 +1342,51 @@ export function LandingPage() {
         <section className="categories" id="how-it-works">
           <div className="sec-head">
             <h2>
-              How It Works
+              {t("howItWorks.secTitle", "How It Works")}
               <br />
-              <span className="faded">From Question to Guidance</span>
+              <span className="faded">{t("howItWorks.secFaded", "From Question to Guidance")}</span>
             </h2>
-            <p>A simple, farmer-friendly workflow bringing trustworthy agricultural intelligence straight to your hands.</p>
+            <p>{t("howItWorks.secDesc", "A simple, farmer-friendly workflow bringing trustworthy agricultural intelligence straight to your hands.")}</p>
           </div>
           <div className="cat-grid">
             <div className="cat" onClick={() => (window as any).openDemoModal()}>
               <img
                 src="https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=800&q=80"
-                alt="Ask questions in any language"
+                alt={t("accessibility.askAnyLangAlt", "Ask questions in any language")}
               />
               <div className="ov">
-                <div className="cname">01. Ask in Any Language</div>
-                <div className="ccount">Multilingual Text &amp; Voice Assistance</div>
+                <div className="cname">{t("howItWorks.step1Title", "01. Ask in Any Language")}</div>
+                <div className="ccount">{t("howItWorks.step1Sub", "Multilingual Text & Voice Assistance")}</div>
               </div>
             </div>
             <div className="cat" onClick={() => (window as any).openDemoModal()}>
               <img
                 src="https://images.unsplash.com/photo-1530507629858-e4977d30e9e0?auto=format&fit=crop&w=800&q=80"
-                alt="Context-aware farming intelligence"
+                alt={t("accessibility.contextAwareAlt", "Context-aware farming intelligence")}
               />
               <div className="ov">
-                <div className="cname">02. Context-Aware AI</div>
-                <div className="ccount">Weather, Soil &amp; Mandi Information</div>
+                <div className="cname">{t("howItWorks.step2Title", "02. Context-Aware AI")}</div>
+                <div className="ccount">{t("howItWorks.step2Sub", "Weather, Soil & Mandi Information")}</div>
               </div>
             </div>
             <div className="cat" onClick={() => (window as any).openDemoModal()}>
               <img
                 src="https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=800&q=80"
-                alt="Verified agricultural guidance"
+                alt={t("accessibility.verifiedGuidanceAlt", "Verified agricultural guidance")}
               />
               <div className="ov">
-                <div className="cname">03. Verified Advisory</div>
-                <div className="ccount">Package of Practices &amp; Safety Checks</div>
+                <div className="cname">{t("howItWorks.step3Title", "03. Verified Advisory")}</div>
+                <div className="ccount">{t("howItWorks.step3Sub", "Package of Practices & Safety Checks")}</div>
               </div>
             </div>
             <div className="cat" onClick={() => (window as any).openDemoModal()}>
               <img
                 src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=800&q=80"
-                alt="Expert assistance and escalation"
+                alt={t("accessibility.expertAssistanceAlt", "Expert assistance and escalation")}
               />
               <div className="ov">
-                <div className="cname">04. Expert Support</div>
-                <div className="ccount">Escalate to Agricultural Specialists</div>
+                <div className="cname">{t("howItWorks.step4Title", "04. Expert Support")}</div>
+                <div className="ccount">{t("howItWorks.step4Sub", "Escalate to Agricultural Specialists")}</div>
               </div>
             </div>
           </div>
@@ -1356,39 +1395,59 @@ export function LandingPage() {
         {/* IMPACT */}
         <section className="impact" id="impact">
           <div className="impact-inner">
-            <div className="ieyebrow">Agricultural Decision Support</div>
-            <h2>Empowering Every Farmer with Timely, Trustworthy Intelligence.</h2>
+            <div className="ieyebrow">{t("impact.eyebrow", "Agricultural Decision Support")}</div>
+            <h2>{t("impact.title", "Empowering Every Farmer with Timely, Trustworthy Intelligence.")}</h2>
             <div className="impact-stats">
               <div className="istat">
-                <div className="inum">AI Advisory</div>
+                <div className="inum">{t("impact.stat1Val", "AI Advisory")}</div>
                 <div className="ilbl">
-                  Crop Guidance
-                  <br />
-                  Answers for day-to-day farming questions
+                  {t("impact.stat1Lbl", "Crop Guidance\nAnswers for day-to-day farming questions")
+                    .split("\n")
+                    .map((line, idx) => (
+                      <React.Fragment key={idx}>
+                        {line}
+                        {idx === 0 && <br />}
+                      </React.Fragment>
+                    ))}
                 </div>
               </div>
               <div className="istat">
-                <div className="inum">Multilingual</div>
+                <div className="inum">{t("impact.stat2Val", "Multilingual")}</div>
                 <div className="ilbl">
-                  Voice Support
-                  <br />
-                  Interact naturally in regional languages
+                  {t("impact.stat2Lbl", "Voice Support\nInteract naturally in regional languages")
+                    .split("\n")
+                    .map((line, idx) => (
+                      <React.Fragment key={idx}>
+                        {line}
+                        {idx === 0 && <br />}
+                      </React.Fragment>
+                    ))}
                 </div>
               </div>
               <div className="istat">
-                <div className="inum">Mandi Prices</div>
+                <div className="inum">{t("impact.stat3Val", "Mandi Prices")}</div>
                 <div className="ilbl">
-                  Price Discovery
-                  <br />
-                  Current market rates across India
+                  {t("impact.stat3Lbl", "Price Discovery\nCurrent market rates across India")
+                    .split("\n")
+                    .map((line, idx) => (
+                      <React.Fragment key={idx}>
+                        {line}
+                        {idx === 0 && <br />}
+                      </React.Fragment>
+                    ))}
                 </div>
               </div>
               <div className="istat">
-                <div className="inum">Expert Care</div>
+                <div className="inum">{t("impact.stat4Val", "Expert Care")}</div>
                 <div className="ilbl">
-                  Specialist Review
-                  <br />
-                  Escalate complex questions to experts
+                  {t("impact.stat4Lbl", "Specialist Review\nEscalate complex questions to experts")
+                    .split("\n")
+                    .map((line, idx) => (
+                      <React.Fragment key={idx}>
+                        {line}
+                        {idx === 0 && <br />}
+                      </React.Fragment>
+                    ))}
                 </div>
               </div>
             </div>
@@ -1399,17 +1458,20 @@ export function LandingPage() {
         <section className="testimonials">
           <div className="sec-head">
             <h2>
-              Farmer &amp; Expert
+              {t("testimonials.secTitle", "Farmer & Expert")}
               <br />
-              <span className="faded">Experiences</span>
+              <span className="faded">{t("testimonials.secFaded", "Experiences")}</span>
             </h2>
-            <p>How AgriSeva-AI assists farmers, extension workers, and coordinators across agricultural regions.</p>
+            <p>{t("testimonials.secDesc", "How AgriSeva-AI assists farmers, extension workers, and coordinators across agricultural regions.")}</p>
           </div>
           <div className="tgrid">
             <div className="tcard">
               <div className="stars">★★★★★</div>
               <p className="quote">
-                "AgriSeva-AI makes agricultural advice instantly accessible in our local language. The voice assistance helps us get crop guidance without typing."
+                {t(
+                  "testimonials.quote1",
+                  '"AgriSeva-AI makes agricultural advice instantly accessible in our local language. The voice assistance helps us get crop guidance without typing."'
+                )}
               </p>
               <div className="who">
                 <img
@@ -1419,14 +1481,17 @@ export function LandingPage() {
                 />
                 <div>
                   <div className="nm">Ramesh Patel</div>
-                  <div className="rl">Paddy &amp; Wheat Farmer</div>
+                  <div className="rl">{t("testimonials.role1", "Paddy & Wheat Farmer")}</div>
                 </div>
               </div>
             </div>
             <div className="tcard">
               <div className="stars">★★★★★</div>
               <p className="quote">
-                "Checking mandi prices across nearby markets before selling helps us understand fair market value for our harvest with complete confidence."
+                {t(
+                  "testimonials.quote2",
+                  '"Checking mandi prices across nearby markets before selling helps us understand fair market value for our harvest with complete confidence."'
+                )}
               </p>
               <div className="who">
                 <img
@@ -1436,14 +1501,17 @@ export function LandingPage() {
                 />
                 <div>
                   <div className="nm">Suresh Kumar</div>
-                  <div className="rl">Cotton &amp; Soybean Grower</div>
+                  <div className="rl">{t("testimonials.role2", "Cotton & Soybean Grower")}</div>
                 </div>
               </div>
             </div>
             <div className="tcard">
               <div className="stars">★★★★★</div>
               <p className="quote">
-                "Having verified Package of Practices and expert escalation ensures farmers receive accurate, safety-verified chemical guidance."
+                {t(
+                  "testimonials.quote3",
+                  '"Having verified Package of Practices and expert escalation ensures farmers receive accurate, safety-verified chemical guidance."'
+                )}
               </p>
               <div className="who">
                 <img
@@ -1453,7 +1521,7 @@ export function LandingPage() {
                 />
                 <div>
                   <div className="nm">Dr. Ananya Sharma</div>
-                  <div className="rl">Agricultural Extension Specialist</div>
+                  <div className="rl">{t("testimonials.role3", "Agricultural Extension Specialist")}</div>
                 </div>
               </div>
             </div>
@@ -1465,55 +1533,67 @@ export function LandingPage() {
           <div className="faq-wrap">
             <div className="sec-head">
               <h2>
-                Frequently
+                {t("faq.secTitle", "Frequently")}
                 <br />
-                <span className="faded">Asked Questions</span>
+                <span className="faded">{t("faq.secFaded", "Asked Questions")}</span>
               </h2>
-              <p>Everything you need to know about agricultural guidance, market prices, and expert support on AgriSeva-AI.</p>
+              <p>{t("faq.secDesc", "Everything you need to know about agricultural guidance, market prices, and expert support on AgriSeva-AI.")}</p>
             </div>
             <div className="faq-list">
               <div className="faq-item" onClick={(e) => (window as any).toggleFaq(e.currentTarget)}>
                 <div className="q">
-                  What is AgriSeva-AI and how does it help farmers?
+                  {t("faq.q1", "What is AgriSeva-AI and how does it help farmers?")}
                   <svg className="pm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </div>
                 <div className="a" style={{ display: "none" }}>
-                  AgriSeva-AI is an AI-powered agricultural decision-support platform that helps farmers make better decisions using AI-driven crop guidance, multilingual voice assistance, weather and soil information, and expert support.
+                  {t(
+                    "faq.a1",
+                    "AgriSeva-AI is an AI-powered agricultural decision-support platform that helps farmers make better decisions using AI-driven crop guidance, multilingual voice assistance, weather and soil information, and expert support."
+                  )}
                 </div>
               </div>
               <div className="faq-item" onClick={(e) => (window as any).toggleFaq(e.currentTarget)}>
                 <div className="q">
-                  Can farmers interact using voice and regional languages?
+                  {t("faq.q2", "Can farmers interact using voice and regional languages?")}
                   <svg className="pm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </div>
                 <div className="a" style={{ display: "none" }}>
-                  Yes. Farmers can speak or type in multiple Indian languages, making agricultural intelligence easily accessible directly through conversational voice and text assistance.
+                  {t(
+                    "faq.a2",
+                    "Yes. Farmers can speak or type in multiple Indian languages, making agricultural intelligence easily accessible directly through conversational voice and text assistance."
+                  )}
                 </div>
               </div>
               <div className="faq-item" onClick={(e) => (window as any).toggleFaq(e.currentTarget)}>
                 <div className="q">
-                  How does AgriSeva-AI provide market-price information?
+                  {t("faq.q3", "How does AgriSeva-AI provide market-price information?")}
                   <svg className="pm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </div>
                 <div className="a" style={{ display: "none" }}>
-                  AgriSeva-AI provides current crop market prices across Indian mandis and Agmarknet, helping farmers discover market values and compare nearby market rates at harvest.
+                  {t(
+                    "faq.a3",
+                    "AgriSeva-AI provides current crop market prices across Indian mandis and Agmarknet, helping farmers discover market values and compare nearby market rates at harvest."
+                  )}
                 </div>
               </div>
               <div className="faq-item" onClick={(e) => (window as any).toggleFaq(e.currentTarget)}>
                 <div className="q">
-                  Can complex agricultural questions be escalated to experts?
+                  {t("faq.q4", "Can complex agricultural questions be escalated to experts?")}
                   <svg className="pm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </div>
                 <div className="a" style={{ display: "none" }}>
-                  Yes. Whenever a farming query requires human validation, AgriSeva-AI escalates the question to verified agricultural experts and Package of Practices coordinators for authoritative review.
+                  {t(
+                    "faq.a4",
+                    "Yes. Whenever a farming query requires human validation, AgriSeva-AI escalates the question to verified agricultural experts and Package of Practices coordinators for authoritative review."
+                  )}
                 </div>
               </div>
             </div>
@@ -1524,10 +1604,15 @@ export function LandingPage() {
         <footer className="footer">
           <div className="footer-inner">
             <h3>
-              Ready to farm with <span>AI by your side?</span>
+              {t("footer.title", "Ready to farm with")}{" "}
+              <span>{t("footer.titleFaded", "AI by your side?")}</span>
             </h3>
             <div className="signup">
-              <input type="email" placeholder="Enter your email" aria-label="Email address" />
+              <input
+                type="email"
+                placeholder={t("footer.signupPlaceholder", "Enter your email")}
+                aria-label={t("accessibility.emailAddress", "Email address")}
+              />
               <button
                 onClick={() => navigate({ to: user ? "/home" : "/auth" })}
                 className="btn-primary cursor-pointer"
@@ -1544,13 +1629,18 @@ export function LandingPage() {
                   border: "none",
                 }}
               >
-                Get Started →
+                {t("footer.signupBtn", "Get Started →")}
               </button>
             </div>
           </div>
           <div className="footnote">
-            <span>© 2026 AgriSeva-AI — Agricultural Decision Support Platform. All rights reserved.</span>
-            <span>Every Farmer a King, with AI by their side.</span>
+            <span>
+              {t(
+                "footer.copyright",
+                "© 2026 AgriSeva-AI — Agricultural Decision Support Platform. All rights reserved."
+              )}
+            </span>
+            <span>{t("footer.slogan", "Every Farmer a King, with AI by their side.")}</span>
           </div>
         </footer>
       </div>
@@ -1577,12 +1667,12 @@ export function LandingPage() {
                   (e.target as HTMLImageElement).src = "/logo.png";
                 }}
               />
-              AgriSeva-AI Agricultural Scenario Simulator
+              {t("simulator.modalTitle", "AgriSeva-AI Agricultural Scenario Simulator")}
             </h3>
             <button
               className="demo-close-btn"
               onClick={() => (window as any).closeDemoModal()}
-              aria-label="Close demo modal"
+              aria-label={t("simulator.closeAria", "Close demo modal")}
             >
               &times;
             </button>
@@ -1590,11 +1680,11 @@ export function LandingPage() {
           <div className="demo-body">
             <div className="sim-grid">
               <div className="sim-controls">
-                <h4>🌾 Agricultural Parameters</h4>
+                <h4>{t("simulator.paramsTitle", "🌾 Agricultural Parameters")}</h4>
 
                 <div className="sim-control-group">
                   <div className="sim-label-row">
-                    <span>Rainfall Variation</span>
+                    <span>{t("simulator.rainfallVar", "Rainfall Variation")}</span>
                     <span className="sim-val" id="valRain">
                       -15%
                     </span>
@@ -1613,7 +1703,7 @@ export function LandingPage() {
 
                 <div className="sim-control-group">
                   <div className="sim-label-row">
-                    <span>Irrigation Availability</span>
+                    <span>{t("simulator.irrigationAvail", "Irrigation Availability")}</span>
                     <span className="sim-val" id="valWater">
                       80%
                     </span>
@@ -1632,7 +1722,7 @@ export function LandingPage() {
 
                 <div className="sim-control-group">
                   <div className="sim-label-row">
-                    <span>Fertilizer Cost Change</span>
+                    <span>{t("simulator.fertCost", "Fertilizer Cost Change")}</span>
                     <span className="sim-val" id="valFert">
                       +20%
                     </span>
@@ -1651,7 +1741,7 @@ export function LandingPage() {
 
                 <div className="sim-control-group">
                   <div className="sim-label-row">
-                    <span>Market Price Assumption</span>
+                    <span>{t("simulator.marketPriceAssump", "Market Price Assumption")}</span>
                     <span className="sim-val" id="valPrice">
                       +5%
                     </span>
@@ -1678,44 +1768,47 @@ export function LandingPage() {
                   }}
                   onClick={() => (window as any).resetSim()}
                 >
-                  Reset to Baseline
+                  {t("simulator.resetBtn", "Reset to Baseline")}
                 </button>
               </div>
 
               <div className="sim-results">
-                <h4>📊 Simulated Agricultural Outcomes</h4>
+                <h4>{t("simulator.outcomesTitle", "📊 Simulated Agricultural Outcomes")}</h4>
                 <div className="metric-cards">
                   <div className="metric-card">
-                    <div className="m-lbl">Projected Yield</div>
+                    <div className="m-lbl">{t("simulator.projectedYield", "Projected Yield")}</div>
                     <div className="m-val" id="resYield">
                       3.48 t/ha
                     </div>
                   </div>
                   <div className="metric-card">
-                    <div className="m-lbl">Est. Revenue</div>
+                    <div className="m-lbl">{t("simulator.estRevenue", "Est. Revenue")}</div>
                     <div className="m-val" id="resRev">
                       $1,288/ha
                     </div>
                   </div>
                   <div className="metric-card">
-                    <div className="m-lbl">Net Profit</div>
+                    <div className="m-lbl">{t("simulator.netProfit", "Net Profit")}</div>
                     <div className="m-val green" id="resProfit">
                       $518/ha
                     </div>
                   </div>
                   <div className="metric-card">
-                    <div className="m-lbl">Downside Risk</div>
+                    <div className="m-lbl">{t("simulator.downsideRisk", "Downside Risk")}</div>
                     <div className="m-val">
                       <span className="risk-badge" id="resRisk">
-                        Moderate
+                        {t("simulator.moderate", "Moderate")}
                       </span>
                     </div>
                   </div>
                 </div>
                 <div className="explain-box">
-                  <strong>💡 Agricultural Decision Guidance:</strong>
+                  <strong>{t("simulator.guidanceTitle", "💡 Agricultural Decision Guidance:")}</strong>
                   <span id="resExplain">
-                    Under -15% rainfall deficit and +20% fertilizer cost, adopting a deficit irrigation regime with split-nitrogen application preserves 88% of peak profit while reducing downside risk by 22%.
+                    {t(
+                      "simulator.guidanceText",
+                      "Under -15% rainfall deficit and +20% fertilizer cost, adopting a deficit irrigation regime with split-nitrogen application preserves 88% of peak profit while reducing downside risk by 22%."
+                    )}
                   </span>
                 </div>
 
@@ -1737,7 +1830,7 @@ export function LandingPage() {
                       background: "var(--green-deep)",
                     }}
                   >
-                    Open Platform →
+                    {t("simulator.openPlatform", "Open Platform →")}
                   </button>
                   <button
                     onClick={() => {
@@ -1757,7 +1850,7 @@ export function LandingPage() {
                       color: "#fff",
                     }}
                   >
-                    Sign In (/auth) →
+                    {t("simulator.signIn", "Sign In (/auth) →")}
                   </button>
                 </div>
               </div>
@@ -1808,7 +1901,7 @@ export function LandingPage() {
           <path d="M15 13v2" />
           <path d="M9 13v2" />
         </svg>
-        <span>Ask AgriSeva-AI</span>
+        <span>{t("common.askAgriSeva", "Ask AgriSeva-AI")}</span>
       </button>
     </div>
   );

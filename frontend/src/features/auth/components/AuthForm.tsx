@@ -16,6 +16,8 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import { useTranslation } from "@/locales";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface AuthFormProps {
   mode?: "login" | "signup" | "forgot";
@@ -29,6 +31,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
   const { setUser, loginWithGoogle } = useAuthStore();
   const { mutateAsync: signupMutation } = useSignup();
   const { mutateAsync: forgotPasswordMutation } = useForgotPassword();
+  const { t } = useTranslation();
 
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">(
     initialMode === "login" ? "signin" : initialMode
@@ -51,19 +54,19 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
 
     if (mode === "signup") {
       if (!name.trim()) {
-        setErrorMsg("Please enter your full name.");
+        setErrorMsg(t("errors.enterFullName", "Please enter your full name."));
         return;
       }
       if (!email.trim() || !email.includes("@")) {
-        setErrorMsg("Please enter a valid email address.");
+        setErrorMsg(t("errors.enterValidEmail", "Please enter a valid email address."));
         return;
       }
       if (password.length < 6) {
-        setErrorMsg("Password must be at least 6 characters.");
+        setErrorMsg(t("errors.passwordLength", "Password must be at least 6 characters."));
         return;
       }
       if (password !== confirmPassword) {
-        setErrorMsg("Passwords do not match.");
+        setErrorMsg(t("errors.passwordsMismatch", "Passwords do not match."));
         return;
       }
 
@@ -80,13 +83,17 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
           lastName,
         });
 
-        toast.success(response?.message || "Registration successful! Please check your email to verify.");
-        setSuccessMsg("Registration successful! Please check your inbox to verify your email.");
+        const successText =
+          response?.message ||
+          t("errors.regSuccess", "Registration successful! Please check your email to verify.");
+        toast.success(successText);
+        setSuccessMsg(successText);
         setMode("signin");
       } catch (err: any) {
-        let msg = err?.message || "Failed to create account.";
+        let msg =
+          err?.message || t("errors.accountCreateFailed", "Failed to create account.");
         if (msg.includes("already registered") || msg.includes("email-already-in-use")) {
-          msg = "This email is already registered. Please sign in instead.";
+          msg = t("errors.emailInUse", "This email is already registered. Please sign in instead.");
         }
         setErrorMsg(msg);
         toast.error(msg);
@@ -95,11 +102,11 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
       }
     } else if (mode === "signin") {
       if (!email.trim()) {
-        setErrorMsg("Please enter your email.");
+        setErrorMsg(t("errors.enterEmail", "Please enter your email."));
         return;
       }
       if (!password) {
-        setErrorMsg("Please enter your password.");
+        setErrorMsg(t("errors.passwordRequired", "Please enter your password."));
         return;
       }
 
@@ -137,16 +144,21 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
       }
     } else if (mode === "forgot") {
       if (!email.trim()) {
-        setErrorMsg("Please enter your email to receive recovery instructions.");
+        setErrorMsg(t("errors.enterEmail", "Please enter your email to receive recovery instructions."));
         return;
       }
       setIsSubmitting(true);
       try {
         await forgotPasswordMutation(email);
-        setSuccessMsg("Password reset instructions have been sent to your email.");
-        toast.success("Reset email sent!");
+        const resetText = t(
+          "errors.resetSent",
+          "Password reset instructions have been sent to your email."
+        );
+        setSuccessMsg(resetText);
+        toast.success(resetText);
       } catch (err: any) {
-        const msg = err?.message || "Failed to send reset email.";
+        const msg =
+          err?.message || t("errors.resetFailed", "Failed to send reset email.");
         setErrorMsg(msg);
         toast.error(msg);
       } finally {
@@ -226,41 +238,41 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
         <div className="relative z-20 max-w-lg space-y-6">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold backdrop-blur-md">
             <Sprout className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Decision Intelligence for Indian Agriculture</span>
+            <span>{t("auth.heroBadge", "Decision Intelligence for Indian Agriculture")}</span>
           </div>
 
           <h2 className="font-extrabold text-4xl sm:text-5xl text-white tracking-tight leading-[1.15] drop-shadow-sm">
-            Smarter decisions.<br />Stronger farms.
+            {t("auth.heroHeadline1", "Smarter decisions.")}<br />{t("auth.heroHeadline2", "Stronger farms.")}
           </h2>
 
           <p className="text-emerald-100/90 text-sm leading-relaxed max-w-md drop-shadow-xs">
-            AgriSeva-AI helps farmers understand risk, access India-wide market prices, optimize water and fertilizer, and plan each season with confidence.
+            {t("auth.heroDesc", "AgriSeva-AI helps farmers understand risk, access India-wide market prices, optimize water and fertilizer, and plan each season with confidence.")}
           </p>
 
           <div className="flex items-center gap-6 pt-4 text-xs text-emerald-200">
             <div className="flex items-center gap-2 font-medium">
               <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>Biophysical Yield Physics</span>
+              <span>{t("auth.badgePhysics", "Biophysical Yield Physics")}</span>
             </div>
             <div className="flex items-center gap-2 font-medium">
               <TrendingUp className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>Downside Risk Protection</span>
+              <span>{t("auth.badgeRisk", "Downside Risk Protection")}</span>
             </div>
           </div>
         </div>
 
         {/* Bottom Footer Note */}
         <div className="relative z-20 text-xs text-emerald-300/70">
-          © 2026 AgriSeva-AI Platform. All rights reserved.
+          {t("auth.footerCopyright", "© 2026 AgriSeva-AI Platform. All rights reserved.")}
         </div>
       </div>
 
       {/* RIGHT 52%: Authentication Form */}
       <div className="flex-1 flex flex-col justify-center py-12 px-6 sm:px-12 lg:px-20 xl:px-28 bg-white">
         <div className="w-full max-w-md mx-auto space-y-7">
-          {/* Header */}
-          <div>
-            <div className="lg:hidden mb-6">
+          {/* Top Bar with Language Switcher and Mobile Logo */}
+          <div className="flex items-center justify-between">
+            <div className="lg:hidden">
               <Link to="/" className="inline-flex items-center gap-2.5 no-underline">
                 <img
                   src="/favicon.svg"
@@ -272,15 +284,23 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                 </span>
               </Link>
             </div>
+            <div className="hidden lg:block">
+              {/* Spacer on desktop */}
+            </div>
+            <LanguageSwitcher variant="outline" />
+          </div>
+
+          {/* Header */}
+          <div>
             <h1 className="font-extrabold text-3xl text-slate-900 tracking-tight">
-              {mode === "signin" && "Welcome back"}
-              {mode === "signup" && "Create your account"}
-              {mode === "forgot" && "Reset your password"}
+              {mode === "signin" && t("auth.welcomeBack", "Welcome back")}
+              {mode === "signup" && t("auth.createAccount", "Create your account")}
+              {mode === "forgot" && t("auth.forgotPassword", "Reset your password")}
             </h1>
             <p className="mt-2 text-sm text-slate-500">
-              {mode === "signin" && "Sign in to continue to your farm intelligence dashboard."}
-              {mode === "signup" && "Start building smarter, resilient farming decisions."}
-              {mode === "forgot" && "Enter your email to receive recovery instructions."}
+              {mode === "signin" && t("auth.signInSub", "Sign in to continue to your farm intelligence dashboard.")}
+              {mode === "signup" && t("auth.signUpSub", "Start building smarter, resilient farming decisions.")}
+              {mode === "forgot" && t("auth.forgotSub", "Enter your email to receive recovery instructions.")}
             </p>
           </div>
 
@@ -304,14 +324,14 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
             {mode === "signup" && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Full Name
+                  {t("auth.nameLabel", "Full Name")}
                 </label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Gurpreet Singh"
+                  placeholder={t("auth.namePlaceholder", "e.g. Gurpreet Singh")}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition shadow-2xs"
                 />
               </div>
@@ -319,14 +339,14 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Email Address
+                {t("auth.emailLabel", "Email Address")}
               </label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="farmer@example.com"
+                placeholder={t("auth.emailPlaceholder", "farmer@example.com")}
                 className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition shadow-2xs"
               />
             </div>
@@ -335,7 +355,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-semibold text-slate-700">
-                    Password
+                    {t("auth.passwordLabel", "Password")}
                   </label>
                   {mode === "signin" && (
                     <button
@@ -347,7 +367,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                       }}
                       className="text-xs text-emerald-700 hover:text-emerald-800 font-bold cursor-pointer"
                     >
-                      Forgot password?
+                      {t("auth.forgotLink", "Forgot password?")}
                     </button>
                   )}
                 </div>
@@ -375,7 +395,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
             {mode === "signup" && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Confirm Password
+                  {t("auth.confirmPasswordLabel", "Confirm Password")}
                 </label>
                 <div className="relative">
                   <input
@@ -407,10 +427,10 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
               {isSubmitting
                 ? "Processing..."
                 : mode === "signin"
-                ? "Sign In"
+                ? t("auth.signInBtn", "Sign In")
                 : mode === "signup"
-                ? "Create Account"
-                : "Send Reset Link"}
+                ? t("auth.signUpBtn", "Create Account")
+                : t("auth.resetBtn", "Send Reset Link")}
             </button>
           </form>
 
@@ -423,7 +443,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                 </div>
                 <div className="relative flex justify-center text-xs">
                   <span className="bg-white px-3 text-slate-400 font-medium">
-                    OR
+                    {t("auth.orDivider", "OR")}
                   </span>
                 </div>
               </div>
@@ -453,7 +473,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <span>Continue with Google</span>
+                <span>{t("auth.googleBtn", "Continue with Google")}</span>
               </button>
             </div>
           )}
@@ -462,7 +482,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
           <div className="text-center text-xs text-slate-600 pt-2">
             {mode === "signin" && (
               <p>
-                Don't have an account?{" "}
+                {t("auth.noAccount", "Don't have an account?")}{" "}
                 <button
                   type="button"
                   onClick={() => {
@@ -472,14 +492,14 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                   }}
                   className="text-emerald-700 font-bold hover:underline cursor-pointer"
                 >
-                  Create an account
+                  {t("auth.signUpLink", "Create an account")}
                 </button>
               </p>
             )}
 
             {mode === "signup" && (
               <p>
-                Already have an account?{" "}
+                {t("auth.haveAccount", "Already have an account?")}{" "}
                 <button
                   type="button"
                   onClick={() => {
@@ -489,7 +509,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                   }}
                   className="text-emerald-700 font-bold hover:underline cursor-pointer"
                 >
-                  Sign In
+                  {t("auth.signInLink", "Sign In")}
                 </button>
               </p>
             )}
@@ -505,7 +525,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                   }}
                   className="text-emerald-700 font-bold hover:underline cursor-pointer"
                 >
-                  Back to Sign In
+                  {t("auth.signInLink", "Back to Sign In")}
                 </button>
               </p>
             )}

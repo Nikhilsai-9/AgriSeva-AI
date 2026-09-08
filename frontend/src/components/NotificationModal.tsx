@@ -50,6 +50,7 @@ import {
 } from "@/hooks/api/question/useNavigateToQuestion";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/shared/components/toast";
+import { useTranslation } from "@/locales";
 
 export interface Notification {
     _id: string;
@@ -80,6 +81,7 @@ interface NotificationModalProps {
 }
 
 export function NotificationModal({ trigger, copy = "notifications" }: NotificationModalProps) {
+    const { t } = useTranslation();
     const { success: toastSuccess, error: toastError} = useToast();
     const [open, setOpen] = useState(false);
     const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
@@ -128,9 +130,9 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
 
     const unreadCount = notifications.filter((n) => !n.is_read).length;
     const isMessagesCopy = copy === "messages";
-    const titleText = isMessagesCopy ? "Messages" : "Notifications";
-    const itemText = isMessagesCopy ? "messages" : "notifications";
-    const emptyTitleText = isMessagesCopy ? "No messages" : "No notifications";
+    const titleText = isMessagesCopy ? t("notifications.titleMessages", "Messages") : t("notifications.titleNotifications", "Notifications");
+    const itemText = isMessagesCopy ? t("notifications.titleMessages", "Messages").toLowerCase() : t("notifications.titleNotifications", "Notifications").toLowerCase();
+    const emptyTitleText = isMessagesCopy ? t("notifications.noMessages", "No messages") : t("notifications.noNotifications", "No notifications");
 
     const handleNotificationClick = async (notification: Notification) => {
         const { type, enitity_id, _id } = notification;
@@ -160,7 +162,7 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
     const handleMarkAllAsRead = async () => {
         try {
             await markAllAsRead();
-            toastSuccess("All notifications marked as read!");
+            toastSuccess(t("notifications.markedAllReadToast", "All notifications marked as read!"));
         } catch (error) {
             console.error("Error: ", error);
         }
@@ -170,7 +172,7 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
         e.stopPropagation();
         try {
             await deleteNotification(notificationId);
-            toast.success("Notification deleted");
+            toast.success(t("notifications.deletedToast", "Notification deleted"));
         } catch (error) {
             console.error("Error: ", error);
         }
@@ -180,9 +182,9 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
         setDeletePreference(value);
         try {
             await autoDeletePreference(value);
-            toast.success("Preference Updated");
+            toast.success(t("notifications.prefUpdatedToast", "Preference Updated"));
         } catch (error) {
-             toastError("Error updating Preference");
+             toastError(t("notifications.prefErrorToast", "Error updating Preference"));
         }
     };
 
@@ -204,7 +206,7 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
                             <div>
                                 <SheetTitle className="text-xl font-bold">{titleText}</SheetTitle>
                                 <p className="text-sm text-muted-foreground">
-                                    {notifications.length} total, {unreadCount} new
+                                    {t("notifications.totalNewSub", "{total} total, {unread} new", { total: notifications.length, unread: unreadCount })}
                                 </p>
                             </div>
                         </div>
@@ -221,7 +223,7 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
                             <CollapsibleTrigger asChild>
                                 <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground hover:text-foreground">
                                     <Settings2 className="w-4 h-4 mr-2" />
-                                    Filter & Settings
+                                    {t("notifications.filterSettings", "Filter & Settings")}
                                     <ChevronDown className={cn("ml-2 h-4 w-4 transition-transform duration-200", isSettingsOpen && "rotate-180")} />
                                 </Button>
                             </CollapsibleTrigger>
@@ -233,7 +235,7 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
                                 className="text-muted-foreground hover:text-foreground text-xs h-8"
                             >
                                 <CheckCircle className="w-3.5 h-3.5 mr-1 text-primary" />
-                                Mark all read
+                                {t("notifications.markAllRead", "Mark all read")}
                             </Button>
                         </div>
 
@@ -246,7 +248,7 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
                                         filter === "all" ? "bg-primary text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                                     )}
                                 >
-                                    All
+                                    {t("notifications.all", "All")}
                                 </button>
                                 <button
                                     onClick={() => setFilter("unread")}
@@ -255,7 +257,7 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
                                         filter === "unread" ? "bg-primary text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                                     )}
                                 >
-                                    Unread
+                                    {t("notifications.unread", "Unread")}
                                     {unreadCount > 0 && (
                                         <span className="bg-primary/25 text-primary-foreground px-1.5 py-0.5 rounded-full text-[10px] font-bold">
                                             {unreadCount}
@@ -269,23 +271,23 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
                                         filter === "read" ? "bg-primary text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                                     )}
                                 >
-                                    Read
+                                    {t("notifications.read", "Read")}
                                 </button>
                             </div>
 
                             <div className="flex items-center gap-2 p-2 bg-primary/5 rounded-lg border border-primary/20">
                                 <Clock className="w-4 h-4 text-primary" />
-                                <span className="text-xs font-medium text-foreground">Auto-delete after:</span>
+                                <span className="text-xs font-medium text-foreground">{t("notifications.autoDeleteAfter", "Auto-delete after:")}</span>
                                 <Select onValueChange={handlePreferenceChange} value={deletePreference}>
                                     <SelectTrigger className="h-7 w-28 text-xs bg-transparent border-none shadow-none focus:ring-0 text-foreground">
-                                        <SelectValue placeholder="Select" />
+                                        <SelectValue placeholder={t("notifications.selectPlaceholder", "Select")} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="3d">3 days</SelectItem>
-                                        <SelectItem value="1w">1 week</SelectItem>
-                                        <SelectItem value="2w">2 weeks</SelectItem>
-                                        <SelectItem value="1m">1 month</SelectItem>
-                                        <SelectItem value="never">Never</SelectItem>
+                                        <SelectItem value="3d">{t("notifications.days3", "3 days")}</SelectItem>
+                                        <SelectItem value="1w">{t("notifications.week1", "1 week")}</SelectItem>
+                                        <SelectItem value="2w">{t("notifications.weeks2", "2 weeks")}</SelectItem>
+                                        <SelectItem value="1m">{t("notifications.month1", "1 month")}</SelectItem>
+                                        <SelectItem value="never">{t("notifications.never", "Never")}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -301,7 +303,7 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
                                     <BellIcon className="w-8 h-8 text-muted-foreground" />
                                 </div>
                                 <h3 className="font-semibold text-lg">{emptyTitleText}</h3>
-                                <p className="text-sm text-muted-foreground">You're all caught up!</p>
+                                <p className="text-sm text-muted-foreground">{t("notifications.allCaughtUp", "You're all caught up!")}</p>
                             </div>
                         ) : (
                             filteredNotifications.map((n) => (
@@ -371,7 +373,7 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
                                 onClick={() => fetchNextPage()}
                                 disabled={isFetchingNextPage}
                             >
-                                {isFetchingNextPage ? "Loading..." : `View previous ${itemText}`}
+                                {isFetchingNextPage ? t("common.loading", "Loading...") : t("notifications.viewPrevious", "View previous {itemText}", { itemText })}
                             </Button>
                         )}
                     </div>
@@ -379,7 +381,7 @@ export function NotificationModal({ trigger, copy = "notifications" }: Notificat
 
                 <div className="p-4 bg-muted/20 text-center shrink-0 border-t">
                     <p className="text-xs font-semibold text-muted-foreground">
-                        {unreadCount} {itemText} require your attention
+                        {t("notifications.requireAttention", "{unreadCount} {itemText} require your attention", { unreadCount, itemText })}
                     </p>
                 </div>
             </SheetContent>

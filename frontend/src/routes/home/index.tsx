@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { z } from "zod";
 import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
 import { isCoordinatorRole } from "@/lib/roles";
+import { useTranslation } from "@/locales";
 export const Route = createFileRoute("/home/")({
   validateSearch: z.object({
     question: z.string().optional(),
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/home/")({
 });
 
 function RouteComponent() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const { data: currentUser, isLoading } = useGetCurrentUser({});
@@ -45,7 +47,7 @@ function RouteComponent() {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground gap-4">
         <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-        <p className="text-sm font-medium text-muted-foreground animate-pulse">Loading AgriSeva-AI...</p>
+        <p className="text-sm font-medium text-muted-foreground animate-pulse">{t("common.loadingApp", "Loading AgriSeva-AI...")}</p>
       </div>
     );
   }

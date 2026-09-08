@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "../atoms/card";
 import { useRestartOnView } from "@/hooks/ui/useRestartView";
+import { useTranslation } from "@/locales";
 
 export interface ModeratorApprovalRate {
   approved: number;
@@ -21,12 +22,13 @@ interface ApprovalRateCardProps {
 }
 
 export const ApprovalRateCard: React.FC<ApprovalRateCardProps> = ({ data }) => {
+  const { t } = useTranslation();
   const {ref,key} = useRestartOnView()
   return (
     <Card ref={ref} className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle className="text-base">Moderator Approval Rate</CardTitle>
-        <CardDescription>Based on pending and approved answers</CardDescription>
+        <CardTitle className="text-base">{t("dashboard.approvalRateTitle", "Moderator Approval Rate")}</CardTitle>
+        <CardDescription>{t("dashboard.approvalRateDesc", "Based on pending and approved answers")}</CardDescription>
       </CardHeader>
 
       <CardContent className="flex-1 flex items-center">
@@ -34,7 +36,7 @@ export const ApprovalRateCard: React.FC<ApprovalRateCardProps> = ({ data }) => {
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-foreground">
-                Approval Rate
+                {t("dashboard.approvalRate", "Approval Rate")}
               </span>
               <span className="text-2xl font-bold text-primary">
                 <CountUp
@@ -61,7 +63,7 @@ export const ApprovalRateCard: React.FC<ApprovalRateCardProps> = ({ data }) => {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary" />
               <div>
-                <p className="text-xs text-muted-foreground">Approved</p>
+                <p className="text-xs text-muted-foreground">{t("dashboard.approved", "Approved")}</p>
                 <p className="text-lg font-semibold text-foreground">
                   <CountUp key={`approved-${key}`} end={data.approved} duration={2} preserveValue />
                 </p>
@@ -70,7 +72,7 @@ export const ApprovalRateCard: React.FC<ApprovalRateCardProps> = ({ data }) => {
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-muted-foreground">Pending</p>
+                <p className="text-xs text-muted-foreground">{t("dashboard.pending", "Pending")}</p>
                 <p className="text-lg font-semibold text-foreground">
                   <CountUp key={`pending-${key}`} end={data.pending} duration={2} preserveValue />
                 </p>
