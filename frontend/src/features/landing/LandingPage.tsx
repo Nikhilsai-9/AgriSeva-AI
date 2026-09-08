@@ -1083,7 +1083,7 @@ export function LandingPage() {
               <a href="#impact">{t("nav.impact", "Impact")}</a>
             </div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "12px" }}>
-              <LanguageSwitcher />
+              <LanguageSwitcher variant="light" />
               <button
                 onClick={() => navigate({ to: user ? "/home" : "/auth" })}
                 className="cart cursor-pointer"
