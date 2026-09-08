@@ -1076,7 +1076,7 @@ export function LandingPage() {
 
           <div className="hero-inner">
             <span className="eyebrow">
-              <span className="pulse"></span>AI-POWERED AGRICULTURAL DECISION INTELLIGENCE
+              <span className="pulse"></span>AI-POWERED AGRICULTURAL INTELLIGENCE
             </span>
 
             <h1 className="headline">
