@@ -1080,13 +1080,13 @@ export function LandingPage() {
             </span>
 
             <h1 className="headline">
-              <span className="l1">Make Smarter Farming</span>
+              <span className="l1">Every Farmer a King,</span>
               <br />
-              <span className="l2">Decisions</span>
+              <span className="l2">with AI by their side.</span>
             </h1>
 
             <p className="subtitle">
-              AgriSeva-AI is an intelligent agricultural decision support platform that helps farmers simulate climate variability, water constraints, input costs, and market price risks to choose high-return, resilient farming strategies.
+              AgriSeva-AI is an intelligent agricultural advisory platform providing AI guidance, multilingual voice assistance, live weather, soil insights, India-wide mandi market prices, chemical safety verification, and verified expert support.
             </p>
 
             <div className="cta-row">
@@ -1094,9 +1094,9 @@ export function LandingPage() {
                 onClick={() => navigate({ to: user ? "/home" : "/auth" })}
                 className="btn-primary cursor-pointer"
                 id="hero-demo-btn"
-                aria-label="Get Started"
+                aria-label="Get Started with AgriSeva-AI"
               >
-                {user ? "Go to Dashboard →" : "Get Started →"}
+                {user ? "Go to Dashboard →" : "Get Started with AgriSeva-AI →"}
               </button>
               <button
                 className="btn-ghost"
@@ -1111,53 +1111,53 @@ export function LandingPage() {
 
             <div className="stats">
               <div className="stat">
-                <div className="num">10+</div>
-                <div className="lbl">SCENARIO DRIVERS</div>
+                <div className="num">24/7</div>
+                <div className="lbl">AI ADVISORY</div>
               </div>
               <div className="stat">
-                <div className="num">100%</div>
-                <div className="lbl">EXPLAINABLE AI</div>
+                <div className="num">VOICE</div>
+                <div className="lbl">MULTILINGUAL AI</div>
               </div>
               <div className="stat">
-                <div className="num">360°</div>
-                <div className="lbl">RISK INTELLIGENCE</div>
+                <div className="num">ALL-INDIA</div>
+                <div className="lbl">MANDI PRICES</div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* PRODUCTS / DECISION INTELLIGENCE SOLUTIONS */}
+        {/* PRODUCTS / AGRICULTURAL INTELLIGENCE CAPABILITIES */}
         <section className="products" id="simulation">
           <div className="sec-head">
             <h2>
-              Decision Intelligence
+              Agricultural Advisory
               <br />
-              <span className="faded">What-If Simulation</span>
+              <span className="faded">&amp; Farm Intelligence</span>
             </h2>
             <p>
-              Explore how changes in weather, costs, yield, and market prices affect farm outcomes before committing resources.
+              Access AI-powered crop guidance, India-wide mandi market prices, and expert assistance tailored to your farming needs.
             </p>
           </div>
 
           <div className="grid">
             <article className="card">
               <div className="imgwrap">
-                <span className="tag">AI Forecast</span>
+                <span className="tag">AI Advisory</span>
                 <img
                   src="https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80"
-                  alt="Yield and revenue forecasting in golden wheat field"
+                  alt="AI-powered crop guidance in golden wheat field"
                 />
               </div>
               <div className="body">
                 <div className="row">
-                  <span className="name">Yield &amp; Cost Prediction</span>
-                  <span className="price">ML Models</span>
+                  <span className="name">AI Crop Advisory</span>
+                  <span className="price">Smart Guidance</span>
                 </div>
                 <p className="desc">
-                  Predict seasonal crop yield, production costs, and revenue curves under dynamic weather and soil conditions.
+                  Get AI-powered guidance for crop care, farming decisions, and agricultural questions across all stages of cultivation.
                 </p>
                 <button className="add cursor-pointer" onClick={() => (window as any).openDemoModal()}>
-                  Simulate Yield
+                  Simulate Crop Scenarios
                 </button>
               </div>
             </article>
@@ -1167,16 +1167,16 @@ export function LandingPage() {
                 <span className="tag">Market Discovery</span>
                 <img
                   src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80"
-                  alt="Precision agriculture scenario simulation analytics"
+                  alt="Market price discovery across agricultural mandis"
                 />
               </div>
               <div className="body">
                 <div className="row">
-                  <span className="name">India-Wide Market Prices</span>
-                  <span className="price">Mandi Discovery</span>
+                  <span className="name">Market Price Discovery</span>
+                  <span className="price">Mandi Information</span>
                 </div>
                 <p className="desc">
-                  Discover current crop market prices across Indian mandis and Agmarknet to evaluate fair market value at harvest.
+                  Find India-wide crop market-price information across agricultural markets to discover current fair market value.
                 </p>
                 <button className="add cursor-pointer" onClick={() => (window as any).openDemoModal()}>
                   Explore Market Values
@@ -1186,38 +1186,38 @@ export function LandingPage() {
 
             <article className="card">
               <div className="imgwrap">
-                <span className="tag">Explainable AI</span>
+                <span className="tag">Safety &amp; Experts</span>
                 <img
                   src="https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=800&q=80"
-                  alt="Downside risk evaluation and agricultural analytics"
+                  alt="Chemical verification and expert assistance"
                 />
               </div>
               <div className="body">
                 <div className="row">
-                  <span className="name">Downside Risk Intelligence</span>
-                  <span className="price">Risk-Aware</span>
+                  <span className="name">Chemical Safety &amp; Experts</span>
+                  <span className="price">Verified Care</span>
                 </div>
                 <p className="desc">
-                  Evaluate downside risk distributions and profit margins to select resilient, explainable farming strategies.
+                  Verify agricultural chemicals before use and escalate complex farming questions to verified agricultural experts.
                 </p>
                 <button className="add cursor-pointer" onClick={() => (window as any).openDemoModal()}>
-                  View Risk Analysis
+                  Explore Safety &amp; Experts
                 </button>
               </div>
             </article>
           </div>
         </section>
 
-        {/* VALUES / UNCERTAINTY FACTORS */}
+        {/* VALUES / COMPREHENSIVE FARMING INTELLIGENCE */}
         <section className="values" id="features">
           <div className="sec-head">
             <h2>
-              Farming Decisions
+              Farming Intelligence
               <br />
-              <span className="faded">Made Under Uncertainty</span>
+              <span className="faded">Every Step of the Season</span>
             </h2>
             <p>
-              A single prediction is not enough when multiple interconnected agricultural factors can change the final harvest outcome.
+              AgriSeva-AI brings useful agricultural intelligence closer to farmers to support better day-to-day decisions.
             </p>
           </div>
           <div className="values-grid">
@@ -1237,8 +1237,8 @@ export function LandingPage() {
                   <path d="M8 19v2M8 13v2M12 21v2M12 15v2M16 19v2M16 13v2" />
                 </svg>
               </div>
-              <h4>Rainfall Volatility</h4>
-              <p>Simulate precipitation deficits and temperature shifts before committing capital and planting seasonal crops.</p>
+              <h4>Weather Intelligence</h4>
+              <p>Use weather information to make better day-to-day farming decisions and plan field operations effectively.</p>
             </div>
             <div className="value">
               <div className="vicon">
@@ -1255,8 +1255,8 @@ export function LandingPage() {
                   <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
                 </svg>
               </div>
-              <h4>Water Availability</h4>
-              <p>Model canal water restrictions, reservoir levels, and soil moisture constraints to optimize irrigation allocation.</p>
+              <h4>Soil Information</h4>
+              <p>Understand soil-related information to support better crop choices, nutrient application, and irrigation planning.</p>
             </div>
             <div className="value">
               <div className="vicon">
@@ -1274,8 +1274,8 @@ export function LandingPage() {
                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
               </div>
-              <h4>Fertilizer &amp; Input Costs</h4>
-              <p>Anticipate sudden nitrogen, potash, seed, and fuel price spikes to safeguard your seasonal operating margins.</p>
+              <h4>Agricultural Safety</h4>
+              <p>Verify agricultural chemicals and receive safety-focused guidance before applying treatments on your crops.</p>
             </div>
             <div className="value">
               <div className="vicon">
@@ -1293,8 +1293,8 @@ export function LandingPage() {
                   <polyline points="17 6 23 6 23 12" />
                 </svg>
               </div>
-              <h4>Market Prices</h4>
-              <p>Analyze harvest-time crop price fluctuations and demand cycles to maximize net revenue at harvest time.</p>
+              <h4>Market Price Discovery</h4>
+              <p>Find India-wide crop market-price information across agricultural markets to discover current fair market value.</p>
             </div>
           </div>
         </section>
@@ -1305,49 +1305,49 @@ export function LandingPage() {
             <h2>
               How It Works
               <br />
-              <span className="faded">From Data to Decision</span>
+              <span className="faded">From Question to Guidance</span>
             </h2>
-            <p>A systematic intelligence workflow transforming complex farm conditions into risk-aware strategies.</p>
+            <p>A simple, farmer-friendly workflow bringing trustworthy agricultural intelligence straight to your hands.</p>
           </div>
           <div className="cat-grid">
             <div className="cat" onClick={() => (window as any).openDemoModal()}>
               <img
                 src="https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=800&q=80"
-                alt="Farm configuration and field mapping"
+                alt="Ask questions in any language"
               />
               <div className="ov">
-                <div className="cname">01. Configure Farm</div>
-                <div className="ccount">Crop, Location &amp; Soil Baseline</div>
+                <div className="cname">01. Ask in Any Language</div>
+                <div className="ccount">Multilingual Text &amp; Voice Assistance</div>
               </div>
             </div>
             <div className="cat" onClick={() => (window as any).openDemoModal()}>
               <img
                 src="https://images.unsplash.com/photo-1530507629858-e4977d30e9e0?auto=format&fit=crop&w=800&q=80"
-                alt="Defining agricultural scenarios"
+                alt="Context-aware farming intelligence"
               />
               <div className="ov">
-                <div className="cname">02. Define Scenarios</div>
-                <div className="ccount">Rainfall, Costs &amp; Market Assumptions</div>
+                <div className="cname">02. Context-Aware AI</div>
+                <div className="ccount">Weather, Soil &amp; Mandi Information</div>
               </div>
             </div>
             <div className="cat" onClick={() => (window as any).openDemoModal()}>
               <img
                 src="https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=800&q=80"
-                alt="Running AI crop simulation"
+                alt="Verified agricultural guidance"
               />
               <div className="ov">
-                <div className="cname">03. Run AI Simulation</div>
-                <div className="ccount">Yield, Cost, Revenue &amp; Risk AI</div>
+                <div className="cname">03. Verified Advisory</div>
+                <div className="ccount">Package of Practices &amp; Safety Checks</div>
               </div>
             </div>
             <div className="cat" onClick={() => (window as any).openDemoModal()}>
               <img
                 src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=800&q=80"
-                alt="Resilient farming strategy outcome"
+                alt="Expert assistance and escalation"
               />
               <div className="ov">
-                <div className="cname">04. Choose Strategy</div>
-                <div className="ccount">Explainable Recommendation</div>
+                <div className="cname">04. Expert Support</div>
+                <div className="ccount">Escalate to Agricultural Specialists</div>
               </div>
             </div>
           </div>
@@ -1356,104 +1356,104 @@ export function LandingPage() {
         {/* IMPACT */}
         <section className="impact" id="impact">
           <div className="impact-inner">
-            <div className="ieyebrow">Agricultural Decision Impact</div>
-            <h2>Turning Uncertainty Into Better, More Resilient Farming Decisions.</h2>
+            <div className="ieyebrow">Agricultural Decision Support</div>
+            <h2>Empowering Every Farmer with Timely, Trustworthy Intelligence.</h2>
             <div className="impact-stats">
               <div className="istat">
-                <div className="inum">Better</div>
+                <div className="inum">AI Advisory</div>
                 <div className="ilbl">
-                  Planning
+                  Crop Guidance
                   <br />
-                  Evaluate outcomes before planting
+                  Answers for day-to-day farming questions
                 </div>
               </div>
               <div className="istat">
-                <div className="inum">Resource</div>
+                <div className="inum">Multilingual</div>
                 <div className="ilbl">
-                  Efficiency
+                  Voice Support
                   <br />
-                  Optimize water &amp; fertilizer use
+                  Interact naturally in regional languages
                 </div>
               </div>
               <div className="istat">
-                <div className="inum">Financial</div>
+                <div className="inum">Mandi Prices</div>
                 <div className="ilbl">
-                  Awareness
+                  Price Discovery
                   <br />
-                  See revenue, profit &amp; downside risk
+                  Current market rates across India
                 </div>
               </div>
               <div className="istat">
-                <div className="inum">Explainable</div>
+                <div className="inum">Expert Care</div>
                 <div className="ilbl">
-                  Intelligence
+                  Specialist Review
                   <br />
-                  Understand what drives results
+                  Escalate complex questions to experts
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* TESTIMONIALS / DECISION INTELLIGENCE IN ACTION */}
+        {/* TESTIMONIALS */}
         <section className="testimonials">
           <div className="sec-head">
             <h2>
-              Decision Intelligence
+              Farmer &amp; Expert
               <br />
-              <span className="faded">In Action</span>
+              <span className="faded">Experiences</span>
             </h2>
-            <p>How risk-aware scenario simulation empowers agronomists, farm managers, and agricultural leaders.</p>
+            <p>How AgriSeva-AI assists farmers, extension workers, and coordinators across agricultural regions.</p>
           </div>
           <div className="tgrid">
             <div className="tcard">
               <div className="stars">★★★★★</div>
               <p className="quote">
-                "AgriSeva-AI showed us that maximizing yield under dry weather forecasts carried excessive downside risk. The water-resilient strategy protected our net margins."
+                "AgriSeva-AI makes agricultural advice instantly accessible in our local language. The voice assistance helps us get crop guidance without typing."
               </p>
               <div className="who">
                 <img
                   className="avatar"
                   src="https://v3b.fal.media/files/b/0a9d0453/eDhCItXOpFl69JUcKwpl1_iHWVb0x9.png"
-                  alt="Maya"
+                  alt="Ramesh Patel"
                 />
                 <div>
-                  <div className="nm">Maya Thompson</div>
-                  <div className="rl">Farm Decision Advisor</div>
+                  <div className="nm">Ramesh Patel</div>
+                  <div className="rl">Paddy &amp; Wheat Farmer</div>
                 </div>
               </div>
             </div>
             <div className="tcard">
               <div className="stars">★★★★★</div>
               <p className="quote">
-                "Testing fertilizer cost spikes against harvest market price swings before planting season gave us clear visibility on our true break-even points."
+                "Checking mandi prices across nearby markets before selling helps us understand fair market value for our harvest with complete confidence."
               </p>
               <div className="who">
                 <img
                   className="avatar"
                   src="https://v3b.fal.media/files/b/0a9d0453/O9eTApglht4osQUa-neJD_7xTvOCXF.png"
-                  alt="Diego"
+                  alt="Suresh Kumar"
                 />
                 <div>
-                  <div className="nm">Diego Alvarez</div>
-                  <div className="rl">Commercial Crop Producer</div>
+                  <div className="nm">Suresh Kumar</div>
+                  <div className="rl">Cotton &amp; Soybean Grower</div>
                 </div>
               </div>
             </div>
             <div className="tcard">
               <div className="stars">★★★★★</div>
               <p className="quote">
-                "The factor explainability is game-changing. It doesn't just recommend a strategy—it clearly explains why that strategy wins under weather stress."
+                "Having verified Package of Practices and expert escalation ensures farmers receive accurate, safety-verified chemical guidance."
               </p>
               <div className="who">
                 <img
                   className="avatar"
                   src="https://v3b.fal.media/files/b/0a9d0453/SCmfGHR_nLu7wtB7bnzA8_XDfmDl9T.png"
-                  alt="Priya"
+                  alt="Dr. Ananya Sharma"
                 />
                 <div>
-                  <div className="nm">Priya Nair</div>
-                  <div className="rl">Sustainable Agronomy Lead</div>
+                  <div className="nm">Dr. Ananya Sharma</div>
+                  <div className="rl">Agricultural Extension Specialist</div>
                 </div>
               </div>
             </div>
@@ -1469,51 +1469,51 @@ export function LandingPage() {
                 <br />
                 <span className="faded">Asked Questions</span>
               </h2>
-              <p>Everything you need to know about AI scenario simulation and decision intelligence with AgriSeva-AI.</p>
+              <p>Everything you need to know about agricultural guidance, market prices, and expert support on AgriSeva-AI.</p>
             </div>
             <div className="faq-list">
               <div className="faq-item" onClick={(e) => (window as any).toggleFaq(e.currentTarget)}>
                 <div className="q">
-                  What is AgriSeva-AI and how does it work?
+                  What is AgriSeva-AI and how does it help farmers?
                   <svg className="pm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </div>
                 <div className="a" style={{ display: "none" }}>
-                  AgriSeva-AI is an AI-powered agricultural decision simulator that helps farmers explore how changes in rainfall, temperature, water availability, fertilizer usage, production costs, expected yield, and market prices affect farm outcomes before committing resources.
+                  AgriSeva-AI is an AI-powered agricultural decision-support platform that helps farmers make better decisions using AI-driven crop guidance, multilingual voice assistance, weather and soil information, and expert support.
                 </div>
               </div>
               <div className="faq-item" onClick={(e) => (window as any).toggleFaq(e.currentTarget)}>
                 <div className="q">
-                  How does What-If scenario simulation help farmers?
+                  Can farmers interact using voice and regional languages?
                   <svg className="pm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </div>
                 <div className="a" style={{ display: "none" }}>
-                  Instead of relying on a single static forecast, farmers can simulate custom scenarios—such as a 20% rainfall drop or 15% fertilizer price surge—to see projected yield, revenue, profit, and downside risk side by side.
+                  Yes. Farmers can speak or type in multiple Indian languages, making agricultural intelligence easily accessible directly through conversational voice and text assistance.
                 </div>
               </div>
               <div className="faq-item" onClick={(e) => (window as any).toggleFaq(e.currentTarget)}>
                 <div className="q">
-                  Why is risk intelligence as crucial as profit?
+                  How does AgriSeva-AI provide market-price information?
                   <svg className="pm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </div>
                 <div className="a" style={{ display: "none" }}>
-                  The best strategy is not always the one with the highest theoretical profit. AgriSeva-AI evaluates uncertainty across weather, inputs, and markets to recommend strategies that provide the strongest balance of profit, risk, and resilience.
+                  AgriSeva-AI provides current crop market prices across Indian mandis and Agmarknet, helping farmers discover market values and compare nearby market rates at harvest.
                 </div>
               </div>
               <div className="faq-item" onClick={(e) => (window as any).toggleFaq(e.currentTarget)}>
                 <div className="q">
-                  How does Explainable AI work in AgriSeva-AI?
+                  Can complex agricultural questions be escalated to experts?
                   <svg className="pm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </div>
                 <div className="a" style={{ display: "none" }}>
-                  AgriSeva-AI analyzes the underlying drivers of predicted outcomes using factor attribution, helping you understand what is influencing yield, increasing costs, driving profit, or altering risk levels.
+                  Yes. Whenever a farming query requires human validation, AgriSeva-AI escalates the question to verified agricultural experts and Package of Practices coordinators for authoritative review.
                 </div>
               </div>
             </div>
@@ -1524,7 +1524,7 @@ export function LandingPage() {
         <footer className="footer">
           <div className="footer-inner">
             <h3>
-              Ready to make a <span>better farming decision?</span>
+              Ready to farm with <span>AI by your side?</span>
             </h3>
             <div className="signup">
               <input type="email" placeholder="Enter your email" aria-label="Email address" />
@@ -1549,7 +1549,7 @@ export function LandingPage() {
             </div>
           </div>
           <div className="footnote">
-            <span>© 2026 AgriSeva-AI — AI-Powered Agricultural Decision Intelligence. All rights reserved.</span>
+            <span>© 2026 AgriSeva-AI — Agricultural Decision Support Platform. All rights reserved.</span>
             <span>Every Farmer a King, with AI by their side.</span>
           </div>
         </footer>
@@ -1577,7 +1577,7 @@ export function LandingPage() {
                   (e.target as HTMLImageElement).src = "/logo.png";
                 }}
               />
-              AgriSeva-AI Interactive Scenario Simulator
+              AgriSeva-AI Agricultural Scenario Simulator
             </h3>
             <button
               className="demo-close-btn"
@@ -1590,11 +1590,11 @@ export function LandingPage() {
           <div className="demo-body">
             <div className="sim-grid">
               <div className="sim-controls">
-                <h4>🌾 What-If Parameters</h4>
+                <h4>🌾 Agricultural Parameters</h4>
 
                 <div className="sim-control-group">
                   <div className="sim-label-row">
-                    <span>Rainfall Deviation</span>
+                    <span>Rainfall Variation</span>
                     <span className="sim-val" id="valRain">
                       -15%
                     </span>
@@ -1613,7 +1613,7 @@ export function LandingPage() {
 
                 <div className="sim-control-group">
                   <div className="sim-label-row">
-                    <span>Water Availability</span>
+                    <span>Irrigation Availability</span>
                     <span className="sim-val" id="valWater">
                       80%
                     </span>
@@ -1683,7 +1683,7 @@ export function LandingPage() {
               </div>
 
               <div className="sim-results">
-                <h4>📊 Simulated AI Outcomes</h4>
+                <h4>📊 Simulated Agricultural Outcomes</h4>
                 <div className="metric-cards">
                   <div className="metric-card">
                     <div className="m-lbl">Projected Yield</div>
@@ -1713,7 +1713,7 @@ export function LandingPage() {
                   </div>
                 </div>
                 <div className="explain-box">
-                  <strong>💡 Explainable AI Recommendation:</strong>
+                  <strong>💡 Agricultural Decision Guidance:</strong>
                   <span id="resExplain">
                     Under -15% rainfall deficit and +20% fertilizer cost, adopting a deficit irrigation regime with split-nitrogen application preserves 88% of peak profit while reducing downside risk by 22%.
                   </span>
