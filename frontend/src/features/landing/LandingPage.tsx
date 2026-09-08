@@ -229,7 +229,7 @@ export function LandingPage() {
           z-index: 3;
           width: 100%;
           max-width: 100%;
-          padding: 36px clamp(24px, 2.5vw, 40px) 0;
+          padding: 36px clamp(36px, 3vw, 48px) 0;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -970,7 +970,7 @@ export function LandingPage() {
 
         /* ---------- RESPONSIVE ---------- */
         @media (max-width: 1024px) {
-          .agriseva-landing-wrapper .nav { padding: 32px 28px 0; }
+          .agriseva-landing-wrapper .nav { padding: 32px 32px 0; }
           .agriseva-landing-wrapper .navlinks { gap: 24px; font-size: 15px; margin-right: 20px; }
           .agriseva-landing-wrapper .hero-inner { padding: 48px 40px 0; }
           .agriseva-landing-wrapper .headline { font-size: 54px; letter-spacing: -1.5px; line-height: 1.12; }
