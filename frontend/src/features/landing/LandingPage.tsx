@@ -229,10 +229,10 @@ export function LandingPage() {
           z-index: 3;
           width: 100%;
           max-width: 100%;
-          padding: 36px clamp(36px, 3vw, 48px) 0;
+          padding: 36px clamp(32px, 3vw, 48px) 0;
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: flex-start;
         }
         .agriseva-landing-wrapper .brand {
           font-family: 'Poppins', sans-serif;
@@ -254,12 +254,12 @@ export function LandingPage() {
         }
         .agriseva-landing-wrapper .navlinks {
           display: flex;
-          gap: 42px;
+          gap: 36px;
           font-weight: 600;
           font-size: 17px;
           color: #33493c;
-          margin-left: auto;
-          margin-right: 36px;
+          margin-left: clamp(36px, 3.5vw, 56px);
+          margin-right: 0;
         }
         .agriseva-landing-wrapper .navlinks a { text-decoration: none; color: inherit; transition: color .2s; }
         .agriseva-landing-wrapper .navlinks a:hover { color: var(--green-deep); }
@@ -268,6 +268,7 @@ export function LandingPage() {
           align-items: center;
           gap: 12px;
           flex-shrink: 0;
+          margin-left: auto;
         }
         .agriseva-landing-wrapper .cart {
           display: inline-flex;
@@ -970,8 +971,8 @@ export function LandingPage() {
 
         /* ---------- RESPONSIVE ---------- */
         @media (max-width: 1024px) {
-          .agriseva-landing-wrapper .nav { padding: 32px 32px 0; }
-          .agriseva-landing-wrapper .navlinks { gap: 24px; font-size: 15px; margin-right: 20px; }
+          .agriseva-landing-wrapper .nav { padding: 32px 28px 0; }
+          .agriseva-landing-wrapper .navlinks { gap: 20px; font-size: 15px; margin-left: 24px; margin-right: 0; }
           .agriseva-landing-wrapper .hero-inner { padding: 48px 40px 0; }
           .agriseva-landing-wrapper .headline { font-size: 54px; letter-spacing: -1.5px; line-height: 1.12; }
           .agriseva-landing-wrapper .products,
@@ -998,8 +999,10 @@ export function LandingPage() {
             flex-wrap: wrap;
             gap: 18px;
             padding: 24px 20px 0;
+            justify-content: space-between;
           }
-          .agriseva-landing-wrapper .navlinks { order: 3; width: 100%; justify-content: center; gap: 24px; font-size: 15px; margin: 0; }
+          .agriseva-landing-wrapper .navlinks { order: 3; width: 100%; justify-content: center; gap: 20px; font-size: 15px; margin: 0; }
+          .agriseva-landing-wrapper .nav-actions { margin-left: 0; }
           .agriseva-landing-wrapper .brand { font-size: 24px; }
           .agriseva-landing-wrapper .cart { padding: 11px 18px; font-size: 14px; }
 
