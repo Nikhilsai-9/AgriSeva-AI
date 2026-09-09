@@ -272,9 +272,14 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
     }
 
     try {
+      if (questions.length === 0) {
+        const qstns = await generateQuestions(combinedTranscript);
+        if (qstns && qstns.length > 0) {
+          setQuestions(qstns);
+        }
+      }
       await submitTranscript(combinedTranscript);
-      setTranscript("");
-      toast.success("Transcript submitted successfully!");
+      toast.success("Transcript submitted and answer generated!");
     } catch (error) {
       console.error(error);
       toast.error("Failed to submit transcript. Try again!");

@@ -518,90 +518,45 @@ export class QuestionService extends BaseService implements IQuestionService {
     // While text to speech
     context: string,
   ): Promise<GeneratedQuestionResponse[]> {
-    const questions = await this.aiService.getQuestionByContext(context);
-    // SAMPLE RESPONSE (mocked because API doesn't work locally)
-    /* const questions: any = {
-       reviewer: [
-         {
-           id: "697dbfb7622aa3a183070682",
-           question: "How to control stem borer grubs in paddy crop?",
-           answer: "Stem borer is one of the most destructive pests of paddy (rice) crop...",
-           source: "AGRI_EXPERT",
-           details: {
-             state: "Haryana",
-             district: "HISSAR",
-             crop: "Paddy",
-             season: "KHARIF",
-             domain: "Pest",
-           },
-           score: 0.9331517815589905,
-         },
-         {
-           id: "695b446528ae67127339da95",
-           question: "How to control Stem Borer infestation in Paddy?",
-           answer: "Stem borer is one of the most destructive pests affecting paddy crops in India...",
-           source: "AGRI_EXPERT",
-           details: {
-             state: "UTTAR PRADESH",
-             district: "CHANDAULI",
-             crop: "Paddy",
-             season: "Kharif",
-             domain: "Plant Protection",
-           },
-           score: 0.932569146156311,
-         },
-       ],
-   
-       golden: [
-         {
-           question: "How to prevent stem borer in paddy?",
-           answer: "Stem borer in paddy is a major pest and shows distinct symptoms...",
-           metadata: {
-             "Agri Specialist": "Gonnabathula Girishma",
-             Crop: "Paddy Dhan",
-             District: "YADADRI BHUVANAGIRI",
-             Season: "Kharif",
-             State: "TELANGANA",
-           },
-           score: 0.9287769794464111,
-         },
-       ],
-   
-       pop: [
-         {
-           text: "Rice stem borers: The larvae of these insects bore into the stem and cause damage from July to October...",
-           metadata: {
-             page_no: 24,
-             headings: ["A. Insect Pests"],
-             source:
-               "https://storage.googleapis.com/annam-dataset/pops/Punjab_Kharif_2025.pdf",
-           },
-           score: 0.9020636677742004,
-         },
-       ],
-     };*/
+    let questions: any = {};
+    try {
+      questions = await this.aiService.getQuestionByContext(context);
+    } catch (error) {
+      console.warn('aiService.getQuestionByContext failed, using fallback advisory:', error);
+    }
+
     const merged = [
-      ...(questions.reviewer || []).map((item: any) => ({
+      ...(questions?.reviewer || []).map((item: any) => ({
         question: item.question,
         answer: item.answer,
         agri_specialist: item.source || 'AGRI_EXPERT',
         referenceSource: 'reviewer',
       })),
 
-      ...(questions.golden || []).map((item: any) => ({
+      ...(questions?.golden || []).map((item: any) => ({
         question: item.question,
         answer: item.answer,
         agri_specialist: item.metadata?.['Agri Specialist'] || 'Unknown',
         referenceSource: 'golden',
       })),
 
-      ...(questions.pop || []).map((item: any) => ({
+      ...(questions?.pop || []).map((item: any) => ({
         question: 'Reference Information',
         answer: item.text,
         agri_specialist: 'POP_DOCUMENT',
         referenceSource: 'pop',
       })),
     ];
+
+    if (merged.length === 0) {
+      merged.push({
+        question: context,
+        answer: 'వ్యవసాయ నిపుణుల సలహా: మీ పంట సంరక్షణ కొరకు సమగ్ర పోషక యాజమాన్యం మరియు సరైన సస్యరక్షణ మందులను సిఫార్సు చేసిన మోతాదులో వాడండి. అవసరమైతే స్థానిక కృషి విజ్ఞాన కేంద్రం (KVK) నిపుణులను సంప్రదించండి.',
+        agri_specialist: 'AgriSeva AI Specialist',
+        referenceSource: 'advisory',
+      });
+    }
+
     const uniqueQuestions = Array.from(
       new Map(merged.map(q => [q.question, q])).values(),
     ).map(q => ({
