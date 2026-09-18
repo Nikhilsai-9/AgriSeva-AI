@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatsappHistoryRouteImport } from './routes/whatsapp-history'
+import { Route as FarmerRouteImport } from './routes/farmer'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
 import { Route as PaeExpertIndexRouteImport } from './routes/pae-expert/index'
@@ -17,17 +18,35 @@ import { Route as NotificationsIndexRouteImport } from './routes/notifications/i
 import { Route as HomeIndexRouteImport } from './routes/home/index'
 import { Route as HistoryIndexRouteImport } from './routes/history/index'
 import { Route as FlagsReportedIndexRouteImport } from './routes/flags-reported/index'
+import { Route as FarmerIndexRouteImport } from './routes/farmer.index'
 import { Route as CoordinatorIndexRouteImport } from './routes/coordinator/index'
 import { Route as ChatbotIndexRouteImport } from './routes/chatbot/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuditIndexRouteImport } from './routes/audit/index'
 import { Route as UserUserIdRouteImport } from './routes/user/$userId'
 import { Route as UserHistoryUserIdRouteImport } from './routes/user-history/$userId'
+import { Route as FarmerStorageRouteImport } from './routes/farmer.storage'
+import { Route as FarmerProfileRouteImport } from './routes/farmer.profile'
+import { Route as FarmerPricesRouteImport } from './routes/farmer.prices'
+import { Route as FarmerPaymentsRouteImport } from './routes/farmer.payments'
+import { Route as FarmerOffersRouteImport } from './routes/farmer.offers'
+import { Route as FarmerLotsRouteImport } from './routes/farmer.lots'
+import { Route as FarmerLogisticsRouteImport } from './routes/farmer.logistics'
+import { Route as FarmerGrievancesRouteImport } from './routes/farmer.grievances'
+import { Route as FarmerBuyersRouteImport } from './routes/farmer.buyers'
 import { Route as CoordinatorProfileRouteImport } from './routes/coordinator/profile'
+import { Route as FarmerLotsNewRouteImport } from './routes/farmer.lots.new'
+import { Route as FarmerLotsLotIdRouteImport } from './routes/farmer.lots.$lotId'
+import { Route as FarmerBuyersBuyerIdRouteImport } from './routes/farmer.buyers.$buyerId'
 
 const WhatsappHistoryRoute = WhatsappHistoryRouteImport.update({
   id: '/whatsapp-history',
   path: '/whatsapp-history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FarmerRoute = FarmerRouteImport.update({
+  id: '/farmer',
+  path: '/farmer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -65,6 +84,11 @@ const FlagsReportedIndexRoute = FlagsReportedIndexRouteImport.update({
   path: '/flags-reported/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FarmerIndexRoute = FarmerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FarmerRoute,
+} as any)
 const CoordinatorIndexRoute = CoordinatorIndexRouteImport.update({
   id: '/coordinator/',
   path: '/coordinator/',
@@ -95,120 +119,263 @@ const UserHistoryUserIdRoute = UserHistoryUserIdRouteImport.update({
   path: '/user-history/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FarmerStorageRoute = FarmerStorageRouteImport.update({
+  id: '/storage',
+  path: '/storage',
+  getParentRoute: () => FarmerRoute,
+} as any)
+const FarmerProfileRoute = FarmerProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => FarmerRoute,
+} as any)
+const FarmerPricesRoute = FarmerPricesRouteImport.update({
+  id: '/prices',
+  path: '/prices',
+  getParentRoute: () => FarmerRoute,
+} as any)
+const FarmerPaymentsRoute = FarmerPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => FarmerRoute,
+} as any)
+const FarmerOffersRoute = FarmerOffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
+  getParentRoute: () => FarmerRoute,
+} as any)
+const FarmerLotsRoute = FarmerLotsRouteImport.update({
+  id: '/lots',
+  path: '/lots',
+  getParentRoute: () => FarmerRoute,
+} as any)
+const FarmerLogisticsRoute = FarmerLogisticsRouteImport.update({
+  id: '/logistics',
+  path: '/logistics',
+  getParentRoute: () => FarmerRoute,
+} as any)
+const FarmerGrievancesRoute = FarmerGrievancesRouteImport.update({
+  id: '/grievances',
+  path: '/grievances',
+  getParentRoute: () => FarmerRoute,
+} as any)
+const FarmerBuyersRoute = FarmerBuyersRouteImport.update({
+  id: '/buyers',
+  path: '/buyers',
+  getParentRoute: () => FarmerRoute,
+} as any)
 const CoordinatorProfileRoute = CoordinatorProfileRouteImport.update({
   id: '/coordinator/profile',
   path: '/coordinator/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FarmerLotsNewRoute = FarmerLotsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => FarmerLotsRoute,
+} as any)
+const FarmerLotsLotIdRoute = FarmerLotsLotIdRouteImport.update({
+  id: '/$lotId',
+  path: '/$lotId',
+  getParentRoute: () => FarmerLotsRoute,
+} as any)
+const FarmerBuyersBuyerIdRoute = FarmerBuyersBuyerIdRouteImport.update({
+  id: '/$buyerId',
+  path: '/$buyerId',
+  getParentRoute: () => FarmerBuyersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/farmer': typeof FarmerRouteWithChildren
   '/whatsapp-history': typeof WhatsappHistoryRoute
   '/coordinator/profile': typeof CoordinatorProfileRoute
+  '/farmer/buyers': typeof FarmerBuyersRouteWithChildren
+  '/farmer/grievances': typeof FarmerGrievancesRoute
+  '/farmer/logistics': typeof FarmerLogisticsRoute
+  '/farmer/lots': typeof FarmerLotsRouteWithChildren
+  '/farmer/offers': typeof FarmerOffersRoute
+  '/farmer/payments': typeof FarmerPaymentsRoute
+  '/farmer/prices': typeof FarmerPricesRoute
+  '/farmer/profile': typeof FarmerProfileRoute
+  '/farmer/storage': typeof FarmerStorageRoute
   '/user-history/$userId': typeof UserHistoryUserIdRoute
   '/user/$userId': typeof UserUserIdRoute
   '/audit': typeof AuditIndexRoute
   '/auth': typeof AuthIndexRoute
   '/chatbot': typeof ChatbotIndexRoute
   '/coordinator': typeof CoordinatorIndexRoute
+  '/farmer/': typeof FarmerIndexRoute
   '/flags-reported': typeof FlagsReportedIndexRoute
   '/history': typeof HistoryIndexRoute
   '/home': typeof HomeIndexRoute
   '/notifications': typeof NotificationsIndexRoute
   '/pae-expert': typeof PaeExpertIndexRoute
   '/profile': typeof ProfileIndexRoute
+  '/farmer/buyers/$buyerId': typeof FarmerBuyersBuyerIdRoute
+  '/farmer/lots/$lotId': typeof FarmerLotsLotIdRoute
+  '/farmer/lots/new': typeof FarmerLotsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/whatsapp-history': typeof WhatsappHistoryRoute
   '/coordinator/profile': typeof CoordinatorProfileRoute
+  '/farmer/buyers': typeof FarmerBuyersRouteWithChildren
+  '/farmer/grievances': typeof FarmerGrievancesRoute
+  '/farmer/logistics': typeof FarmerLogisticsRoute
+  '/farmer/lots': typeof FarmerLotsRouteWithChildren
+  '/farmer/offers': typeof FarmerOffersRoute
+  '/farmer/payments': typeof FarmerPaymentsRoute
+  '/farmer/prices': typeof FarmerPricesRoute
+  '/farmer/profile': typeof FarmerProfileRoute
+  '/farmer/storage': typeof FarmerStorageRoute
   '/user-history/$userId': typeof UserHistoryUserIdRoute
   '/user/$userId': typeof UserUserIdRoute
   '/audit': typeof AuditIndexRoute
   '/auth': typeof AuthIndexRoute
   '/chatbot': typeof ChatbotIndexRoute
   '/coordinator': typeof CoordinatorIndexRoute
+  '/farmer': typeof FarmerIndexRoute
   '/flags-reported': typeof FlagsReportedIndexRoute
   '/history': typeof HistoryIndexRoute
   '/home': typeof HomeIndexRoute
   '/notifications': typeof NotificationsIndexRoute
   '/pae-expert': typeof PaeExpertIndexRoute
   '/profile': typeof ProfileIndexRoute
+  '/farmer/buyers/$buyerId': typeof FarmerBuyersBuyerIdRoute
+  '/farmer/lots/$lotId': typeof FarmerLotsLotIdRoute
+  '/farmer/lots/new': typeof FarmerLotsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/farmer': typeof FarmerRouteWithChildren
   '/whatsapp-history': typeof WhatsappHistoryRoute
   '/coordinator/profile': typeof CoordinatorProfileRoute
+  '/farmer/buyers': typeof FarmerBuyersRouteWithChildren
+  '/farmer/grievances': typeof FarmerGrievancesRoute
+  '/farmer/logistics': typeof FarmerLogisticsRoute
+  '/farmer/lots': typeof FarmerLotsRouteWithChildren
+  '/farmer/offers': typeof FarmerOffersRoute
+  '/farmer/payments': typeof FarmerPaymentsRoute
+  '/farmer/prices': typeof FarmerPricesRoute
+  '/farmer/profile': typeof FarmerProfileRoute
+  '/farmer/storage': typeof FarmerStorageRoute
   '/user-history/$userId': typeof UserHistoryUserIdRoute
   '/user/$userId': typeof UserUserIdRoute
   '/audit/': typeof AuditIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/chatbot/': typeof ChatbotIndexRoute
   '/coordinator/': typeof CoordinatorIndexRoute
+  '/farmer/': typeof FarmerIndexRoute
   '/flags-reported/': typeof FlagsReportedIndexRoute
   '/history/': typeof HistoryIndexRoute
   '/home/': typeof HomeIndexRoute
   '/notifications/': typeof NotificationsIndexRoute
   '/pae-expert/': typeof PaeExpertIndexRoute
   '/profile/': typeof ProfileIndexRoute
+  '/farmer/buyers/$buyerId': typeof FarmerBuyersBuyerIdRoute
+  '/farmer/lots/$lotId': typeof FarmerLotsLotIdRoute
+  '/farmer/lots/new': typeof FarmerLotsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/farmer'
     | '/whatsapp-history'
     | '/coordinator/profile'
+    | '/farmer/buyers'
+    | '/farmer/grievances'
+    | '/farmer/logistics'
+    | '/farmer/lots'
+    | '/farmer/offers'
+    | '/farmer/payments'
+    | '/farmer/prices'
+    | '/farmer/profile'
+    | '/farmer/storage'
     | '/user-history/$userId'
     | '/user/$userId'
     | '/audit'
     | '/auth'
     | '/chatbot'
     | '/coordinator'
+    | '/farmer/'
     | '/flags-reported'
     | '/history'
     | '/home'
     | '/notifications'
     | '/pae-expert'
     | '/profile'
+    | '/farmer/buyers/$buyerId'
+    | '/farmer/lots/$lotId'
+    | '/farmer/lots/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/whatsapp-history'
     | '/coordinator/profile'
+    | '/farmer/buyers'
+    | '/farmer/grievances'
+    | '/farmer/logistics'
+    | '/farmer/lots'
+    | '/farmer/offers'
+    | '/farmer/payments'
+    | '/farmer/prices'
+    | '/farmer/profile'
+    | '/farmer/storage'
     | '/user-history/$userId'
     | '/user/$userId'
     | '/audit'
     | '/auth'
     | '/chatbot'
     | '/coordinator'
+    | '/farmer'
     | '/flags-reported'
     | '/history'
     | '/home'
     | '/notifications'
     | '/pae-expert'
     | '/profile'
+    | '/farmer/buyers/$buyerId'
+    | '/farmer/lots/$lotId'
+    | '/farmer/lots/new'
   id:
     | '__root__'
     | '/'
+    | '/farmer'
     | '/whatsapp-history'
     | '/coordinator/profile'
+    | '/farmer/buyers'
+    | '/farmer/grievances'
+    | '/farmer/logistics'
+    | '/farmer/lots'
+    | '/farmer/offers'
+    | '/farmer/payments'
+    | '/farmer/prices'
+    | '/farmer/profile'
+    | '/farmer/storage'
     | '/user-history/$userId'
     | '/user/$userId'
     | '/audit/'
     | '/auth/'
     | '/chatbot/'
     | '/coordinator/'
+    | '/farmer/'
     | '/flags-reported/'
     | '/history/'
     | '/home/'
     | '/notifications/'
     | '/pae-expert/'
     | '/profile/'
+    | '/farmer/buyers/$buyerId'
+    | '/farmer/lots/$lotId'
+    | '/farmer/lots/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FarmerRoute: typeof FarmerRouteWithChildren
   WhatsappHistoryRoute: typeof WhatsappHistoryRoute
   CoordinatorProfileRoute: typeof CoordinatorProfileRoute
   UserHistoryUserIdRoute: typeof UserHistoryUserIdRoute
@@ -232,6 +399,13 @@ declare module '@tanstack/react-router' {
       path: '/whatsapp-history'
       fullPath: '/whatsapp-history'
       preLoaderRoute: typeof WhatsappHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/farmer': {
+      id: '/farmer'
+      path: '/farmer'
+      fullPath: '/farmer'
+      preLoaderRoute: typeof FarmerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -283,6 +457,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FlagsReportedIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/farmer/': {
+      id: '/farmer/'
+      path: '/'
+      fullPath: '/farmer/'
+      preLoaderRoute: typeof FarmerIndexRouteImport
+      parentRoute: typeof FarmerRoute
+    }
     '/coordinator/': {
       id: '/coordinator/'
       path: '/coordinator'
@@ -325,6 +506,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UserHistoryUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/farmer/storage': {
+      id: '/farmer/storage'
+      path: '/storage'
+      fullPath: '/farmer/storage'
+      preLoaderRoute: typeof FarmerStorageRouteImport
+      parentRoute: typeof FarmerRoute
+    }
+    '/farmer/profile': {
+      id: '/farmer/profile'
+      path: '/profile'
+      fullPath: '/farmer/profile'
+      preLoaderRoute: typeof FarmerProfileRouteImport
+      parentRoute: typeof FarmerRoute
+    }
+    '/farmer/prices': {
+      id: '/farmer/prices'
+      path: '/prices'
+      fullPath: '/farmer/prices'
+      preLoaderRoute: typeof FarmerPricesRouteImport
+      parentRoute: typeof FarmerRoute
+    }
+    '/farmer/payments': {
+      id: '/farmer/payments'
+      path: '/payments'
+      fullPath: '/farmer/payments'
+      preLoaderRoute: typeof FarmerPaymentsRouteImport
+      parentRoute: typeof FarmerRoute
+    }
+    '/farmer/offers': {
+      id: '/farmer/offers'
+      path: '/offers'
+      fullPath: '/farmer/offers'
+      preLoaderRoute: typeof FarmerOffersRouteImport
+      parentRoute: typeof FarmerRoute
+    }
+    '/farmer/lots': {
+      id: '/farmer/lots'
+      path: '/lots'
+      fullPath: '/farmer/lots'
+      preLoaderRoute: typeof FarmerLotsRouteImport
+      parentRoute: typeof FarmerRoute
+    }
+    '/farmer/logistics': {
+      id: '/farmer/logistics'
+      path: '/logistics'
+      fullPath: '/farmer/logistics'
+      preLoaderRoute: typeof FarmerLogisticsRouteImport
+      parentRoute: typeof FarmerRoute
+    }
+    '/farmer/grievances': {
+      id: '/farmer/grievances'
+      path: '/grievances'
+      fullPath: '/farmer/grievances'
+      preLoaderRoute: typeof FarmerGrievancesRouteImport
+      parentRoute: typeof FarmerRoute
+    }
+    '/farmer/buyers': {
+      id: '/farmer/buyers'
+      path: '/buyers'
+      fullPath: '/farmer/buyers'
+      preLoaderRoute: typeof FarmerBuyersRouteImport
+      parentRoute: typeof FarmerRoute
+    }
     '/coordinator/profile': {
       id: '/coordinator/profile'
       path: '/coordinator/profile'
@@ -332,11 +576,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoordinatorProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/farmer/lots/new': {
+      id: '/farmer/lots/new'
+      path: '/new'
+      fullPath: '/farmer/lots/new'
+      preLoaderRoute: typeof FarmerLotsNewRouteImport
+      parentRoute: typeof FarmerLotsRoute
+    }
+    '/farmer/lots/$lotId': {
+      id: '/farmer/lots/$lotId'
+      path: '/$lotId'
+      fullPath: '/farmer/lots/$lotId'
+      preLoaderRoute: typeof FarmerLotsLotIdRouteImport
+      parentRoute: typeof FarmerLotsRoute
+    }
+    '/farmer/buyers/$buyerId': {
+      id: '/farmer/buyers/$buyerId'
+      path: '/$buyerId'
+      fullPath: '/farmer/buyers/$buyerId'
+      preLoaderRoute: typeof FarmerBuyersBuyerIdRouteImport
+      parentRoute: typeof FarmerBuyersRoute
+    }
   }
 }
 
+interface FarmerBuyersRouteChildren {
+  FarmerBuyersBuyerIdRoute: typeof FarmerBuyersBuyerIdRoute
+}
+
+const FarmerBuyersRouteChildren: FarmerBuyersRouteChildren = {
+  FarmerBuyersBuyerIdRoute: FarmerBuyersBuyerIdRoute,
+}
+
+const FarmerBuyersRouteWithChildren = FarmerBuyersRoute._addFileChildren(
+  FarmerBuyersRouteChildren,
+)
+
+interface FarmerLotsRouteChildren {
+  FarmerLotsLotIdRoute: typeof FarmerLotsLotIdRoute
+  FarmerLotsNewRoute: typeof FarmerLotsNewRoute
+}
+
+const FarmerLotsRouteChildren: FarmerLotsRouteChildren = {
+  FarmerLotsLotIdRoute: FarmerLotsLotIdRoute,
+  FarmerLotsNewRoute: FarmerLotsNewRoute,
+}
+
+const FarmerLotsRouteWithChildren = FarmerLotsRoute._addFileChildren(
+  FarmerLotsRouteChildren,
+)
+
+interface FarmerRouteChildren {
+  FarmerBuyersRoute: typeof FarmerBuyersRouteWithChildren
+  FarmerGrievancesRoute: typeof FarmerGrievancesRoute
+  FarmerLogisticsRoute: typeof FarmerLogisticsRoute
+  FarmerLotsRoute: typeof FarmerLotsRouteWithChildren
+  FarmerOffersRoute: typeof FarmerOffersRoute
+  FarmerPaymentsRoute: typeof FarmerPaymentsRoute
+  FarmerPricesRoute: typeof FarmerPricesRoute
+  FarmerProfileRoute: typeof FarmerProfileRoute
+  FarmerStorageRoute: typeof FarmerStorageRoute
+  FarmerIndexRoute: typeof FarmerIndexRoute
+}
+
+const FarmerRouteChildren: FarmerRouteChildren = {
+  FarmerBuyersRoute: FarmerBuyersRouteWithChildren,
+  FarmerGrievancesRoute: FarmerGrievancesRoute,
+  FarmerLogisticsRoute: FarmerLogisticsRoute,
+  FarmerLotsRoute: FarmerLotsRouteWithChildren,
+  FarmerOffersRoute: FarmerOffersRoute,
+  FarmerPaymentsRoute: FarmerPaymentsRoute,
+  FarmerPricesRoute: FarmerPricesRoute,
+  FarmerProfileRoute: FarmerProfileRoute,
+  FarmerStorageRoute: FarmerStorageRoute,
+  FarmerIndexRoute: FarmerIndexRoute,
+}
+
+const FarmerRouteWithChildren =
+  FarmerRoute._addFileChildren(FarmerRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FarmerRoute: FarmerRouteWithChildren,
   WhatsappHistoryRoute: WhatsappHistoryRoute,
   CoordinatorProfileRoute: CoordinatorProfileRoute,
   UserHistoryUserIdRoute: UserHistoryUserIdRoute,
