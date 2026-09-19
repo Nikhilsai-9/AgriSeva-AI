@@ -2,7 +2,7 @@
  * Farmer Dashboard data hooks — Part 1 (store + core queries).
  */
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { create } from "zustand";
 
@@ -36,11 +36,13 @@ import type {
   FarmerProfile,
   Grievance,
   GrievanceCategory,
+  GrievancePriority,
   LogisticsOption,
   MarketPriceResponse,
   Offer,
   PaymentRecord,
   StorageOption,
+  StorageView,
 } from "../types";
 
 // In-memory state for mutations created in the UI session.
@@ -91,6 +93,47 @@ export const useFarmerProfile = () =>
     },
     staleTime: 60_000,
   });
+
+export interface FarmerProfilePatch {
+  name?: string;
+  phone?: string;
+  state?: string;
+  district?: string;
+  village?: string;
+  /** Optional override; persisted into `primaryCrops[0]` when present. */
+  primaryCrop?: string;
+}
+
+export const useUpdateFarmerProfile = () => {
+  const qc = useQueryClient();
+  return useMutation<FarmerProfile, Error, FarmerProfilePatch>({
+    mutationFn: async (patch) => {
+      await delay(180);
+      // The profile lives in mock land today; in a real backend this would
+      // be a PATCH/PUT. We mutate the cached query data so callers see the
+      // update immediately.
+      const current =
+        qc.getQueryData<FarmerProfile>(["farmer", "profile"]) ??
+        DEMO_FARMER_PROFILE;
+      const next: FarmerProfile = {
+        ...current,
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
+        ...(patch.state !== undefined ? { state: patch.state } : {}),
+        ...(patch.district !== undefined ? { district: patch.district } : {}),
+        ...(patch.village !== undefined ? { village: patch.village } : {}),
+        ...(patch.primaryCrop !== undefined
+          ? { primaryCrops: [patch.primaryCrop, ...current.primaryCrops.filter((c) => c !== patch.primaryCrop)] }
+          : {}),
+      };
+      qc.setQueryData(["farmer", "profile"], next);
+      return next;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["farmer", "profile"] });
+    },
+  });
+};
 
 export const useTodayInsight = () =>
   useQuery({
@@ -214,16 +257,17 @@ export const useLot = (id: string | undefined) => {
 
 interface CreateLotInput {
   crop: string;
-  variety: string;
+  variety?: string;
   quantityKg: number;
   qualityGrade: "A" | "B" | "C";
-  qualityNotes: string;
+  qualityNotes?: string;
   expectedPricePerKg: number;
   state: string;
   district: string;
-  village: string;
+  village?: string;
   harvestDate: string;
-  images: string[];
+  images?: string[];
+  notes?: string;
 }
 
 export const useCreateLot = () => {
@@ -237,16 +281,17 @@ export const useCreateLot = () => {
         id,
         farmerId: DEMO_FARMER_UID,
         crop: input.crop,
-        variety: input.variety,
+        variety: input.variety ?? "",
         quantityKg: input.quantityKg,
         qualityGrade: input.qualityGrade,
-        qualityNotes: input.qualityNotes,
+        qualityNotes: input.qualityNotes ?? "",
         expectedPricePerKg: input.expectedPricePerKg,
         state: input.state,
         district: input.district,
-        village: input.village,
+        village: input.village ?? "",
         harvestDate: input.harvestDate,
-        images: input.images,
+        images: input.images ?? [],
+        notes: input.notes,
         status: "active",
         createdAt: new Date().toISOString(),
         isDemo: true,
@@ -338,6 +383,36 @@ export const useStorageOptions = () =>
     staleTime: 60_000,
   });
 
+/**
+ * UI-shaped storage list. Adapts the raw `StorageOption` mocks to the
+ * shape expected by `StoragePage` (capacityKg / usedKg, name, location,
+ * temperature, "warehouse" | "cold" type label).
+ */
+export const useStorage = () =>
+  useQuery<StorageView[]>({
+    queryKey: ["farmer", "storage", "view"],
+    queryFn: async () => {
+      await delay(140);
+      const TONS_TO_KG = 1000;
+      return DEMO_STORAGE_OPTIONS.map<StorageView>((s) => ({
+        id: s.id,
+        name: s.facilityName,
+        type:
+          s.facilityType === "cold_storage"
+            ? "cold"
+            : s.facilityType === "silo"
+              ? "warehouse"
+              : "warehouse",
+        location: `${s.district}, ${s.state}`,
+        temperatureC: s.facilityType === "cold_storage" ? 4 : null,
+        capacityKg: s.capacityTons * TONS_TO_KG,
+        usedKg: (s.capacityTons - s.availableTons) * TONS_TO_KG,
+        isDemo: s.isDemo,
+      }));
+    },
+    staleTime: 60_000,
+  });
+
 // Payments.
 export const usePayments = () =>
   useQuery<PaymentRecord[]>({
@@ -365,7 +440,10 @@ export const useGrievances = () => {
 
 interface CreateGrievanceInput {
   category: GrievanceCategory;
+  /** Short headline. Falls back to first 60 chars of description when omitted. */
+  subject?: string;
   description: string;
+  priority?: GrievancePriority;
   transactionRef: string;
 }
 
@@ -376,16 +454,24 @@ export const useCreateGrievance = () => {
     mutationFn: async (input) => {
       await delay(180);
       const id = "gv-" + Math.random().toString(36).slice(2, 9);
+      const now = new Date().toISOString();
       const g: Grievance = {
         id,
         raisedBy: "You",
         category: input.category,
+        subject:
+          input.subject?.trim() ||
+          (input.description.length > 60
+            ? input.description.slice(0, 57) + "…"
+            : input.description),
         description: input.description,
+        priority: input.priority ?? "medium",
         transactionRef: input.transactionRef,
         status: "open",
         assignedTo: "Pending assignment",
         resolutionNotes: "",
-        submittedAt: new Date().toISOString(),
+        createdAt: now,
+        submittedAt: now,
         resolvedAt: null,
         isDemo: true,
       };

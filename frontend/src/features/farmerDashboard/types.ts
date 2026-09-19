@@ -32,14 +32,20 @@ export type QualityGrade = "A" | "B" | "C";
 export interface MarketPrice {
   id: string;
   commodity: string;
+  /** UI alias for `commodity`. */
+  crop: string;
   market: string;
   state: string;
   district: string;
   minPrice: number;
   maxPrice: number;
   modalPrice: number;
+  /** Difference vs prior session, expressed as a percent. */
+  changePct: number;
   unit: string;
   arrivalDate: string;
+  /** ISO timestamp the price was reported; UI alias for `arrivalDate`. */
+  reportedAt?: string;
   source: string;
   distanceKm?: number;
   trendPct?: number;
@@ -56,13 +62,20 @@ export interface MarketPriceResponse {
 }
 
 export interface Buyer {
+  // Core identity
   id: string;
+  /** Display name shown on cards / details ("Sri Lakshmi Foods"). */
+  name: string;
+  /** Human-friendly buyer type label ("Processor", "FPO", …). */
+  type: string;
   businessName: string;
   businessType: BuyerType;
   verificationStatus: VerificationStatus;
   contactPerson: string;
   phone: string;
   email: string;
+  /** Display location string ("Krishnagiri, Tamil Nadu"). */
+  location: string;
   state: string;
   district: string;
   distanceKm: number;
@@ -72,7 +85,19 @@ export interface Buyer {
   paymentTermsDays: number;
   rating: number;
   transactionsCount: number;
+  /** Historical deal count surfaced in the buyer card as "X deals". */
+  completedDeals: number;
   description: string;
+  /** Public-facing website, optional. */
+  website?: string;
+  /** ISO date string for member-since. */
+  memberSince?: string;
+  /** Preferred payment method label (e.g. "NEFT / RTGS"). */
+  preferredPayment?: string;
+  /** Free-text notes shown on buyer detail. */
+  notes?: string;
+  /** Convenience boolean derived from verificationStatus. */
+  verified: boolean;
   isDemo: boolean;
 }
 
@@ -90,6 +115,8 @@ export interface FarmerLot {
   village: string;
   harvestDate: string;
   images: string[];
+  /** Free-text notes the farmer attached to the lot. */
+  notes?: string;
   status: "draft" | "active" | "matched" | "sold" | "expired";
   createdAt: string;
   isDemo: boolean;
@@ -100,12 +127,24 @@ export interface Offer {
   lotId: string;
   buyerId: string;
   buyerName: string;
+  /** Convenience alias carried by the UI; mirrors `Offer.crop`. */
+  crop?: string;
   verified: boolean;
+  /** Convenience alias the UI uses for the price column. */
+  pricePerKg: number;
   offeredPricePerKg: number;
+  /** Convenience alias used by the offers list. */
+  amount: number;
   totalAmount: number;
   quantityKg: number;
   validUntil: string;
-  status: "pending" | "accepted" | "rejected" | "withdrawn" | "expired";
+  status:
+    | "pending"
+    | "accepted"
+    | "rejected"
+    | "withdrawn"
+    | "expired"
+    | "countered";
   terms: string;
   createdAt: string;
   isDemo: boolean;
@@ -114,14 +153,28 @@ export interface Offer {
 export interface LogisticsOption {
   id: string;
   providerName: string;
+  /** UI alias for `providerName`. */
+  provider?: string;
   vehicleType: "small_truck" | "medium_truck" | "large_truck" | "tempo";
   capacityTons: number;
+  /** UI alias for `capacityTons * 1000`. */
+  capacityKg?: number;
   costPerKm: number;
+  /** UI alias for `costPerKm`. */
+  ratePerKg?: number;
   estimatedCost: number;
   estimatedHours: number;
+  /** UI alias for `estimatedHours * 24` (rough delivery date offset). */
+  estimatedDeliveryDate?: string;
   distanceKm: number;
   fromLocation: string;
+  /** UI alias for `fromLocation`. */
+  from?: string;
   toLocation: string;
+  /** UI alias for `toLocation`. */
+  to?: string;
+  /** Whether the shipment is insured. Demo only; defaults to false. */
+  insured?: boolean;
   isDemo: boolean;
 }
 
@@ -138,13 +191,36 @@ export interface StorageOption {
   isDemo: boolean;
 }
 
+/**
+ * Shape consumed by the StoragePage UI. Built from `StorageOption` data
+ * via `useStorage()` so the UI renders the same component shape whether
+ * the source is the heavy mock or a future live API.
+ */
+export interface StorageView {
+  id: string;
+  /** Display name shown in the card. */
+  name: string;
+  /** "warehouse" | "cold" — matches UI expectations. */
+  type: "warehouse" | "cold";
+  /** Human-readable location label. */
+  location: string;
+  /** Cold-storage temperature in °C; null when not cold storage. */
+  temperatureC: number | null;
+  /** Total capacity in kilograms (UI derives occupancy from usedKg). */
+  capacityKg: number;
+  /** Currently occupied kilograms. */
+  usedKg: number;
+  isDemo: boolean;
+}
+
 export type PaymentStatus =
   | "initiated"
   | "pending"
   | "partial"
   | "completed"
   | "failed"
-  | "disputed";
+  | "disputed"
+  | "paid";
 
 export interface PaymentRecord {
   id: string;
@@ -157,6 +233,10 @@ export interface PaymentRecord {
   reference: string;
   createdAt: string;
   completedAt: string | null;
+  /** Short summary shown under buyer name ("Chilli • 200kg"). */
+  lotSummary: string;
+  /** Payment instrument label ("NEFT", "UPI", "Cash", etc.). */
+  method: string;
   timeline: PaymentTimelineEvent[];
   isDemo: boolean;
 }
@@ -165,6 +245,8 @@ export interface PaymentTimelineEvent {
   label: string;
   status: "done" | "current" | "upcoming";
   timestamp: string | null;
+  /** Alias of timestamp kept for UI ergonomics (timeline renders "at"). */
+  at: string | null;
 }
 
 export type GrievanceCategory =
@@ -172,19 +254,29 @@ export type GrievanceCategory =
   | "quality"
   | "logistics"
   | "buyer"
-  | "other";
+  | "other"
+  | "weight"
+  | "transport";
 
 export type GrievanceStatus = "open" | "in_review" | "resolved" | "rejected";
+export type GrievancePriority = "low" | "medium" | "high";
 
 export interface Grievance {
   id: string;
   raisedBy: string;
   category: GrievanceCategory;
+  /** One-line headline shown in the list view. */
+  subject: string;
+  /** Free-text description shown in the detail view. */
   description: string;
+  priority: GrievancePriority;
+  /** Either a payment reference or a logistics reference. */
   transactionRef: string;
   status: GrievanceStatus;
   assignedTo: string;
   resolutionNotes: string;
+  /** Alias of submittedAt for UI ergonomics. */
+  createdAt: string;
   submittedAt: string;
   resolvedAt: string | null;
   isDemo: boolean;
@@ -284,12 +376,18 @@ export const INDIAN_STATES: string[] = [
 
 export interface TodayInsight {
   commodity: string;
+  /** UI alias for `commodity`. */
+  crop: string;
   modalPrice: number;
   unit: string;
   trendPct: number;
+  /** UI alias for `trendPct`. */
+  changePct: number;
   trendDirection: "up" | "down" | "flat";
   recommendation: string;
   strongestMarket: string;
+  /** UI alias for `strongestMarket`. */
+  market: string;
   weakestMarket: string;
   distanceKm: number;
   isDemo: boolean;
@@ -299,6 +397,8 @@ export interface MarketPriceFilters {
   state: string;
   district: string;
   commodity: string;
+  /** UI alias for `commodity`. */
+  crop?: string;
   arrivalDate?: string;
 }
 

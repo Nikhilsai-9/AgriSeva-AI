@@ -24,7 +24,9 @@ export function ProfilePage() {
   const [stateName, setStateName] = useState(profile?.state ?? "");
   const [district, setDistrict] = useState(profile?.district ?? "");
   const [village, setVillage] = useState(profile?.village ?? "");
-  const [primaryCrop, setPrimaryCrop] = useState(profile?.primaryCrop ?? "");
+  const [primaryCrop, setPrimaryCrop] = useState(
+    profile?.primaryCrops?.[0] ?? ""
+  );
   const [savedHint, setSavedHint] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -59,7 +61,7 @@ export function ProfilePage() {
               {profile?.name ?? user?.name ?? "Farmer"}
             </p>
             <p className="text-xs text-emerald-900/60">
-              {profile?.phone ?? user?.phone ?? ""}
+              {profile?.phone ?? user?.email ?? ""}
             </p>
           </div>
         </div>

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Truck, MapPin, Calendar, Package, ShieldCheck } from "lucide-react";
 import { useTranslation } from "@/locales";
-import { useLogistics } from "@/features/farmerDashboard/hooks/data";
+import { useLogisticsOptions as useLogistics } from "@/features/farmerDashboard/hooks/data";
+import type { LogisticsOption } from "@/features/farmerDashboard/types";
 import {
   FarmerCard,
   FarmerPageContainer,
@@ -38,7 +39,7 @@ export function LogisticsPage() {
         </FarmerCard>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          {(options ?? []).map((opt) => {
+          {((options ?? []) as LogisticsOption[]).map((opt) => {
             const isSelected = selectedId === opt.id;
             return (
               <FarmerCard
@@ -86,7 +87,7 @@ export function LogisticsPage() {
                     icon={<Package className="h-3 w-3" />}
                     label={t("farmer.logistics.capacity", "Capacity")}
                   >
-                    {opt.capacityKg.toLocaleString("en-IN")} kg
+                    {opt.capacityKg?.toLocaleString("en-IN") ?? 0} kg
                   </Row>
                   <Row
                     icon={<Truck className="h-3 w-3" />}

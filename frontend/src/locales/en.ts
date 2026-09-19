@@ -17,6 +17,7 @@ export const en = {
     features: "Features",
     simulation: "Simulation",
     impact: "Impact",
+    farmerDashboard: "Farmer Dashboard →",
     dashboardCta: "Dashboard →",
     getStartedCta: "Get Started →",
   },

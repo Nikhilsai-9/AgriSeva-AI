@@ -128,6 +128,8 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
             });
           } else if (result.appUser?.role === "pae_expert") {
             navigate({ to: "/pae-expert" });
+          } else if (result.appUser?.role === "farmer") {
+            navigate({ to: "/farmer" });
           } else {
             navigate({ to: "/home" });
           }
@@ -187,6 +189,8 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
           });
         } else if (appUser?.role === "pae_expert") {
           navigate({ to: "/pae-expert" });
+        } else if (appUser?.role === "farmer") {
+          navigate({ to: "/farmer" });
         } else {
           navigate({ to: "/home" });
         }

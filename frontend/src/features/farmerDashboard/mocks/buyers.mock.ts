@@ -11,6 +11,12 @@
 
 import type { Buyer, BuyerType } from "../types";
 
+const isoMinusYears = (years: number) => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - years);
+  return d.toISOString();
+};
+
 const make = (
   id: string,
   businessName: string,
@@ -26,27 +32,43 @@ const make = (
   rating: number,
   transactionsCount: number,
   description: string,
-  verificationStatus: Buyer["verificationStatus"] = "verified"
-): Buyer => ({
-  id,
-  businessName,
-  businessType,
-  verificationStatus,
-  contactPerson,
-  phone: "+91 98000 00000",
-  email: `${businessName.toLowerCase().replace(/[^a-z0-9]/g, "")}@demo.example`,
-  state,
-  district,
-  distanceKm,
-  cropsInterested,
-  minQuantityKg,
-  maxQuantityKg,
-  paymentTermsDays,
-  rating,
-  transactionsCount,
-  description,
-  isDemo: true,
-});
+  verificationStatus: Buyer["verificationStatus"] = "verified",
+  memberSinceYears = 3,
+  preferredPayment = "NEFT / RTGS",
+  website: string | null = null,
+  phoneOverride: string | null = null
+): Buyer => {
+  const slug = businessName.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return {
+    id,
+    name: businessName,
+    type: businessType,
+    businessName,
+    businessType,
+    verificationStatus,
+    contactPerson,
+    phone: phoneOverride ?? "+91 98000 00000",
+    email: `${slug}@demo.example`,
+    location: `${district}, ${state}`,
+    state,
+    district,
+    distanceKm,
+    cropsInterested,
+    minQuantityKg,
+    maxQuantityKg,
+    paymentTermsDays,
+    rating,
+    transactionsCount,
+    completedDeals: transactionsCount,
+    description,
+    website: website ?? `https://${slug}.demo.example`,
+    memberSince: isoMinusYears(memberSinceYears),
+    preferredPayment,
+    notes: description,
+    verified: verificationStatus === "verified",
+    isDemo: true,
+  };
+};
 
 export const DEMO_BUYERS: Buyer[] = [
   make(

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuthStore } from "@/stores/auth-store";
 import { useLanguageStore } from "@/stores/language-store";
 import { useTranslation } from "@/locales";
@@ -1081,6 +1081,9 @@ export function LandingPage() {
               <a href="#features">{t("nav.features", "Features")}</a>
               <a href="#simulation">{t("nav.simulation", "Simulation")}</a>
               <a href="#impact">{t("nav.impact", "Impact")}</a>
+              <Link to="/farmer" id="nav-farmer-dashboard">
+                {t("nav.farmerDashboard", "Farmer Dashboard →")}
+              </Link>
             </div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "12px" }}>
               <LanguageSwitcher variant="light" />

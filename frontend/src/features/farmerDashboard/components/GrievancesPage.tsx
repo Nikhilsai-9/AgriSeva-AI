@@ -45,6 +45,9 @@ export function GrievancesPage() {
       subject: subject.trim(),
       description: description.trim(),
       priority,
+      // No payment or lot is mandatory for raising a grievance;
+      // a default empty ref keeps the store contract satisfied.
+      transactionRef: "",
     });
     setSubject("");
     setDescription("");

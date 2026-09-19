@@ -19,6 +19,7 @@ export const hi: Partial<TranslationDictionary> = {
     features: "विशेषताएं",
     simulation: "सिमुलेशन",
     impact: "प्रभाव",
+    farmerDashboard: "किसान डैशबोर्ड →",
     dashboardCta: "डैशबोर्ड →",
     getStartedCta: "शुरू करें →",
   },

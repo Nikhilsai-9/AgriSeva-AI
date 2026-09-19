@@ -19,6 +19,7 @@ export const te: Partial<TranslationDictionary> = {
     features: "ఫీచర్లు",
     simulation: "సిమ్యులేషన్",
     impact: "ప్రభావం",
+    farmerDashboard: "రైతు డాష్‌బోర్డ్ →",
     dashboardCta: "డాష్‌బోర్డ్ →",
     getStartedCta: "ప్రారంభించండి →",
   },

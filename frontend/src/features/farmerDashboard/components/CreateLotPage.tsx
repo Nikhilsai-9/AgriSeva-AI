@@ -8,7 +8,7 @@ import {
   FarmerPageContainer,
   FarmerSectionTitle,
 } from "@/features/farmerDashboard/FarmerLayout";
-import { COMMODITIES } from "@/features/farmerDashboard/types";
+import { COMMODITIES, type QualityGrade } from "@/features/farmerDashboard/types";
 
 export function CreateLotPage() {
   const { t } = useTranslation();
@@ -17,7 +17,7 @@ export function CreateLotPage() {
   const createLot = useCreateLot();
 
   const [crop, setCrop] = useState("");
-  const [qualityGrade, setQualityGrade] = useState("A");
+  const [qualityGrade, setQualityGrade] = useState<QualityGrade>("A");
   const [quantityKg, setQuantityKg] = useState("");
   const [harvestDate, setHarvestDate] = useState("");
   const [expectedPricePerKg, setExpectedPricePerKg] = useState("");
@@ -82,8 +82,8 @@ export function CreateLotPage() {
                 {t("farmer.createLot.selectCrop", "Select crop…")}
               </option>
               {COMMODITIES.map((c) => (
-                <option key={c.value} value={c.label}>
-                  {c.label}
+                <option key={c} value={c}>
+                  {c}
                 </option>
               ))}
             </select>
@@ -109,7 +109,9 @@ export function CreateLotPage() {
               </span>
               <select
                 value={qualityGrade}
-                onChange={(e) => setQualityGrade(e.target.value)}
+                onChange={(e) =>
+                  setQualityGrade(e.target.value as QualityGrade)
+                }
                 className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="A">A</option>

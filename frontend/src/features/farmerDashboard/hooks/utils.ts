@@ -83,11 +83,12 @@ export const formatDateTime = (iso: string | null | undefined): string => {
 
 export const greetingForNow = (): {
   key: "morning" | "afternoon" | "evening" | "night";
+  label: string;
 } => {
   const h = new Date().getHours();
-  if (h < 5) return { key: "night" };
-  if (h < 12) return { key: "morning" };
-  if (h < 17) return { key: "afternoon" };
-  if (h < 21) return { key: "evening" };
-  return { key: "night" };
+  if (h < 5) return { key: "night", label: "Good night" };
+  if (h < 12) return { key: "morning", label: "Good morning" };
+  if (h < 17) return { key: "afternoon", label: "Good afternoon" };
+  if (h < 21) return { key: "evening", label: "Good evening" };
+  return { key: "night", label: "Good night" };
 };

@@ -33,6 +33,7 @@ const make = (
 ): MarketPrice => ({
   id,
   commodity,
+  crop: commodity,
   market,
   state,
   district,
@@ -44,6 +45,7 @@ const make = (
   source,
   distanceKm,
   trendPct: trend,
+  changePct: trend,
 });
 
 export const DEMO_MARKET_PRICES: MarketPrice[] = [
@@ -65,13 +67,16 @@ export const DEMO_MARKET_PRICES: MarketPrice[] = [
 
 export const DEMO_TODAY_INSIGHT: TodayInsight = {
   commodity: "Tomato",
+  crop: "Tomato",
   modalPrice: 2450,
   unit: "₹/quintal",
   trendPct: 8,
+  changePct: 8,
   trendDirection: "up",
   recommendation:
     "Prices are stronger in Kolar Mandi today. Consider listing your lot there if transport cost is reasonable.",
   strongestMarket: "Kolar Mandi",
+  market: "Kolar Mandi",
   weakestMarket: "Pune APMC",
   distanceKm: 32,
   isDemo: true,

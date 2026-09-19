@@ -12,7 +12,7 @@
  *   - locationProximity (20%) closer buyers score higher
  */
 
-import type { Buyer } from "../types";
+import type { Buyer, FarmerProfile } from "../types";
 import type { FarmerLot } from "../types";
 
 export interface MatchScore {
@@ -88,4 +88,23 @@ export function scoreBuyersForLot(
   });
 
   return results.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Single-buyer scoring for a lot. Used by the buyer-detail page when it
+ * needs a personalised match score against the farmer's currently active
+ * lot. Returns a 0..100 score. Profile is currently unused but kept in
+ * the signature so callers don't need to special-case "no profile yet".
+ */
+export function computeBuyerMatch(
+  buyer: Buyer,
+  _profile: FarmerProfile | undefined,
+  lot: FarmerLot | undefined
+): number {
+  // No active lot — return the buyer's standing rating normalised.
+  if (!lot) {
+    return Math.round(((buyer.rating ?? 0) / 5) * 100);
+  }
+  const [top] = scoreBuyersForLot(lot, [buyer]);
+  return top ? top.score : 0;
 }

@@ -12,6 +12,12 @@
 
 import type { FarmerLot, Offer } from "../types";
 
+// `data.ts` imports `DEMO_GRIEVANCES` from this module for the in-memory store
+// seed; the canonical definition lives in `logistics.mock.ts` alongside the
+// other post-sale data (payments, storage). Re-export here to keep the import
+// surface stable and avoid spreading the dependency chain.
+export { DEMO_GRIEVANCES, findDemoGrievanceById } from "./logistics.mock";
+
 const todayIso = new Date().toISOString().slice(0, 10);
 
 export const DEMO_FARMER_UID = "demo-farmer-uid";
@@ -108,8 +114,11 @@ export const DEMO_OFFERS: Offer[] = [
     lotId: "lot-1",
     buyerId: "b1",
     buyerName: "Sri Lakshmi Foods",
+    crop: "Tomato",
     verified: true,
+    pricePerKg: 24,
     offeredPricePerKg: 24,
+    amount: 24 * 500,
     totalAmount: 24 * 500,
     quantityKg: 500,
     validUntil: futureIso(3),
@@ -123,8 +132,11 @@ export const DEMO_OFFERS: Offer[] = [
     lotId: "lot-1",
     buyerId: "b6",
     buyerName: "AgriBazaar Digital",
+    crop: "Tomato",
     verified: true,
+    pricePerKg: 23.5,
     offeredPricePerKg: 23.5,
+    amount: 23.5 * 500,
     totalAmount: 23.5 * 500,
     quantityKg: 500,
     validUntil: futureIso(2),
@@ -138,8 +150,11 @@ export const DEMO_OFFERS: Offer[] = [
     lotId: "lot-3",
     buyerId: "b4",
     buyerName: "Bharat Spice Exports",
+    crop: "Chilli",
     verified: true,
+    pricePerKg: 108,
     offeredPricePerKg: 108,
+    amount: 108 * 200,
     totalAmount: 108 * 200,
     quantityKg: 200,
     validUntil: futureIso(5),
@@ -153,8 +168,11 @@ export const DEMO_OFFERS: Offer[] = [
     lotId: "lot-3",
     buyerId: "b11",
     buyerName: "Northern Spice Imports",
+    crop: "Chilli",
     verified: false,
+    pricePerKg: 101,
     offeredPricePerKg: 101,
+    amount: 101 * 200,
     totalAmount: 101 * 200,
     quantityKg: 200,
     validUntil: futureIso(2),

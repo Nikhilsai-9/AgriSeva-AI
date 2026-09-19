@@ -19,6 +19,7 @@ export const ta: Partial<TranslationDictionary> = {
     "features": "அம்சங்கள்",
     "simulation": "செயல்முறை",
     "impact": "தாக்கம்",
+    "farmerDashboard": "விவசாயி டாஷ்போர்டு →",
     "dashboardCta": "டாஷ்போர்டு →",
     "getStartedCta": "தொடங்குங்கள் →"
   },

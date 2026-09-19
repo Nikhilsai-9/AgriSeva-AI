@@ -10,11 +10,12 @@ import {
 import { useTranslation } from "@/locales";
 import {
   useMarketPrices,
+  type MarketPriceQuery,
 } from "@/features/farmerDashboard/hooks/data";
 import {
   COMMODITIES,
   INDIAN_STATES,
-  type MarketPriceFilters,
+  type MarketPrice,
 } from "@/features/farmerDashboard/types";
 import {
   formatRupees,
@@ -26,15 +27,25 @@ import {
 } from "@/features/farmerDashboard/FarmerLayout";
 import { cn } from "@/lib/utils";
 
+const EMPTY_PRICE: MarketPrice[] = [];
+
 export function MarketPricesPage() {
   const { t } = useTranslation();
-  const [filters, setFilters] = useState<MarketPriceFilters>({
-    crop: "all",
-    state: "all",
+  const [filters, setFilters] = useState<MarketPriceQuery>({
+    commodity: "Tomato",
   });
   const { data: prices, isLoading } = useMarketPrices(filters);
 
-  const filtered = prices ?? [];
+  // `useMarketPrices` returns a structured `MarketPriceResponse` with a
+  // bestMatch + alternatives list. Flatten for the grid view; the
+  // bestMatch badge is rendered separately if needed.
+  const filtered = useMemo<MarketPrice[]>(() => {
+    if (!prices) return EMPTY_PRICE;
+    return prices.bestMatch
+      ? [prices.bestMatch, ...prices.alternatives]
+      : prices.alternatives;
+  }, [prices]);
+
   const trendStats = useMemo(() => {
     const up = filtered.filter((p) => p.changePct > 0).length;
     const down = filtered.filter((p) => p.changePct < 0).length;
@@ -69,15 +80,19 @@ export function MarketPricesPage() {
             </span>
             <select
               className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              value={filters.crop}
+              value={filters.commodity ?? "Tomato"}
               onChange={(e) =>
-                setFilters((f) => ({ ...f, crop: e.target.value }))
+                setFilters(
+                  (f: MarketPriceQuery): MarketPriceQuery => ({
+                    ...f,
+                    commodity: e.target.value,
+                  })
+                )
               }
             >
-              <option value="all">{t("farmer.prices.allCrops", "All crops")}</option>
               {COMMODITIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
+                <option key={c} value={c}>
+                  {c}
                 </option>
               ))}
             </select>
@@ -88,12 +103,16 @@ export function MarketPricesPage() {
             </span>
             <select
               className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              value={filters.state}
+              value={filters.state ?? ""}
               onChange={(e) =>
-                setFilters((f) => ({ ...f, state: e.target.value }))
+                setFilters(
+                  (f: MarketPriceQuery): MarketPriceQuery => ({
+                    ...f,
+                    state: e.target.value,
+                  })
+                )
               }
             >
-              <option value="all">{t("farmer.prices.allStates", "All states")}</option>
               {INDIAN_STATES.map((s) => (
                 <option key={s} value={s}>
                   {s}
