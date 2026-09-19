@@ -1,20 +1,42 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
-import { ArrowLeft, Sprout } from "lucide-react";
+import {
+  ArrowLeft,
+  Sprout,
+  TrendingUp,
+  Award,
+  ShieldCheck,
+} from "lucide-react";
 import { useTranslation } from "@/locales";
-import { useFarmerProfile, useCreateLot } from "@/features/farmerDashboard/hooks/data";
+import {
+  useFarmerProfile,
+  useCreateLot,
+  useAllMarketPrices,
+  useBuyers,
+  useGrievances,
+} from "@/features/farmerDashboard/hooks/data";
+import {
+  recommendBestMarketForLot,
+  reliabilityEvidence,
+} from "@/features/farmerDashboard/market-intelligence";
 import {
   FarmerCard,
   FarmerPageContainer,
   FarmerSectionTitle,
 } from "@/features/farmerDashboard/FarmerLayout";
-import { COMMODITIES, type QualityGrade } from "@/features/farmerDashboard/types";
+import {
+  formatRupees,
+} from "@/features/farmerDashboard/hooks/utils";
+import { COMMODITIES, type FarmerLot, type QualityGrade } from "@/features/farmerDashboard/types";
 
 export function CreateLotPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: profile } = useFarmerProfile();
   const createLot = useCreateLot();
+  const { data: prices } = useAllMarketPrices();
+  const { data: buyers } = useBuyers();
+  const { data: grievances } = useGrievances();
 
   const [crop, setCrop] = useState("");
   const [qualityGrade, setQualityGrade] = useState<QualityGrade>("A");
@@ -22,6 +44,76 @@ export function CreateLotPage() {
   const [harvestDate, setHarvestDate] = useState("");
   const [expectedPricePerKg, setExpectedPricePerKg] = useState("");
   const [notes, setNotes] = useState("");
+
+  // Debounced (200ms) snapshot of the form used by the live-preview panel.
+  const [debounced, setDebounced] = useState({
+    crop,
+    quantityKg,
+    qualityGrade,
+    expectedPricePerKg,
+  });
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setDebounced({
+        crop,
+        quantityKg,
+        qualityGrade,
+        expectedPricePerKg,
+      });
+    }, 200);
+    return () => clearTimeout(id);
+  }, [crop, quantityKg, qualityGrade, expectedPricePerKg]);
+
+  const preview = useMemo(() => {
+    const qty = Number(debounced.quantityKg);
+    if (
+      !debounced.crop ||
+      !isFinite(qty) ||
+      qty <= 0 ||
+      (prices?.length ?? 0) === 0
+    ) {
+      return null;
+    }
+    const draftLot: FarmerLot = {
+      id: "draft",
+      farmerId: profile?.uid ?? "draft",
+      crop: debounced.crop,
+      variety: "",
+      quantityKg: qty,
+      qualityGrade: debounced.qualityGrade,
+      qualityNotes: "",
+      expectedPricePerKg: Number(debounced.expectedPricePerKg) || 0,
+      state: profile?.state ?? "Karnataka",
+      district: profile?.district ?? "Kolar",
+      village: profile?.village ?? "",
+      harvestDate: new Date().toISOString().slice(0, 10),
+      images: [],
+      status: "active",
+      createdAt: new Date().toISOString(),
+      isDemo: true,
+    };
+    const candidates = recommendBestMarketForLot({
+      lot: draftLot,
+      prices: prices ?? [],
+      buyers: buyers ?? [],
+      grievances: grievances ?? [],
+    });
+    return candidates[0] ?? null;
+  }, [
+    debounced.crop,
+    debounced.quantityKg,
+    debounced.qualityGrade,
+    debounced.expectedPricePerKg,
+    prices,
+    buyers,
+    grievances,
+    profile,
+  ]);
+
+  const previewBuyerReliability = preview?.buyer
+    ? reliabilityEvidence(preview.buyer, grievances ?? [])
+    : null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -177,6 +269,92 @@ export function CreateLotPage() {
           </button>
         </form>
       </FarmerCard>
+
+      {/* Live preview — market intelligence (debounced 200ms) */}
+      <FarmerCard className="p-5 bg-gradient-to-br from-sky-50 via-white to-emerald-50">
+        <FarmerSectionTitle
+          hint={t(
+            "farmer.createLot.previewHint",
+            "Updates as you fill the form (debounced).",
+          )}
+          action={
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800">
+              {t("farmer.common.sourceDemo", "Demo")}
+            </span>
+          }
+        >
+          {t("farmer.createLot.previewTitle", "Live preview")}
+        </FarmerSectionTitle>
+        {!preview ? (
+          <p className="text-sm text-emerald-900/70">
+            {t(
+              "farmer.createLot.previewEmpty",
+              "Fill the form to see a live estimate.",
+            )}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <PreviewStat
+                icon={<TrendingUp className="h-4 w-4" />}
+                label={t("farmer.createLot.previewNet", "Estimated net realisable")}
+                value={formatRupees(preview.realisable.net)}
+              />
+              <PreviewStat
+                icon={<Award className="h-4 w-4" />}
+                label={t("farmer.createLot.previewBestMarket", "Best market right now")}
+                value={preview.price.market}
+              />
+              <PreviewStat
+                icon={<Award className="h-4 w-4" />}
+                label={t("farmer.createLot.previewScore", "Match score")}
+                value={`${preview.score}/100`}
+              />
+              <PreviewStat
+                icon={<ShieldCheck className="h-4 w-4" />}
+                label={t("farmer.createLot.previewReliability", "Reliability")}
+                value={
+                  previewBuyerReliability?.suppressed
+                    ? "—"
+                    : previewBuyerReliability?.score != null
+                      ? `${previewBuyerReliability.score}/100`
+                      : "—"
+                }
+              />
+            </div>
+            <div className="text-xs text-emerald-900/70">
+              <span className="font-semibold text-emerald-900">
+                {t("farmer.createLot.previewBuyer", "Top matched buyer")}:
+              </span>{" "}
+              {preview.buyer ? preview.buyer.name : t("farmer.lotDetail.bestMarketsEmpty", "No matching mandi data yet.")}
+            </div>
+          </div>
+        )}
+      </FarmerCard>
     </FarmerPageContainer>
+  );
+}
+
+function PreviewStat({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex items-center gap-1 text-emerald-700">
+        {icon}
+        <span className="text-[10px] uppercase tracking-wider font-semibold text-emerald-900/60">
+          {label}
+        </span>
+      </div>
+      <span className="text-sm font-bold text-emerald-900 break-words">
+        {value}
+      </span>
+    </div>
   );
 }

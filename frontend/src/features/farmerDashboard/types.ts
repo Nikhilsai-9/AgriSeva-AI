@@ -402,4 +402,50 @@ export interface MarketPriceFilters {
   arrivalDate?: string;
 }
 
+/**
+ * Market Insight — additive interface used by the new Market Intelligence
+ * decision-support surfaces (Home "Best Market" card, Market Comparison
+ * page, Lot Detail "Best markets for this lot" card).
+ *
+ * Bundles everything the UI needs to render a single recommendation row
+ * without re-deriving from the underlying mandi prices, buyers and
+ * logistics at render time.
+ *
+ * The pure functions in `market-intelligence/` produce this shape via
+ * `recommendBestMarketForLot(...)`.
+ */
+export interface MarketInsight {
+  /** Stable id (e.g. market-price id). */
+  id: string;
+  /** Crop / commodity being recommended. */
+  crop: string;
+  /** Mandi name. */
+  marketName: string;
+  /** State of the mandi. */
+  marketState: string;
+  /** District of the mandi. */
+  marketDistrict: string;
+  /** Distance from farmer's village to this mandi in km. */
+  distanceKm: number;
+  /** Modal mandi price in ₹/quintal. */
+  modalPricePerQuintal: number;
+  /** Effective price in ₹/kg. */
+  pricePerKg: number;
+  /** Net realisable value in ₹ (after all deductions). */
+  netRealisable: number;
+  /** Net per kg in ₹. */
+  netPerKg: number;
+  /** 0..100 weighted score. */
+  score: number;
+  /** Optional preferred buyer for this mandi. */
+  preferredBuyerId: string | null;
+  preferredBuyerName: string | null;
+  preferredBuyerReliability: number | null;
+  /** Top reasons (already ordered by impact). */
+  reasons: string[];
+  /** Provenance — always "Demo" in this build. */
+  source: string;
+  isDemo: boolean;
+}
+
 

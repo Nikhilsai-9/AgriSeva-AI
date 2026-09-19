@@ -26,6 +26,7 @@ import { Route as AuditIndexRouteImport } from './routes/audit/index'
 import { Route as UserUserIdRouteImport } from './routes/user/$userId'
 import { Route as UserHistoryUserIdRouteImport } from './routes/user-history/$userId'
 import { Route as FarmerStorageRouteImport } from './routes/farmer.storage'
+import { Route as FarmerRecommendRouteImport } from './routes/farmer.recommend'
 import { Route as FarmerProfileRouteImport } from './routes/farmer.profile'
 import { Route as FarmerPricesRouteImport } from './routes/farmer.prices'
 import { Route as FarmerPaymentsRouteImport } from './routes/farmer.payments'
@@ -124,6 +125,11 @@ const FarmerStorageRoute = FarmerStorageRouteImport.update({
   path: '/storage',
   getParentRoute: () => FarmerRoute,
 } as any)
+const FarmerRecommendRoute = FarmerRecommendRouteImport.update({
+  id: '/recommend',
+  path: '/recommend',
+  getParentRoute: () => FarmerRoute,
+} as any)
 const FarmerProfileRoute = FarmerProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -198,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/farmer/payments': typeof FarmerPaymentsRoute
   '/farmer/prices': typeof FarmerPricesRoute
   '/farmer/profile': typeof FarmerProfileRoute
+  '/farmer/recommend': typeof FarmerRecommendRoute
   '/farmer/storage': typeof FarmerStorageRoute
   '/user-history/$userId': typeof UserHistoryUserIdRoute
   '/user/$userId': typeof UserUserIdRoute
@@ -228,6 +235,7 @@ export interface FileRoutesByTo {
   '/farmer/payments': typeof FarmerPaymentsRoute
   '/farmer/prices': typeof FarmerPricesRoute
   '/farmer/profile': typeof FarmerProfileRoute
+  '/farmer/recommend': typeof FarmerRecommendRoute
   '/farmer/storage': typeof FarmerStorageRoute
   '/user-history/$userId': typeof UserHistoryUserIdRoute
   '/user/$userId': typeof UserUserIdRoute
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/farmer/payments': typeof FarmerPaymentsRoute
   '/farmer/prices': typeof FarmerPricesRoute
   '/farmer/profile': typeof FarmerProfileRoute
+  '/farmer/recommend': typeof FarmerRecommendRoute
   '/farmer/storage': typeof FarmerStorageRoute
   '/user-history/$userId': typeof UserHistoryUserIdRoute
   '/user/$userId': typeof UserUserIdRoute
@@ -293,6 +302,7 @@ export interface FileRouteTypes {
     | '/farmer/payments'
     | '/farmer/prices'
     | '/farmer/profile'
+    | '/farmer/recommend'
     | '/farmer/storage'
     | '/user-history/$userId'
     | '/user/$userId'
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/farmer/payments'
     | '/farmer/prices'
     | '/farmer/profile'
+    | '/farmer/recommend'
     | '/farmer/storage'
     | '/user-history/$userId'
     | '/user/$userId'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/farmer/payments'
     | '/farmer/prices'
     | '/farmer/profile'
+    | '/farmer/recommend'
     | '/farmer/storage'
     | '/user-history/$userId'
     | '/user/$userId'
@@ -513,6 +525,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FarmerStorageRouteImport
       parentRoute: typeof FarmerRoute
     }
+    '/farmer/recommend': {
+      id: '/farmer/recommend'
+      path: '/recommend'
+      fullPath: '/farmer/recommend'
+      preLoaderRoute: typeof FarmerRecommendRouteImport
+      parentRoute: typeof FarmerRoute
+    }
     '/farmer/profile': {
       id: '/farmer/profile'
       path: '/profile'
@@ -635,6 +654,7 @@ interface FarmerRouteChildren {
   FarmerPaymentsRoute: typeof FarmerPaymentsRoute
   FarmerPricesRoute: typeof FarmerPricesRoute
   FarmerProfileRoute: typeof FarmerProfileRoute
+  FarmerRecommendRoute: typeof FarmerRecommendRoute
   FarmerStorageRoute: typeof FarmerStorageRoute
   FarmerIndexRoute: typeof FarmerIndexRoute
 }
@@ -648,6 +668,7 @@ const FarmerRouteChildren: FarmerRouteChildren = {
   FarmerPaymentsRoute: FarmerPaymentsRoute,
   FarmerPricesRoute: FarmerPricesRoute,
   FarmerProfileRoute: FarmerProfileRoute,
+  FarmerRecommendRoute: FarmerRecommendRoute,
   FarmerStorageRoute: FarmerStorageRoute,
   FarmerIndexRoute: FarmerIndexRoute,
 }

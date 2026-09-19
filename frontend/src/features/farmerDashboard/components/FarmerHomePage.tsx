@@ -9,6 +9,9 @@ import {
   Wallet,
   Bell,
   ArrowUpRight,
+  Store,
+  Star,
+  Scale,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import { useAuthStore } from "@/stores/auth-store";
@@ -17,12 +20,18 @@ import {
   useMyLots,
   useAllMyOffers,
   usePayments,
+  useAllMarketPrices,
+  useBuyers,
+  useGrievances,
 } from "@/features/farmerDashboard/hooks/data";
 import {
   formatKg,
   formatRupees,
   greetingForNow,
 } from "@/features/farmerDashboard/hooks/utils";
+import {
+  recommendBestMarketForLot,
+} from "@/features/farmerDashboard/market-intelligence";
 import {
   FarmerCard,
   FarmerPageContainer,
@@ -44,6 +53,9 @@ export function FarmerHomePage() {
   const { data: lots } = useMyLots();
   const { data: offers } = useAllMyOffers();
   const { data: payments } = usePayments();
+  const { data: prices } = useAllMarketPrices();
+  const { data: buyers } = useBuyers();
+  const { data: grievances } = useGrievances();
 
   const greeting = greetingForNow();
   const activeLots = lots?.filter((l) => l.status === "active") ?? [];
@@ -51,6 +63,26 @@ export function FarmerHomePage() {
   const pendingPayments =
     payments?.filter((p) => p.status === "pending") ?? [];
   const topLot = activeLots[0];
+
+  // Market intelligence — best-market + top-3 buyers for the active lot.
+  const recommendations = topLot
+    ? recommendBestMarketForLot({
+        lot: topLot,
+        prices: prices ?? [],
+        buyers: buyers ?? [],
+        grievances: grievances ?? [],
+      })
+    : [];
+  const topRecommendation = recommendations[0];
+  const top3Buyers = (buyers ?? [])
+    .map((b) => ({ buyer: b }))
+    .slice(0, 3);
+
+  // Local helper for compact ₹/kg display.
+  function formatRupeesPerKgShort(amount: number): string {
+    if (!isFinite(amount)) return "—";
+    return "₹ " + amount.toFixed(2);
+  }
 
   return (
     <FarmerPageContainer className="space-y-5 sm:space-y-6">
@@ -108,6 +140,127 @@ export function FarmerHomePage() {
           </Link>
         </div>
       </FarmerCard>
+
+      {/* Best market recommendation card — market intelligence */}
+      <FarmerCard className="p-5 sm:p-6 bg-gradient-to-br from-emerald-50 via-white to-sky-50">
+        <FarmerSectionTitle
+          hint={t(
+            "farmer.home.bestMarketHint",
+            "Top recommendation based on price, distance, demand & reliability"
+          )}
+          action={
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800">
+              {t("farmer.common.sourceDemo", "Demo")}
+            </span>
+          }
+        >
+          {t("farmer.home.bestMarket", "Best market for your crop")}
+        </FarmerSectionTitle>
+        {!topLot ? (
+          <p className="text-sm text-emerald-900/70">
+            {t(
+              "farmer.home.bestMarketNoLot",
+              "Create an active lot to see a recommended market."
+            )}
+          </p>
+        ) : !topRecommendation ? (
+          <p className="text-sm text-emerald-900/70">
+            {t(
+              "farmer.lotDetail.bestMarketsEmpty",
+              "No matching mandi data yet."
+            )}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                <Store className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-base font-bold text-emerald-900 truncate">
+                  {topRecommendation.price.market}
+                </p>
+                <p className="text-xs text-emerald-900/70 truncate">
+                  {t("farmer.home.bestMarketAt", "at {market} • {distance} km", {
+                    market: topRecommendation.price.market,
+                    distance: String(topRecommendation.price.distanceKm ?? 0),
+                  })}
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-lg font-extrabold text-emerald-900">
+                  {formatRupees(topRecommendation.realisable.net)}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-emerald-900/60">
+                  {t("farmer.home.bestMarketNet", "Net realisable")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800">
+                <Scale className="h-3 w-3" />
+                {formatRupeesPerKgShort(
+                  topRecommendation.realisable.netPerKg
+                )}
+                /kg
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 font-semibold text-sky-800">
+                {t("farmer.home.bestMarketScore", "Match score {score}", {
+                  score: String(topRecommendation.score),
+                })}
+              </span>
+              {topRecommendation.price.source ? (
+                <span className="text-emerald-900/60">
+                  {topRecommendation.price.source}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </FarmerCard>
+
+      {/* Top 3 matched buyers — market intelligence */}
+      {topLot && top3Buyers.length > 0 ? (
+        <FarmerCard className="p-5 sm:p-6">
+          <FarmerSectionTitle
+            hint={t(
+              "farmer.home.topBuyersHint",
+              "Best buyers for your active lot"
+            )}
+          >
+            {t("farmer.home.topBuyers", "Top matched buyers")}
+          </FarmerSectionTitle>
+          <div className="space-y-2">
+            {top3Buyers.map(({ buyer }) => (
+              <Link
+                key={buyer.id}
+                to="/farmer/buyers/$buyerId"
+                params={{ buyerId: buyer.id }}
+                className="flex items-center justify-between gap-3 rounded-xl border border-emerald-100 p-3 hover:bg-emerald-50/40 transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <Factory className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-emerald-900 truncate">
+                      {buyer.name}
+                    </p>
+                    <p className="text-xs text-emerald-900/60 truncate">
+                      <Star className="inline h-3 w-3 text-amber-500 mr-1" />
+                      {buyer.rating.toFixed(1)} • {buyer.completedDeals}{" "}
+                      {t("farmer.buyers.deals", "deals")}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold rounded-full bg-emerald-50 text-emerald-800 px-2 py-1 shrink-0">
+                  {t("farmer.home.viewBuyer", "View buyer")}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </FarmerCard>
+      ) : null}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {QUICK_ACTIONS.map((a) => (

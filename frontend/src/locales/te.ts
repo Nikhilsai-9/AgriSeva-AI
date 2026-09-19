@@ -350,4 +350,268 @@ export const te: Partial<TranslationDictionary> = {
     expertAssistanceAlt: "నిపుణుల సహాయం మరియు పరిశీలన",
     emailAddress: "ఈమెయిల్ చిరునామా",
   },
+  farmer:
+{
+    banner: {
+      demo: "Demo Data — This dashboard currently renders sample data so you can explore the experience. Live mandi feeds and buyer KYC will be enabled when the production backend is connected."
+    },
+    brand: {
+      kicker: "AgriSeva • Farmer",
+      title: "Market Intelligence"
+    },
+    buyerDetail: {
+      createLotForBuyer: "Create lot for this buyer",
+      cropsOfInterest: "Crops of interest",
+      email: "Email",
+      expectedEarning: "అంచనా ఆదాయం",
+      expectedEarningHint: "మీ యాక్టివ్ లాట్‌ను ఇక్కడ అమ్మితే",
+      gradeMatch: "గ్రేడ్ సరిపోలిక",
+      location: "Location",
+      memberSince: "Member since",
+      notFound: "Buyer not found.",
+      notes: "About",
+      phone: "Phone",
+      preferredPayment: "Payment",
+      quality: "నాణ్యత & డిమాండ్ సరిపోలిక",
+      quantityRange: "పరిమాణ పరిధి",
+      reliability: "నమ్మకం & విశ్వసనీయత",
+      reliabilityEvidence: "ఈ స్కోర్ ఎందుకు",
+      reliabilityTier: "స్థాయి",
+      website: "Website"
+    },
+    buyers: {
+      deals: "deals",
+      empty: "No buyers match your search yet.",
+      hint: "Verified buyers ranked by how well they match your crop, quantity, quality and distance.",
+      matchScore: "Match",
+      searchPlaceholder: "Search by name, crop, location…",
+      title: "Find Buyers",
+      verified: "Verified buyer"
+    },
+    common: {
+      back: "Back",
+      cancel: "Cancel",
+      sourceDemo: "డెమో"
+    },
+    createLot: {
+      crop: "Crop",
+      expectedPrice: "Expected price (₹/kg)",
+      grade: "Grade",
+      harvestDate: "Harvest date",
+      hint: "Create a lot to publish your crop to buyers. Demo only — no real buyers will see it.",
+      notes: "Notes (optional)",
+      notesPlaceholder: "Storage conditions, certifications, variety…",
+      previewBestMarket: "ప్రస్తుత ఉత్తమ మార్కెట్",
+      previewBuyer: "టాప్ సరిపోలే కొనుగోలుదారు",
+      previewEmpty: "అంచనా చూడటానికి ఫారం నింపండి.",
+      previewHint: "ఫారం నింపిన వెంటనే అప్‌డేట్ అవుతుంది.",
+      previewNet: "అంచనా నికర ఆదాయం",
+      previewReliability: "విశ్వసనీయత",
+      previewScore: "మ్యాచ్ స్కోర్",
+      previewTitle: "లైవ్ ప్రివ్యూ",
+      quantity: "Quantity (kg)",
+      section: "Lot details",
+      selectCrop: "Select crop…",
+      submit: "Publish Lot",
+      submitting: "Publishing…",
+      title: "Create New Lot"
+    },
+    greeting: {
+      afternoon: "Good afternoon",
+      evening: "Good evening",
+      morning: "Good morning",
+      night: "Good night"
+    },
+    grievances: {
+      categories: {
+        logistics: "Logistics",
+        other: "Other",
+        payment: "Payment issue",
+        quality: "Quality complaint",
+        weight: "Weight dispute"
+      },
+      category: "Category",
+      description: "Description",
+      empty: "No grievances raised yet.",
+      formTitle: "Raise a grievance",
+      hint: "Track dispute status and raise new grievances.",
+      new: "New Grievance",
+      prefilledFrom: "చెల్లింపు {ref} నుండి ముందుగా నింపబడింది",
+      priorities: {
+        high: "High",
+        low: "Low",
+        medium: "Medium"
+      },
+      priority: "Priority",
+      subject: "Subject",
+      submit: "Submit",
+      title: "Grievances"
+    },
+    header: {
+      notifications: "Notifications",
+      signOut: "Sign out"
+    },
+    home: {
+      active: "active",
+      addLot: "Add Lot",
+      bestMarket: "మీ పంటకు ఉత్తమ మార్కెట్",
+      bestMarketAt: "{market} వద్ద • {distance} కి.మీ",
+      bestMarketHint: "ధర, దూరం, డిమాండ్ & విశ్వసనీయత ఆధారంగా టాప్ సిఫార్సు",
+      bestMarketNet: "నికర ఆదాయం",
+      bestMarketNoLot: "సిఫార్సు చూడటానికి యాక్టివ్ లాట్ సృష్టించండి.",
+      bestMarketScore: "మ్యాచ్ స్కోర్ {score}",
+      findBuyers: "Find Buyers",
+      findBuyersHint: "Verified buyers ranked for your crop",
+      grievances: "Grievances",
+      grievancesHint: "Raise and track disputes",
+      insightHint: "Aggregated from connected mandi sources (demo data).",
+      logistics: "Logistics & Storage",
+      logisticsHint: "Transport, cold storage & warehousing",
+      marketPrices: "Market Prices",
+      marketPricesHint: "Live mandi prices across India",
+      myLotsHint: "Create and manage your crop lots",
+      myOffersHint: "All offers from buyers on your lots",
+      noActiveLot: "Create your first lot to start receiving offers.",
+      noCrop: "No active crop yet",
+      payments: "Payments",
+      paymentsUpToDate: "All up to date",
+      pending: "pending",
+      primaryCropHint: "Your most recently created active lot.",
+      subtitle: "Your crop market assistant — discover fair prices, find verified buyers, and track every rupee you earn.",
+      todaysInsight: "Today's Market Insight",
+      topBuyers: "టాప్ సరిపోలే కొనుగోలుదారులు",
+      topBuyersHint: "మీ యాక్టివ్ లాట్‌కు ఉత్తమ కొనుగోలుదారులు",
+      viewBuyer: "కొనుగోలుదారుని చూడండి",
+      vsYesterday: "vs yesterday",
+      yourCrop: "Your Crop"
+    },
+    logistics: {
+      capacity: "Capacity",
+      empty: "No logistics options available right now.",
+      eta: "ETA",
+      hint: "Transport options from aggregators and FPO partners. Demo dataset.",
+      insured: "Insured",
+      rate: "Rate",
+      route: "Route",
+      select: "Select this transporter",
+      selected: "Selected",
+      title: "Logistics & Transport"
+    },
+    lotDetail: {
+      accept: "Accept",
+      bestMarkets: "ఈ లాట్‌కు ఉత్తమ మార్కెట్లు",
+      bestMarketsEmpty: "సరిపోలే మార్కెట్ డేటా లేదు.",
+      bestMarketsHint: "రవాణా & ఫీజుల తర్వాత నికర ఆదాయం ప్రకారం క్రమబద్ధీకరించబడింది",
+      expectedPrice: "Expected price",
+      harvestDate: "Harvest date",
+      location: "Location",
+      noOffers: "No offers yet. Recommended buyers are listed below.",
+      notFound: "Lot not found.",
+      offers: "Offers",
+      offersHint: "Buyers who have responded to this lot.",
+      quantity: "Quantity",
+      recommended: "Recommended Buyers",
+      recommendedHint: "Best fits based on your crop, quantity and grade.",
+      reject: "Reject"
+    },
+    lots: {
+      empty: "You haven't created any lots yet.",
+      expectedPrice: "Expected",
+      hint: "Manage every crop lot you have posted.",
+      new: "New Lot",
+      title: "My Lots"
+    },
+    nav: {
+      marketGroup: "Market",
+      supportGroup: "Support"
+    },
+    offers: {
+      empty: "No offers in this view yet.",
+      expectedBy: "{date} నాటికి అంచనా",
+      filter: {
+        accepted: "Accepted",
+        all: "All",
+        countered: "Countered",
+        pending: "Pending",
+        rejected: "Rejected"
+      },
+      hint: "Every offer across all your lots.",
+      title: "My Offers",
+      viewLot: "View lot",
+      viewMarketComparison: "మార్కెట్లను పోల్చండి"
+    },
+    payments: {
+      empty: "No payments in this view yet.",
+      filter: {
+        all: "All",
+        failed: "Failed",
+        paid: "Paid",
+        pending: "Pending"
+      },
+      hint: "Every payment you have received or are awaiting.",
+      raiseDispute: "వివాదాన్ని లేవనెత్తండి",
+      title: "Payments",
+      totalPending: "Pending",
+      totalReceived: "Total received"
+    },
+    prices: {
+      crop: "Crop",
+      empty: "No prices match these filters yet.",
+      falling: "falling",
+      filters: "Filters",
+      flat: "flat",
+      hint: "Live prices from government & private mandis across India. Demo dataset.",
+      loading: "Loading latest prices…",
+      max: "Max",
+      min: "Min",
+      modal: "Modal",
+      perQuintal: "per quintal",
+      rising: "rising",
+      state: "State",
+      title: "Market Prices"
+    },
+    profile: {
+      district: "District",
+      hint: "Your details power buyer matching and lot location.",
+      location: "Location",
+      name: "Name",
+      phone: "Phone",
+      primaryCrop: "Primary crop",
+      save: "Save profile",
+      saved: "✓ Saved",
+      state: "State",
+      title: "My Profile",
+      village: "Village"
+    },
+    recommend: {
+      colBuyer: "టాప్ కొనుగోలుదారు",
+      colDeductions: "తగ్గింపులు",
+      colGross: "స్థూల",
+      colNet: "నికర ఆదాయం",
+      colPrice: "ధర /కేజీ",
+      empty: "మార్కెట్లను పోల్చడానికి యాక్టివ్ లాట్ సృష్టించండి.",
+      fullBreakdown: "పూర్తి వివరణ",
+      hint: "మీ యాక్టివ్ లాట్ కోసం అన్ని మార్కెట్లను పోల్చండి.",
+      insurance: "బీమా",
+      loading: "లోడింగ్",
+      marketFee: "మార్కెట్ ఫీజు",
+      other: "ఇతర",
+      rankBadge: "#{rank}",
+      title: "మార్కెట్ పోలిక",
+      transport: "రవాణా",
+      unloading: "అన్‌లోడింగ్",
+      why: "మేము దీనిని ఎందుకు సిఫార్సు చేస్తున్నాము"
+    },
+    storage: {
+      available: "Available",
+      book: "Reserve space",
+      cold: "Cold storage",
+      empty: "No storage options available right now.",
+      full: "Full",
+      hint: "Cold storage and warehousing facilities near your farm. Demo dataset.",
+      occupancy: "Occupancy",
+      title: "Storage Facilities",
+      warehouse: "Warehouse"
+    }
+  }
 };

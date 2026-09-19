@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Wallet, CheckCircle2, Clock, XCircle, Calendar } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import {
+  Wallet,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  Calendar,
+  MessageCircleWarning,
+} from "lucide-react";
 import { useTranslation } from "@/locales";
 import { usePayments } from "@/features/farmerDashboard/hooks/data";
 import {
@@ -146,6 +154,22 @@ export function PaymentsPage() {
                       ))}
                     </ol>
                   )}
+                  {/* Raise dispute — market intelligence cross-screen deep link */}
+                  {p.status !== "paid" ? (
+                    <div className="mt-2">
+                      <Link
+                        to="/farmer/grievances"
+                        search={{
+                          prefill: "payment",
+                          ref: p.reference,
+                        }}
+                        className="inline-flex items-center gap-1 text-xs font-semibold rounded-lg bg-rose-50 text-rose-800 px-2.5 py-1.5 hover:bg-rose-100"
+                      >
+                        <MessageCircleWarning className="h-3 w-3" />
+                        {t("farmer.payments.raiseDispute", "Raise dispute")}
+                      </Link>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </FarmerCard>

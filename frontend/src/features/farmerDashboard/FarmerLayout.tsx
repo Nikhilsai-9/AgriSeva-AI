@@ -29,6 +29,7 @@ import {
   Bell,
   LogOut,
   ChevronLeft,
+  Scale,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -52,6 +53,7 @@ const PRIMARY_NAV: NavItem[] = [
 ];
 
 const SECONDARY_NAV: NavItem[] = [
+  { to: "/farmer/recommend", labelKey: "farmer.nav.recommend", icon: Scale },
   { to: "/farmer/logistics", labelKey: "farmer.nav.logistics", icon: Truck },
   { to: "/farmer/storage", labelKey: "farmer.nav.storage", icon: Warehouse },
   { to: "/farmer/payments", labelKey: "farmer.nav.payments", icon: Wallet },
@@ -339,6 +341,8 @@ function fallbackFor(item: NavItem): string {
       return "Grievances";
     case "/farmer/profile":
       return "Profile";
+    case "/farmer/recommend":
+      return "Compare";
     default:
       return "Menu";
   }

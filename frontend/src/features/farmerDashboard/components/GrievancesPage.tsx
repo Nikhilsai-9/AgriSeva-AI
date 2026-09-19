@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearch } from "@tanstack/react-router";
 import { Plus, X, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/locales";
 import {
@@ -27,6 +28,7 @@ export function GrievancesPage() {
   const { t } = useTranslation();
   const { data: grievances } = useGrievances();
   const create = useCreateGrievance();
+  const search = useSearch({ from: "/farmer/grievances" });
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<(typeof CATEGORY_KEYS)[number]>(
     "payment"
@@ -36,6 +38,22 @@ export function GrievancesPage() {
   const [priority, setPriority] = useState<(typeof PRIORITY_OPTIONS)[number]>(
     "medium"
   );
+  const [transactionRef, setTransactionRef] = useState("");
+
+  // Market intelligence — auto-open & prefill when arriving via
+  // /farmer/grievances?prefill=payment&ref=<paymentId>
+  useEffect(() => {
+    if (search?.prefill === "payment" && search?.ref) {
+      setOpen(true);
+      setCategory("payment");
+      setTransactionRef(search.ref);
+      setSubject(
+        t("farmer.grievances.prefilledFrom", "Prefilled from payment {ref}", {
+          ref: search.ref,
+        }),
+      );
+    }
+  }, [search?.prefill, search?.ref, t]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,12 +63,13 @@ export function GrievancesPage() {
       subject: subject.trim(),
       description: description.trim(),
       priority,
-      // No payment or lot is mandatory for raising a grievance;
-      // a default empty ref keeps the store contract satisfied.
-      transactionRef: "",
+      // Prefilled from /farmer/grievances?prefill=payment&ref=...
+      // or empty when raised manually.
+      transactionRef: transactionRef.trim(),
     });
     setSubject("");
     setDescription("");
+    setTransactionRef("");
     setOpen(false);
   }
 

@@ -350,8 +350,23 @@ export const en = {
     emailAddress: "Email address",
   },
   farmer: {
+    banner: {
+      demo: "Demo Data — This dashboard currently renders sample data so you can explore the experience. Live mandi feeds and buyer KYC will be enabled when the production backend is connected.",
+    },
+    brand: {
+      kicker: "AgriSeva • Farmer",
+      title: "Market Intelligence",
+    },
+    header: {
+      notifications: "Notifications",
+      signOut: "Sign out",
+    },
     demo: {
       banner: "Demo data — values are illustrative only.",
+    },
+    demoBanner: {
+      text: "You are viewing demo data. Live mandi feeds and buyer KYC will activate when the production backend is connected.",
+      dismiss: "Dismiss",
     },
     greeting: {
       morning: "Good morning",
@@ -360,11 +375,14 @@ export const en = {
       night: "Good night",
     },
     nav: {
+      marketGroup: "Market",
+      supportGroup: "Support",
       home: "Home",
-      prices: "Market Prices",
-      buyers: "Find Buyers",
+      prices: "Prices",
+      buyers: "Buyers",
       lots: "My Lots",
-      offers: "My Offers",
+      offers: "Offers",
+      recommend: "Compare",
       logistics: "Logistics",
       storage: "Storage",
       payments: "Payments",
@@ -380,9 +398,13 @@ export const en = {
       primaryCropHint: "Your most recently created active lot.",
       addLot: "Add Lot",
       marketPrices: "Market Prices",
+      marketPricesHint: "Live mandi prices across India",
       findBuyers: "Find Buyers",
+      findBuyersHint: "Verified buyers ranked for your crop",
       myLots: "My Lots",
+      myLotsHint: "Create and manage your crop lots",
       myOffers: "My Offers",
+      myOffersHint: "All offers from buyers on your lots",
       active: "active",
       pending: "pending",
       todaysInsight: "Today's Market Insight",
@@ -392,10 +414,22 @@ export const en = {
       grievances: "Grievances",
       grievancesHint: "Raise and track disputes",
       payments: "Payments",
+      paymentsHint: "Track what you've received and what's pending",
       paymentsDue: "{count} payment(s) pending",
       paymentsUpToDate: "All up to date",
       logistics: "Logistics & Storage",
       logisticsHint: "Transport, cold storage & warehousing",
+      // Market intelligence — best market + top buyers
+      bestMarket: "Best market for your crop",
+      bestMarketHint: "Top recommendation based on price, distance, demand & reliability",
+      bestMarketNet: "Net realisable",
+      bestMarketAt: "at {market} • {distance} km",
+      bestMarketScore: "Match score {score}",
+      bestMarketNoLot: "Create an active lot to see a recommended market.",
+      topBuyers: "Top matched buyers",
+      topBuyersHint: "Best buyers for your active lot",
+      viewComparison: "Compare all markets",
+      viewBuyer: "View buyer",
     },
     prices: {
       title: "Market Prices",
@@ -430,6 +464,18 @@ export const en = {
       notFound: "Buyer not found.",
       location: "Location",
       phone: "Phone",
+      // Market intelligence — reliability, quality & expected earning cards
+      reliability: "Trust & reliability",
+      reliabilityScore: "Score",
+      reliabilityTier: "Tier",
+      reliabilitySuppressed: "Not enough history",
+      reliabilityEvidence: "Why this score",
+      quality: "Quality & demand fit",
+      gradeMatch: "Grade match",
+      quantityRange: "Quantity range",
+      expectedEarning: "Expected earning",
+      expectedEarningHint: "If you sell your active lot here",
+      expectedEarningNet: "Net realisable",
       email: "Email",
       website: "Website",
       memberSince: "Member since",
@@ -464,6 +510,15 @@ export const en = {
       notesPlaceholder: "Storage conditions, certifications, variety…",
       submit: "Publish Lot",
       submitting: "Publishing…",
+      // Market intelligence — live preview
+      previewTitle: "Live preview",
+      previewHint: "Updates as you fill the form (debounced).",
+      previewNet: "Estimated net realisable",
+      previewBestMarket: "Best market right now",
+      previewScore: "Match score",
+      previewBuyer: "Top matched buyer",
+      previewReliability: "Reliability",
+      previewEmpty: "Fill the form to see a live estimate.",
     },
     lotDetail: {
       notFound: "Lot not found.",
@@ -478,6 +533,10 @@ export const en = {
       reject: "Reject",
       recommended: "Recommended Buyers",
       recommendedHint: "Best fits based on your crop, quantity and grade.",
+      // Market intelligence — best markets card
+      bestMarkets: "Best markets for this lot",
+      bestMarketsHint: "Sorted by realisable net value after transport & fees",
+      bestMarketsEmpty: "No matching mandi data yet.",
     },
     offers: {
       title: "My Offers",
@@ -491,6 +550,9 @@ export const en = {
       },
       empty: "No offers in this view yet.",
       viewLot: "View lot",
+      // Market intelligence — expected payment + market comparison link
+      expectedBy: "Expected by {date}",
+      viewMarketComparison: "Compare markets",
     },
 
     logistics: {
@@ -530,6 +592,8 @@ export const en = {
         failed: "Failed",
       },
       empty: "No payments in this view yet.",
+      // Market intelligence — cross-screen deep link to grievances
+      raiseDispute: "Raise dispute",
     },
     grievances: {
       title: "Grievances",
@@ -554,6 +618,9 @@ export const en = {
         medium: "Medium",
         high: "High",
       },
+      // Market intelligence — prefill from payment dispute
+      prefilledFrom: "Prefilled from payment {ref}",
+      prefilledHint: "We've filled the category and reference for you.",
     },
     profile: {
       title: "My Profile",
@@ -568,14 +635,49 @@ export const en = {
       save: "Save profile",
       saved: "✓ Saved",
     },
+    recommend: {
+      title: "Market comparison",
+      hint: "Compare all mandis for your active lot side by side.",
+      empty: "Create an active lot to compare markets.",
+      colMarket: "Market",
+      colDistance: "Distance",
+      colPrice: "Price /kg",
+      colGross: "Gross",
+      colDeductions: "Deductions",
+      colNet: "Net realisable",
+      colScore: "Score",
+      colBuyer: "Top buyer",
+      why: "Why we recommend this",
+      reasons: "Top reasons",
+      fullBreakdown: "Full breakdown",
+      transport: "Transport",
+      loading: "Loading",
+      unloading: "Unloading",
+      marketFee: "Market fee",
+      insurance: "Insurance",
+      other: "Other",
+      source: "Source",
+      rankBadge: "#{rank}",
+      viewLot: "View lot",
+      pickMarket: "Use this market",
+    },
     common: {
       back: "Back",
       cancel: "Cancel",
+      sourceDemo: "Demo",
     },
   },
 };
 
 
+/**
+ * Deep-partial dictionary so any locale can omit any nested section
+ * (runtime falls back to `en` for missing keys).
+ */
 export type TranslationDictionary = {
-  [K in keyof typeof en]?: Partial<(typeof en)[K]>;
+  [K in keyof typeof en]?: DeepPartial<(typeof en)[K]>;
 };
+
+type DeepPartial<T> = T extends object
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : T;

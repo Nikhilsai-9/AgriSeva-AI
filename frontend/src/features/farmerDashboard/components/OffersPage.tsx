@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { HandCoins, Calendar, Sprout } from "lucide-react";
+import { HandCoins, Calendar, Sprout, Scale } from "lucide-react";
 import { useTranslation } from "@/locales";
 import {
   useAllMyOffers,
@@ -85,6 +85,23 @@ export function OffersPage() {
                     <Calendar className="h-3 w-3" />
                     {formatDate(offer.createdAt)}
                   </p>
+                  {offer.status === "accepted" ? (
+                    <p className="text-[10px] text-emerald-700 mt-1 flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {t(
+                        "farmer.offers.expectedBy",
+                        "Expected by {date}",
+                        {
+                          date: formatDate(
+                            new Date(
+                              Date.now() +
+                                3 * 24 * 60 * 60 * 1000,
+                            ).toISOString(),
+                          ),
+                        },
+                      )}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -104,6 +121,16 @@ export function OffersPage() {
                     className="text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-800 px-3 py-1.5 hover:bg-emerald-100"
                   >
                     {t("farmer.offers.viewLot", "View lot")}
+                  </Link>
+                  <Link
+                    to="/farmer/recommend"
+                    className="inline-flex items-center gap-1 text-xs font-semibold rounded-lg bg-sky-50 text-sky-800 px-3 py-1.5 hover:bg-sky-100"
+                  >
+                    <Scale className="h-3 w-3" />
+                    {t(
+                      "farmer.offers.viewMarketComparison",
+                      "Compare markets",
+                    )}
                   </Link>
                   {offer.status === "pending" && (
                     <>

@@ -354,10 +354,77 @@ export const useUpdateOfferStatus = () => {
         .getState()
         .offers.find((o) => o.id === offerId);
       if (!updated) throw new Error("Offer missing after update");
+
+      // Auto-upsert a PaymentRecord when an offer is accepted so
+      // the PaymentsPage surfaces it immediately (market intelligence).
+      if (status === "accepted") {
+        const payments =
+          qc.getQueryData<PaymentRecord[]>(["farmer", "payments"]) ??
+          DEMO_PAYMENTS;
+        const exists = payments.some((p) => p.lotId === updated.lotId);
+        if (!exists) {
+          const now = new Date().toISOString();
+          const record: PaymentRecord = {
+            id: "pay-" + Math.random().toString(36).slice(2, 9),
+            lotId: updated.lotId,
+            buyerName: updated.buyerName,
+            crop: updated.crop ?? "",
+            quantityKg: updated.quantityKg,
+            amount: updated.amount,
+            status: "pending",
+            reference:
+              "DEMO-PAY-" + Math.floor(1000 + Math.random() * 9000),
+            createdAt: now,
+            completedAt: null,
+            lotSummary: `${updated.crop ?? "Lot"} • ${updated.quantityKg}kg`,
+            method: "NEFT",
+            timeline: [
+              {
+                label: "Lot Created",
+                status: "done",
+                timestamp: now,
+                at: now,
+              },
+              {
+                label: "Buyer Offer",
+                status: "done",
+                timestamp: now,
+                at: now,
+              },
+              {
+                label: "Offer Accepted",
+                status: "done",
+                timestamp: now,
+                at: now,
+              },
+              { label: "Delivered", status: "current", timestamp: null, at: null },
+              {
+                label: "Payment Processing",
+                status: "upcoming",
+                timestamp: null,
+                at: null,
+              },
+              {
+                label: "Payment Received",
+                status: "upcoming",
+                timestamp: null,
+                at: null,
+              },
+            ],
+            isDemo: true,
+          };
+          qc.setQueryData<PaymentRecord[]>(
+            ["farmer", "payments"],
+            [record, ...payments],
+          );
+        }
+      }
+
       return updated;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["farmer", "offers"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "payments"] });
     },
   });
 };

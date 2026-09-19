@@ -7,6 +7,8 @@ import {
   HandCoins,
   Package,
   TrendingUp,
+  Store,
+  Award,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import {
@@ -15,8 +17,11 @@ import {
   useBuyers,
   useFarmerProfile,
   useUpdateOfferStatus,
+  useAllMarketPrices,
+  useGrievances,
 } from "@/features/farmerDashboard/hooks/data";
 import { computeBuyerMatch } from "@/features/farmerDashboard/hooks/use-market-match";
+import { recommendBestMarketForLot } from "@/features/farmerDashboard/market-intelligence";
 import {
   FarmerCard,
   FarmerPageContainer,
@@ -36,6 +41,8 @@ export function LotDetailPage({ lotId }: { lotId: string }) {
   const { data: buyers } = useBuyers();
   const { data: profile } = useFarmerProfile();
   const updateOffer = useUpdateOfferStatus();
+  const { data: prices } = useAllMarketPrices();
+  const { data: grievances } = useGrievances();
 
   if (!lot) {
     return (
@@ -54,6 +61,14 @@ export function LotDetailPage({ lotId }: { lotId: string }) {
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
+
+  // Market intelligence — best markets for THIS lot.
+  const bestMarkets = recommendBestMarketForLot({
+    lot,
+    prices: prices ?? [],
+    buyers: buyers ?? [],
+    grievances: grievances ?? [],
+  }).slice(0, 5);
 
   return (
     <FarmerPageContainer className="space-y-5">
@@ -188,6 +203,78 @@ export function LotDetailPage({ lotId }: { lotId: string }) {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </FarmerCard>
+
+      <FarmerCard className="p-5">
+        <FarmerSectionTitle
+          hint={t(
+            "farmer.lotDetail.bestMarketsHint",
+            "Sorted by realisable net value after transport & fees"
+          )}
+          action={<Award className="h-4 w-4 text-emerald-700" />}
+        >
+          {t("farmer.lotDetail.bestMarkets", "Best markets for this lot")}
+        </FarmerSectionTitle>
+        {bestMarkets.length === 0 ? (
+          <p className="text-sm text-emerald-900/70">
+            {t(
+              "farmer.lotDetail.bestMarketsEmpty",
+              "No matching mandi data yet."
+            )}
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {bestMarkets.map((c: ReturnType<typeof recommendBestMarketForLot>[number], idx: number) => (
+              <div
+                key={c.price.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-emerald-100 p-3"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={cn(
+                      "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
+                      idx === 0
+                        ? "bg-emerald-600 text-white"
+                        : "bg-sky-100 text-sky-700",
+                    )}
+                  >
+                    {idx === 0 ? (
+                      <Award className="h-4 w-4" />
+                    ) : (
+                      <Store className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-emerald-900 truncate">
+                      {c.price.market}
+                    </p>
+                    <p className="text-xs text-emerald-900/60 truncate">
+                      {c.price.distanceKm ?? 0} km • {c.price.source}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold text-emerald-900">
+                    {formatRupees(c.realisable.net)}
+                  </p>
+                  <p className="text-[10px] text-emerald-900/50">
+                    {c.score}/100
+                  </p>
+                </div>
+              </div>
+            ))}
+            <Link
+              to="/farmer/recommend"
+              className="block text-center text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-800 px-3 py-2 hover:bg-emerald-100"
+            >
+              {t(
+                "farmer.lotDetail.bestMarkets",
+                "Best markets for this lot"
+              )}{" "}
+              →
+            </Link>
           </div>
         )}
       </FarmerCard>

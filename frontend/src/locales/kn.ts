@@ -332,5 +332,269 @@ export const kn: Partial<TranslationDictionary> = {
     "verifiedGuidanceAlt": "ದೃಢೀಕೃತ ಕೃಷಿ ಮಾರ್ಗದರ್ಶನ",
     "expertAssistanceAlt": "ತಜ್ಞರ ನೆರವು ಮತ್ತು ಪರಿಶೀಲನೆ",
     "emailAddress": "ಇಮೇಲ್ ವಿಳಾಸ"
+  },
+  farmer:
+{
+    banner: {
+      demo: "Demo Data — This dashboard currently renders sample data so you can explore the experience. Live mandi feeds and buyer KYC will be enabled when the production backend is connected."
+    },
+    brand: {
+      kicker: "AgriSeva • Farmer",
+      title: "Market Intelligence"
+    },
+    buyerDetail: {
+      createLotForBuyer: "Create lot for this buyer",
+      cropsOfInterest: "Crops of interest",
+      email: "Email",
+      expectedEarning: "Expected earning",
+      expectedEarningHint: "If you sell your active lot here",
+      gradeMatch: "Grade match",
+      location: "Location",
+      memberSince: "Member since",
+      notFound: "Buyer not found.",
+      notes: "About",
+      phone: "Phone",
+      preferredPayment: "Payment",
+      quality: "Quality & demand fit",
+      quantityRange: "Quantity range",
+      reliability: "Trust & reliability",
+      reliabilityEvidence: "Why this score",
+      reliabilityTier: "Tier",
+      website: "Website"
+    },
+    buyers: {
+      deals: "deals",
+      empty: "No buyers match your search yet.",
+      hint: "Verified buyers ranked by how well they match your crop, quantity, quality and distance.",
+      matchScore: "Match",
+      searchPlaceholder: "Search by name, crop, location…",
+      title: "Find Buyers",
+      verified: "Verified buyer"
+    },
+    common: {
+      back: "Back",
+      cancel: "Cancel",
+      sourceDemo: "Demo"
+    },
+    createLot: {
+      crop: "Crop",
+      expectedPrice: "Expected price (₹/kg)",
+      grade: "Grade",
+      harvestDate: "Harvest date",
+      hint: "Create a lot to publish your crop to buyers. Demo only — no real buyers will see it.",
+      notes: "Notes (optional)",
+      notesPlaceholder: "Storage conditions, certifications, variety…",
+      previewBestMarket: "Best market right now",
+      previewBuyer: "Top matched buyer",
+      previewEmpty: "Fill the form to see a live estimate.",
+      previewHint: "Updates as you fill the form (debounced).",
+      previewNet: "Estimated net realisable",
+      previewReliability: "Reliability",
+      previewScore: "Match score",
+      previewTitle: "Live preview",
+      quantity: "Quantity (kg)",
+      section: "Lot details",
+      selectCrop: "Select crop…",
+      submit: "Publish Lot",
+      submitting: "Publishing…",
+      title: "Create New Lot"
+    },
+    greeting: {
+      afternoon: "Good afternoon",
+      evening: "Good evening",
+      morning: "Good morning",
+      night: "Good night"
+    },
+    grievances: {
+      categories: {
+        logistics: "Logistics",
+        other: "Other",
+        payment: "Payment issue",
+        quality: "Quality complaint",
+        weight: "Weight dispute"
+      },
+      category: "Category",
+      description: "Description",
+      empty: "No grievances raised yet.",
+      formTitle: "Raise a grievance",
+      hint: "Track dispute status and raise new grievances.",
+      new: "New Grievance",
+      prefilledFrom: "Prefilled from payment {ref}",
+      priorities: {
+        high: "High",
+        low: "Low",
+        medium: "Medium"
+      },
+      priority: "Priority",
+      subject: "Subject",
+      submit: "Submit",
+      title: "Grievances"
+    },
+    header: {
+      notifications: "Notifications",
+      signOut: "Sign out"
+    },
+    home: {
+      active: "active",
+      addLot: "Add Lot",
+      bestMarket: "Best market for your crop",
+      bestMarketAt: "at {market} • {distance} km",
+      bestMarketHint: "Top recommendation based on price, distance, demand & reliability",
+      bestMarketNet: "Net realisable",
+      bestMarketNoLot: "Create an active lot to see a recommended market.",
+      bestMarketScore: "Match score {score}",
+      findBuyers: "Find Buyers",
+      findBuyersHint: "Verified buyers ranked for your crop",
+      grievances: "Grievances",
+      grievancesHint: "Raise and track disputes",
+      insightHint: "Aggregated from connected mandi sources (demo data).",
+      logistics: "Logistics & Storage",
+      logisticsHint: "Transport, cold storage & warehousing",
+      marketPrices: "Market Prices",
+      marketPricesHint: "Live mandi prices across India",
+      myLotsHint: "Create and manage your crop lots",
+      myOffersHint: "All offers from buyers on your lots",
+      noActiveLot: "Create your first lot to start receiving offers.",
+      noCrop: "No active crop yet",
+      payments: "Payments",
+      paymentsUpToDate: "All up to date",
+      pending: "pending",
+      primaryCropHint: "Your most recently created active lot.",
+      subtitle: "Your crop market assistant — discover fair prices, find verified buyers, and track every rupee you earn.",
+      todaysInsight: "Today's Market Insight",
+      topBuyers: "Top matched buyers",
+      topBuyersHint: "Best buyers for your active lot",
+      viewBuyer: "View buyer",
+      vsYesterday: "vs yesterday",
+      yourCrop: "Your Crop"
+    },
+    logistics: {
+      capacity: "Capacity",
+      empty: "No logistics options available right now.",
+      eta: "ETA",
+      hint: "Transport options from aggregators and FPO partners. Demo dataset.",
+      insured: "Insured",
+      rate: "Rate",
+      route: "Route",
+      select: "Select this transporter",
+      selected: "Selected",
+      title: "Logistics & Transport"
+    },
+    lotDetail: {
+      accept: "Accept",
+      bestMarkets: "Best markets for this lot",
+      bestMarketsEmpty: "No matching mandi data yet.",
+      bestMarketsHint: "Sorted by realisable net value after transport & fees",
+      expectedPrice: "Expected price",
+      harvestDate: "Harvest date",
+      location: "Location",
+      noOffers: "No offers yet. Recommended buyers are listed below.",
+      notFound: "Lot not found.",
+      offers: "Offers",
+      offersHint: "Buyers who have responded to this lot.",
+      quantity: "Quantity",
+      recommended: "Recommended Buyers",
+      recommendedHint: "Best fits based on your crop, quantity and grade.",
+      reject: "Reject"
+    },
+    lots: {
+      empty: "You haven't created any lots yet.",
+      expectedPrice: "Expected",
+      hint: "Manage every crop lot you have posted.",
+      new: "New Lot",
+      title: "My Lots"
+    },
+    nav: {
+      marketGroup: "Market",
+      supportGroup: "Support"
+    },
+    offers: {
+      empty: "No offers in this view yet.",
+      expectedBy: "Expected by {date}",
+      filter: {
+        accepted: "Accepted",
+        all: "All",
+        countered: "Countered",
+        pending: "Pending",
+        rejected: "Rejected"
+      },
+      hint: "Every offer across all your lots.",
+      title: "My Offers",
+      viewLot: "View lot",
+      viewMarketComparison: "Compare markets"
+    },
+    payments: {
+      empty: "No payments in this view yet.",
+      filter: {
+        all: "All",
+        failed: "Failed",
+        paid: "Paid",
+        pending: "Pending"
+      },
+      hint: "Every payment you have received or are awaiting.",
+      raiseDispute: "Raise dispute",
+      title: "Payments",
+      totalPending: "Pending",
+      totalReceived: "Total received"
+    },
+    prices: {
+      crop: "Crop",
+      empty: "No prices match these filters yet.",
+      falling: "falling",
+      filters: "Filters",
+      flat: "flat",
+      hint: "Live prices from government & private mandis across India. Demo dataset.",
+      loading: "Loading latest prices…",
+      max: "Max",
+      min: "Min",
+      modal: "Modal",
+      perQuintal: "per quintal",
+      rising: "rising",
+      state: "State",
+      title: "Market Prices"
+    },
+    profile: {
+      district: "District",
+      hint: "Your details power buyer matching and lot location.",
+      location: "Location",
+      name: "Name",
+      phone: "Phone",
+      primaryCrop: "Primary crop",
+      save: "Save profile",
+      saved: "✓ Saved",
+      state: "State",
+      title: "My Profile",
+      village: "Village"
+    },
+    recommend: {
+      colBuyer: "Top buyer",
+      colDeductions: "Deductions",
+      colGross: "Gross",
+      colNet: "Net realisable",
+      colPrice: "Price /kg",
+      empty: "Create an active lot to compare markets.",
+      fullBreakdown: "Full breakdown",
+      hint: "Compare all mandis for your active lot side by side.",
+      insurance: "Insurance",
+      loading: "Loading",
+      marketFee: "Market fee",
+      other: "Other",
+      rankBadge: "#{rank}",
+      title: "Market comparison",
+      transport: "Transport",
+      unloading: "Unloading",
+      why: "Why we recommend this"
+    },
+    storage: {
+      available: "Available",
+      book: "Reserve space",
+      cold: "Cold storage",
+      empty: "No storage options available right now.",
+      full: "Full",
+      hint: "Cold storage and warehousing facilities near your farm. Demo dataset.",
+      occupancy: "Occupancy",
+      title: "Storage Facilities",
+      warehouse: "Warehouse"
+    }
   }
 };
