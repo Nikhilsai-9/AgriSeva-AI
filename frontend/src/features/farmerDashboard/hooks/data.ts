@@ -3,7 +3,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { create } from "zustand";
 
 import {
@@ -46,15 +46,51 @@ import type {
 } from "../types";
 
 // In-memory state for mutations created in the UI session.
+export interface StorageBooking {
+  id: string;
+  storageId: string;
+  storageName: string;
+  storageType: "warehouse" | "cold" | "silo";
+  reservedKg: number;
+  durationDays: number;
+  expectedArrival: string;
+  lotId: string | null;
+  lotSummary: string;
+  status: "pending" | "confirmed" | "cancelled";
+  createdAt: string;
+  isDemo: boolean;
+}
+
+export interface NotificationItem {
+  id: string;
+  kind: "offer" | "payment" | "grievance" | "lot" | "system";
+  title: string;
+  body: string;
+  href: string;
+  read: boolean;
+  createdAt: string;
+}
+
 interface FarmerDashboardState {
   lots: FarmerLot[];
   offers: Offer[];
   grievances: Grievance[];
+  storageBookings: StorageBooking[];
+  notifications: NotificationItem[];
   addLot: (lot: FarmerLot) => void;
   updateLot: (id: string, partial: Partial<FarmerLot>) => void;
+  removeLot: (id: string) => void;
   addOffer: (offer: Offer) => void;
   updateOffer: (id: string, partial: Partial<Offer>) => void;
   addGrievance: (g: Grievance) => void;
+  addStorageBooking: (b: StorageBooking) => void;
+  updateStorageBooking: (
+    id: string,
+    partial: Partial<StorageBooking>,
+  ) => void;
+  pushNotification: (n: NotificationItem) => void;
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
 }
 
 export const useFarmerDashboardStore = create<FarmerDashboardState>(
@@ -62,6 +98,8 @@ export const useFarmerDashboardStore = create<FarmerDashboardState>(
     lots: [...DEMO_LOTS],
     offers: [...DEMO_OFFERS],
     grievances: [...DEMO_GRIEVANCES],
+    storageBookings: [],
+    notifications: [],
     addLot: (lot) =>
       set((state) => ({ lots: [lot, ...state.lots] })),
     updateLot: (id, partial) =>
@@ -69,6 +107,11 @@ export const useFarmerDashboardStore = create<FarmerDashboardState>(
         lots: state.lots.map((l) =>
           l.id === id ? { ...l, ...partial } : l
         ),
+      })),
+    removeLot: (id) =>
+      set((state) => ({
+        lots: state.lots.filter((l) => l.id !== id),
+        offers: state.offers.filter((o) => o.lotId !== id),
       })),
     addOffer: (offer) =>
       set((state) => ({ offers: [offer, ...state.offers] })),
@@ -80,6 +123,33 @@ export const useFarmerDashboardStore = create<FarmerDashboardState>(
       })),
     addGrievance: (g) =>
       set((state) => ({ grievances: [g, ...state.grievances] })),
+    addStorageBooking: (b) =>
+      set((state) => ({
+        storageBookings: [b, ...state.storageBookings],
+      })),
+    updateStorageBooking: (id, partial) =>
+      set((state) => ({
+        storageBookings: state.storageBookings.map((b) =>
+          b.id === id ? { ...b, ...partial } : b,
+        ),
+      })),
+    pushNotification: (n) =>
+      set((state) => ({
+        notifications: [n, ...state.notifications].slice(0, 50),
+      })),
+    markNotificationRead: (id) =>
+      set((state) => ({
+        notifications: state.notifications.map((n) =>
+          n.id === id ? { ...n, read: true } : n,
+        ),
+      })),
+    markAllNotificationsRead: () =>
+      set((state) => ({
+        notifications: state.notifications.map((n) => ({
+          ...n,
+          read: true,
+        })),
+      })),
   })
 );
 
@@ -342,6 +412,10 @@ export const useAllMyOffers = () => {
 export const useUpdateOfferStatus = () => {
   const qc = useQueryClient();
   const updateOffer = useFarmerDashboardStore((s) => s.updateOffer);
+  const updateLot = useFarmerDashboardStore((s) => s.updateLot);
+  const pushNotification = useFarmerDashboardStore(
+    (s) => s.pushNotification,
+  );
   return useMutation<
     Offer,
     Error,
@@ -418,6 +492,46 @@ export const useUpdateOfferStatus = () => {
             [record, ...payments],
           );
         }
+
+        // Auto-transition: when an offer is accepted, move the lot to
+        // "sold" and auto-reject any other pending offers for the
+        // same lot so they disappear from the active offers view.
+        const allOffers = useFarmerDashboardStore.getState().offers;
+        const sameLot = allOffers.filter(
+          (o) => o.lotId === updated.lotId,
+        );
+        for (const other of sameLot) {
+          if (other.id !== updated.id && other.status === "pending") {
+            updateOffer(other.id, { status: "rejected" });
+          }
+        }
+        updateLot(updated.lotId, { status: "sold" });
+
+        pushNotification({
+          id: "n-offer-" + updated.id,
+          kind: "offer",
+          title: "Offer accepted",
+          body:
+            updated.buyerName +
+            " - " +
+            (updated.crop ?? "Lot") +
+            " accepted. Payment pending.",
+          href: `/farmer/lots/${updated.lotId}`,
+          read: false,
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      if (status === "rejected") {
+        pushNotification({
+          id: "n-reject-" + updated.id,
+          kind: "offer",
+          title: "Offer rejected",
+          body: updated.buyerName + " - " + (updated.crop ?? "Lot"),
+          href: `/farmer/offers`,
+          read: false,
+          createdAt: new Date().toISOString(),
+        });
       }
 
       return updated;
@@ -425,6 +539,154 @@ export const useUpdateOfferStatus = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["farmer", "offers"] });
       qc.invalidateQueries({ queryKey: ["farmer", "payments"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "lots"] });
+    },
+  });
+};
+
+// Counter-offer: creates a NEW pending offer record for the same lot
+// with a different price + status="countered". The original offer
+// transitions to "countered" so the buyer can see the response.
+export interface CounterOfferInput {
+  originalOfferId: string;
+  pricePerKg: number;
+  message?: string;
+}
+
+export const useCounterOffer = () => {
+  const qc = useQueryClient();
+  const offers = useFarmerDashboardStore((s) => s.offers);
+  const updateOffer = useFarmerDashboardStore((s) => s.updateOffer);
+  const addOffer = useFarmerDashboardStore((s) => s.addOffer);
+  const pushNotification = useFarmerDashboardStore(
+    (s) => s.pushNotification,
+  );
+  return useMutation<Offer, Error, CounterOfferInput>({
+    mutationFn: async ({ originalOfferId, pricePerKg, message }) => {
+      await delay(160);
+      const original = offers.find((o) => o.id === originalOfferId);
+      if (!original) throw new Error("Original offer not found");
+      const now = new Date().toISOString();
+      const total = pricePerKg * original.quantityKg;
+      const newOffer: Offer = {
+        ...original,
+        id: "offer-" + Math.random().toString(36).slice(2, 9),
+        pricePerKg,
+        offeredPricePerKg: pricePerKg,
+        amount: total,
+        totalAmount: total,
+        status: "pending",
+        terms: message ?? original.terms,
+        createdAt: now,
+      };
+      updateOffer(originalOfferId, { status: "countered" });
+      addOffer(newOffer);
+      pushNotification({
+        id: "n-counter-" + newOffer.id,
+        kind: "offer",
+        title: "Counter offer sent",
+        body: "Rs " + pricePerKg + "/kg sent to " + original.buyerName,
+        href: `/farmer/lots/${original.lotId}`,
+        read: false,
+        createdAt: now,
+      });
+      return newOffer;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["farmer", "offers"] });
+    },
+  });
+};
+
+// Update lot — used by LotDetailPage edit form.
+export interface UpdateLotInput {
+  id: string;
+  patch: Partial<
+    Omit<FarmerLot, "id" | "farmerId" | "createdAt" | "isDemo">
+  >;
+}
+
+export const useUpdateLot = () => {
+  const qc = useQueryClient();
+  const updateLot = useFarmerDashboardStore((s) => s.updateLot);
+  return useMutation<FarmerLot, Error, UpdateLotInput>({
+    mutationFn: async ({ id, patch }) => {
+      await delay(160);
+      updateLot(id, patch);
+      const lot = useFarmerDashboardStore
+        .getState()
+        .lots.find((l) => l.id === id);
+      if (!lot) throw new Error("Lot missing after update");
+      return lot;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["farmer", "lots"] });
+    },
+  });
+};
+
+// Delete lot — also drops any related offers.
+export const useDeleteLot = () => {
+  const qc = useQueryClient();
+  const removeLot = useFarmerDashboardStore((s) => s.removeLot);
+  return useMutation<{ id: string }, Error, { id: string }>({
+    mutationFn: async ({ id }) => {
+      await delay(140);
+      removeLot(id);
+      return { id };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["farmer", "lots"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "offers"] });
+    },
+  });
+};
+
+// Mark lot as sold (offline sale flow).
+export const useMarkLotSold = () => {
+  const qc = useQueryClient();
+  const updateLot = useFarmerDashboardStore((s) => s.updateLot);
+  const pushNotification = useFarmerDashboardStore(
+    (s) => s.pushNotification,
+  );
+  return useMutation<
+    FarmerLot,
+    Error,
+    { id: string; finalPricePerKg: number; buyerName: string }
+  >({
+    mutationFn: async ({ id, finalPricePerKg, buyerName }) => {
+      await delay(160);
+      const existing = useFarmerDashboardStore
+        .getState()
+        .lots.find((l) => l.id === id);
+      const noteSuffix =
+        "[Offline sale] Sold to " +
+        buyerName +
+        " @ Rs " +
+        finalPricePerKg +
+        "/kg";
+      const newNotes =
+        (existing?.notes ?? "") +
+        (existing?.notes ? "\n" : "") +
+        noteSuffix;
+      updateLot(id, { status: "sold", notes: newNotes });
+      const lot = useFarmerDashboardStore
+        .getState()
+        .lots.find((l) => l.id === id);
+      if (!lot) throw new Error("Lot missing after update");
+      pushNotification({
+        id: "n-sold-" + id,
+        kind: "lot",
+        title: "Lot marked sold",
+        body: lot.crop + " - sold to " + buyerName,
+        href: `/farmer/lots/${id}`,
+        read: false,
+        createdAt: new Date().toISOString(),
+      });
+      return lot;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["farmer", "lots"] });
     },
   });
 };
@@ -479,6 +741,86 @@ export const useStorage = () =>
     },
     staleTime: 60_000,
   });
+
+// Storage reservation mutation.
+export interface ReserveStorageInput {
+  storageId: string;
+  storageName: string;
+  storageType: "warehouse" | "cold" | "silo";
+  reservedKg: number;
+  durationDays: number;
+  lotId: string | null;
+  lotSummary: string;
+}
+
+export const useReserveStorage = () => {
+  const qc = useQueryClient();
+  const addStorageBooking = useFarmerDashboardStore(
+    (s) => s.addStorageBooking,
+  );
+  const pushNotification = useFarmerDashboardStore(
+    (s) => s.pushNotification,
+  );
+  return useMutation<StorageBooking, Error, ReserveStorageInput>({
+    mutationFn: async (input) => {
+      await delay(160);
+      const now = new Date().toISOString();
+      const arrival = new Date(
+        Date.now() + input.durationDays * 24 * 60 * 60 * 1000,
+      )
+        .toISOString()
+        .slice(0, 10);
+      const booking: StorageBooking = {
+        id: "bk-" + Math.random().toString(36).slice(2, 9),
+        storageId: input.storageId,
+        storageName: input.storageName,
+        storageType: input.storageType,
+        reservedKg: input.reservedKg,
+        durationDays: input.durationDays,
+        expectedArrival: arrival,
+        lotId: input.lotId,
+        lotSummary: input.lotSummary,
+        status: "confirmed",
+        createdAt: now,
+        isDemo: true,
+      };
+      addStorageBooking(booking);
+      pushNotification({
+        id: "n-storage-" + booking.id,
+        kind: "system",
+        title: "Storage reserved",
+        body:
+          input.storageName +
+          " - " +
+          input.reservedKg +
+          "kg for " +
+          input.durationDays +
+          " days",
+        href: `/farmer/storage`,
+        read: false,
+        createdAt: now,
+      });
+      return booking;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["farmer", "storage"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "storageBookings"] });
+    },
+  });
+};
+
+export const useStorageBookings = () => {
+  const store = useFarmerDashboardStore();
+  return useQuery<StorageBooking[]>({
+    queryKey: ["farmer", "storageBookings"],
+    queryFn: async () => {
+      await delay(80);
+      return store.storageBookings;
+    },
+    initialData: store.storageBookings,
+    staleTime: 30_000,
+  });
+};
 
 // Payments.
 export const usePayments = () =>
@@ -554,5 +896,111 @@ export const useCreateGrievance = () => {
 // Helpers.
 const delay = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+// Logistics selection (persisted in localStorage for cross-page continuity).
+export const useSelectedLogistics = () => {
+  const [selectedId, setSelectedIdState] = useState<string | null>(
+    () => {
+      try {
+        return localStorage.getItem("farmer.selectedLogisticsId");
+      } catch {
+        return null;
+      }
+    },
+  );
+  const setSelectedId = (id: string | null) => {
+    setSelectedIdState(id);
+    try {
+      if (id) localStorage.setItem("farmer.selectedLogisticsId", id);
+      else localStorage.removeItem("farmer.selectedLogisticsId");
+    } catch {
+      // ignore
+    }
+  };
+  return { selectedId, setSelectedId };
+};
+
+// Notifications feed. Synthesises fresh items from current data
+// (pending offers, pending payments, open grievances) on top of any
+// persisted notifications, so the bell reflects live state.
+export const useNotifications = () => {
+  const store = useFarmerDashboardStore();
+  const qc = useQueryClient();
+  return useQuery<NotificationItem[]>({
+    queryKey: [
+      "farmer",
+      "notifications",
+      store.offers.length,
+      store.grievances.length,
+      store.storageBookings.length,
+    ],
+    queryFn: async () => {
+      await delay(40);
+      const synthetic: NotificationItem[] = [];
+      const pendingOffers = store.offers.filter(
+        (o) => o.status === "pending",
+      );
+      for (const o of pendingOffers) {
+        synthetic.push({
+          id: "syn-offer-" + o.id,
+          kind: "offer",
+          title: "New offer from " + o.buyerName,
+          body: "Rs " + o.pricePerKg + "/kg - " + o.quantityKg + "kg",
+          href: `/farmer/lots/${o.lotId}`,
+          read: false,
+          createdAt: o.createdAt,
+        });
+      }
+      const cachedPayments = qc.getQueryData<PaymentRecord[]>([
+        "farmer",
+        "payments",
+      ]);
+      const pendingPayments = (cachedPayments ?? []).filter(
+        (p) => p.status === "pending",
+      );
+      for (const p of pendingPayments) {
+        synthetic.push({
+          id: "syn-pay-" + p.id,
+          kind: "payment",
+          title: "Payment pending",
+          body: "Rs " + p.amount + " from " + p.buyerName,
+          href: `/farmer/payments`,
+          read: false,
+          createdAt: p.createdAt,
+        });
+      }
+      const openGrievances = store.grievances.filter(
+        (g) => g.status === "open" || g.status === "in_review",
+      );
+      for (const g of openGrievances) {
+        synthetic.push({
+          id: "syn-gv-" + g.id,
+          kind: "grievance",
+          title: "Grievance " + g.status.replace("_", " "),
+          body: g.subject,
+          href: `/farmer/grievances`,
+          read: false,
+          createdAt: g.createdAt,
+        });
+      }
+      const persisted = store.notifications;
+      return [...synthetic, ...persisted].slice(0, 25);
+    },
+    initialData: [],
+    refetchInterval: 30_000,
+    staleTime: 10_000,
+  });
+};
+
+export const useMarkAllNotificationsRead = () => {
+  const markAll = useFarmerDashboardStore(
+    (s) => s.markAllNotificationsRead,
+  );
+  const qc = useQueryClient();
+  return () => {
+    markAll();
+    qc.invalidateQueries({ queryKey: ["farmer", "notifications"] });
+  };
+};
 
 

@@ -15,6 +15,7 @@
  */
 
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import {
   Home,
   TrendingUp,
@@ -35,6 +36,10 @@ import { useTranslation } from "@/locales";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
+import {
+  useNotifications,
+  useMarkAllNotificationsRead,
+} from "@/features/farmerDashboard/hooks/data";
 import type { ReactNode } from "react";
 
 interface NavItem {
@@ -157,13 +162,7 @@ function Header({
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
           <LanguageSwitcher variant="light" />
-          <button
-            type="button"
-            className="hidden sm:inline-flex h-9 w-9 rounded-md items-center justify-center hover:bg-emerald-50 text-emerald-700"
-            aria-label={t("farmer.header.notifications", "Notifications")}
-          >
-            <Bell className="h-5 w-5" />
-          </button>
+          <NotificationsDropdown t={t} />
           <div className="hidden md:flex items-center gap-2 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100">
             <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-emerald-600 text-white text-xs font-semibold">
               {(userName || "F").charAt(0).toUpperCase()}
@@ -417,3 +416,88 @@ export function FarmerPageContainer({
 
 
 
+
+
+function NotificationsDropdown({
+  t,
+}: {
+  t: (k: string, fb: string) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const { data: items } = useNotifications();
+  const markAllRead = useMarkAllNotificationsRead();
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) {
+      document.addEventListener("mousedown", onClick);
+      return () => document.removeEventListener("mousedown", onClick);
+    }
+  }, [open]);
+
+  const list = items ?? [];
+  const unread = list.length;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="relative inline-flex h-9 w-9 rounded-md items-center justify-center hover:bg-emerald-50 text-emerald-700"
+        aria-label={t("farmer.header.notifications", "Notifications")}
+      >
+        <Bell className="h-5 w-5" />
+        {unread > 0 && (
+          <span className="absolute top-1 right-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-rose-600 text-white text-[10px] font-bold">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-xl border border-emerald-100 z-40">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-emerald-100">
+            <p className="text-sm font-bold text-emerald-900">
+              {t("farmer.header.notificationsTitle", "Notifications")}
+            </p>
+            {unread > 0 && (
+              <button
+                type="button"
+                onClick={() => markAllRead()}
+                className="text-xs font-semibold text-emerald-700 hover:underline"
+              >
+                {t("farmer.header.markAllRead", "Mark all read")}
+              </button>
+            )}
+          </div>
+          {list.length === 0 ? (
+            <div className="p-6 text-center text-sm text-emerald-900/60">
+              {t("farmer.header.emptyNotifications", "No new notifications.")}
+            </div>
+          ) : (
+            <ul className="divide-y divide-emerald-50">
+              {list.slice(0, 12).map((n) => (
+                <li key={n.id}>
+                  <Link
+                    to={n.href}
+                    onClick={() => setOpen(false)}
+                    className="block px-3 py-2 hover:bg-emerald-50/60"
+                  >
+                    <p className="text-xs font-bold text-emerald-900">{n.title}</p>
+                    <p className="text-xs text-emerald-900/70 line-clamp-2">{n.body}</p>
+                    <p className="text-[10px] text-emerald-900/40 mt-0.5">
+                      {new Date(n.createdAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -44,6 +44,7 @@ export function CreateLotPage() {
   const [harvestDate, setHarvestDate] = useState("");
   const [expectedPricePerKg, setExpectedPricePerKg] = useState("");
   const [notes, setNotes] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   // Debounced (200ms) snapshot of the form used by the live-preview panel.
   const [debounced, setDebounced] = useState({
@@ -117,18 +118,44 @@ export function CreateLotPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!crop || !quantityKg || !harvestDate || !expectedPricePerKg) return;
-    const lot = await createLot.mutateAsync({
-      crop,
-      qualityGrade,
-      quantityKg: Number(quantityKg),
-      harvestDate,
-      expectedPricePerKg: Number(expectedPricePerKg),
-      notes: notes.trim(),
-      state: profile?.state ?? "Maharashtra",
-      district: profile?.district ?? "Pune",
-    });
-    navigate({ to: "/farmer/lots/$lotId", params: { lotId: lot.id } });
+    setError(null);
+    if (!crop) {
+      setError(t("farmer.createLot.errCrop", "Select a crop."));
+      return;
+    }
+    const q = Number(quantityKg);
+    if (!isFinite(q) || q <= 0) {
+      setError(t("farmer.createLot.errQty", "Quantity must be a positive number."));
+      return;
+    }
+    if (!harvestDate) {
+      setError(t("farmer.createLot.errDate", "Harvest date is required."));
+      return;
+    }
+    const p = Number(expectedPricePerKg);
+    if (!isFinite(p) || p <= 0) {
+      setError(t("farmer.createLot.errPrice", "Expected price must be a positive number."));
+      return;
+    }
+    try {
+      const lot = await createLot.mutateAsync({
+        crop,
+        qualityGrade,
+        quantityKg: q,
+        harvestDate,
+        expectedPricePerKg: p,
+        notes: notes.trim(),
+        state: profile?.state ?? "Maharashtra",
+        district: profile?.district ?? "Pune",
+      });
+      navigate({ to: "/farmer/lots/$lotId", params: { lotId: lot.id } });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("farmer.createLot.errGeneric", "Could not publish lot. Try again."),
+      );
+    }
   }
 
   const isBusy = createLot.isPending;
@@ -267,6 +294,11 @@ export function CreateLotPage() {
               ? t("farmer.createLot.submitting", "Publishing…")
               : t("farmer.createLot.submit", "Publish Lot")}
           </button>
+          {error && (
+            <p className="text-xs text-rose-700 bg-rose-50 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
         </form>
       </FarmerCard>
 

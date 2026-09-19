@@ -48,29 +48,52 @@ export function GrievancesPage() {
       setCategory("payment");
       setTransactionRef(search.ref);
       setSubject(
-        t("farmer.grievances.prefilledFrom", "Prefilled from payment {ref}", {
-          ref: search.ref,
-        }),
+        t("farmer.grievances.prefilledFrom", "Prefilled from payment " + search.ref),
       );
     }
   }, [search?.prefill, search?.ref, t]);
 
+  const [error, setError] = useState<string | null>(null);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!subject.trim() || !description.trim()) return;
-    await create.mutateAsync({
-      category,
-      subject: subject.trim(),
-      description: description.trim(),
-      priority,
-      // Prefilled from /farmer/grievances?prefill=payment&ref=...
-      // or empty when raised manually.
-      transactionRef: transactionRef.trim(),
-    });
-    setSubject("");
-    setDescription("");
-    setTransactionRef("");
-    setOpen(false);
+    setError(null);
+    if (!subject.trim()) {
+      setError(t("farmer.grievances.errSubject", "Subject is required."));
+      return;
+    }
+    if (subject.trim().length < 5) {
+      setError(t("farmer.grievances.errSubjectShort", "Subject must be at least 5 characters."));
+      return;
+    }
+    if (!description.trim()) {
+      setError(t("farmer.grievances.errDesc", "Description is required."));
+      return;
+    }
+    if (description.trim().length < 15) {
+      setError(t("farmer.grievances.errDescShort", "Please describe the issue in at least 15 characters."));
+      return;
+    }
+    try {
+      await create.mutateAsync({
+        category,
+        subject: subject.trim(),
+        description: description.trim(),
+        priority,
+        transactionRef: transactionRef.trim(),
+      });
+      setSubject("");
+      setDescription("");
+      setTransactionRef("");
+      setError(null);
+      setOpen(false);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("farmer.grievances.errGeneric", "Could not submit. Try again."),
+      );
+    }
   }
 
   return (
@@ -243,6 +266,11 @@ export function GrievancesPage() {
                   {t("farmer.grievances.submit", "Submit")}
                 </button>
               </div>
+              {error && (
+                <p className="text-xs text-rose-700 bg-rose-50 rounded-lg px-3 py-2">
+                  {error}
+                </p>
+              )}
             </form>
           </FarmerCard>
         </div>

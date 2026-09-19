@@ -1,4 +1,5 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   ArrowLeft,
   Sprout,
@@ -9,6 +10,10 @@ import {
   TrendingUp,
   Store,
   Award,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  X,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import {
@@ -19,6 +24,9 @@ import {
   useUpdateOfferStatus,
   useAllMarketPrices,
   useGrievances,
+  useUpdateLot,
+  useDeleteLot,
+  useMarkLotSold,
 } from "@/features/farmerDashboard/hooks/data";
 import { computeBuyerMatch } from "@/features/farmerDashboard/hooks/use-market-match";
 import { recommendBestMarketForLot } from "@/features/farmerDashboard/market-intelligence";
@@ -36,6 +44,7 @@ import { cn } from "@/lib/utils";
 
 export function LotDetailPage({ lotId }: { lotId: string }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { data: lot } = useLot(lotId);
   const { data: offers } = useOffersForLot(lotId);
   const { data: buyers } = useBuyers();
@@ -43,6 +52,71 @@ export function LotDetailPage({ lotId }: { lotId: string }) {
   const updateOffer = useUpdateOfferStatus();
   const { data: prices } = useAllMarketPrices();
   const { data: grievances } = useGrievances();
+  const updateLot = useUpdateLot();
+  const deleteLot = useDeleteLot();
+  const markLotSold = useMarkLotSold();
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [markSoldOpen, setMarkSoldOpen] = useState(false);
+  const [editQty, setEditQty] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [markPrice, setMarkPrice] = useState("");
+  const [markBuyer, setMarkBuyer] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  function openEdit() {
+    if (!lot) return;
+    setEditQty(String(lot.quantityKg));
+    setEditPrice(String(lot.expectedPricePerKg));
+    setActionError(null);
+    setEditOpen(true);
+  }
+
+  async function submitEdit() {
+    if (!lot) return;
+    const q = Number(editQty);
+    const p = Number(editPrice);
+    if (!isFinite(q) || q <= 0) {
+      setActionError(t("farmer.lotDetail.errQty", "Quantity must be positive."));
+      return;
+    }
+    if (!isFinite(p) || p <= 0) {
+      setActionError(t("farmer.lotDetail.errPrice", "Price must be positive."));
+      return;
+    }
+    await updateLot.mutateAsync({
+      id: lot.id,
+      patch: { quantityKg: q, expectedPricePerKg: p },
+    });
+    setEditOpen(false);
+  }
+
+  async function submitDelete() {
+    if (!lot) return;
+    await deleteLot.mutateAsync({ id: lot.id });
+    navigate({ to: "/farmer/lots" });
+  }
+
+  async function submitMarkSold() {
+    if (!lot) return;
+    const p = Number(markPrice);
+    if (!isFinite(p) || p <= 0) {
+      setActionError(t("farmer.lotDetail.errPrice", "Price must be positive."));
+      return;
+    }
+    if (!markBuyer.trim()) {
+      setActionError(t("farmer.lotDetail.errBuyer", "Enter a buyer name."));
+      return;
+    }
+    await markLotSold.mutateAsync({
+      id: lot.id,
+      finalPricePerKg: p,
+      buyerName: markBuyer.trim(),
+    });
+    setMarkSoldOpen(false);
+    setMarkBuyer("");
+    setMarkPrice("");
+  }
 
   if (!lot) {
     return (
@@ -103,6 +177,34 @@ export function LotDetailPage({ lotId }: { lotId: string }) {
             >
               {lot.status}
             </p>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            {lot.status === "active" && (
+              <button
+                type="button"
+                onClick={() => setMarkSoldOpen(true)}
+                className="inline-flex items-center gap-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-800 px-2.5 py-1.5 hover:bg-emerald-100"
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                {t("farmer.lotDetail.markSold", "Mark sold")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={openEdit}
+              className="inline-flex items-center gap-1 text-xs font-semibold rounded-lg bg-sky-50 text-sky-800 px-2.5 py-1.5 hover:bg-sky-100"
+            >
+              <Pencil className="h-3 w-3" />
+              {t("farmer.lotDetail.edit", "Edit")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(true)}
+              className="inline-flex items-center gap-1 text-xs font-semibold rounded-lg bg-rose-50 text-rose-800 px-2.5 py-1.5 hover:bg-rose-100"
+            >
+              <Trash2 className="h-3 w-3" />
+              {t("farmer.lotDetail.delete", "Delete")}
+            </button>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -321,6 +423,78 @@ export function LotDetailPage({ lotId }: { lotId: string }) {
           ))}
         </div>
       </FarmerCard>
+      {editOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-2 sm:p-4">
+          <FarmerCard className="w-full max-w-md p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-base font-bold text-emerald-900">{t("farmer.lotDetail.editTitle", "Edit lot")}</p>
+              <button type="button" onClick={() => setEditOpen(false)} className="text-emerald-900/60 hover:text-emerald-900"><X className="h-5 w-5" /></button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); submitEdit(); }} className="space-y-3">
+              <label className="block">
+                <span className="block text-xs font-semibold text-emerald-900 mb-1">{t("farmer.lotDetail.fieldQty", "Quantity (kg)")}</span>
+                <input type="number" min={1} required value={editQty} onChange={(e) => setEditQty(e.target.value)}
+                  className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold text-emerald-900 mb-1">{t("farmer.lotDetail.fieldPrice", "Expected price (Rs/kg)")}</span>
+                <input type="number" min={0.01} step={0.01} required value={editPrice} onChange={(e) => setEditPrice(e.target.value)}
+                  className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </label>
+              {actionError && <p className="text-xs text-rose-700 bg-rose-50 rounded-lg px-3 py-2">{actionError}</p>}
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={() => setEditOpen(false)} className="rounded-xl bg-stone-100 text-stone-700 text-sm font-semibold px-4 py-2 hover:bg-stone-200">{t("farmer.common.cancel", "Cancel")}</button>
+                <button type="submit" disabled={updateLot.isPending} className="rounded-xl bg-emerald-600 text-white text-sm font-semibold px-4 py-2 hover:bg-emerald-700 disabled:opacity-50">
+                  {updateLot.isPending ? t("farmer.common.submitting", "Submitting...") : t("farmer.common.save", "Save")}
+                </button>
+              </div>
+            </form>
+          </FarmerCard>
+        </div>
+      )}
+      {deleteOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-2 sm:p-4">
+          <FarmerCard className="w-full max-w-md p-5">
+            <p className="text-base font-bold text-emerald-900 mb-2">{t("farmer.lotDetail.deleteTitle", "Delete lot?")}</p>
+            <p className="text-sm text-emerald-900/70 mb-4">{t("farmer.lotDetail.deleteHint", "This will also remove all offers on this lot. This cannot be undone.")}</p>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setDeleteOpen(false)} className="rounded-xl bg-stone-100 text-stone-700 text-sm font-semibold px-4 py-2 hover:bg-stone-200">{t("farmer.common.cancel", "Cancel")}</button>
+              <button type="button" onClick={submitDelete} disabled={deleteLot.isPending} className="rounded-xl bg-rose-600 text-white text-sm font-semibold px-4 py-2 hover:bg-rose-700 disabled:opacity-50">
+                {deleteLot.isPending ? t("farmer.common.submitting", "Submitting...") : t("farmer.lotDetail.delete", "Delete")}
+              </button>
+            </div>
+          </FarmerCard>
+        </div>
+      )}
+      {markSoldOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-2 sm:p-4">
+          <FarmerCard className="w-full max-w-md p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-base font-bold text-emerald-900">{t("farmer.lotDetail.markSoldTitle", "Mark lot sold")}</p>
+              <button type="button" onClick={() => setMarkSoldOpen(false)} className="text-emerald-900/60 hover:text-emerald-900"><X className="h-5 w-5" /></button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); submitMarkSold(); }} className="space-y-3">
+              <label className="block">
+                <span className="block text-xs font-semibold text-emerald-900 mb-1">{t("farmer.lotDetail.fieldPrice", "Final price (Rs/kg)")}</span>
+                <input type="number" min={0.01} step={0.01} required value={markPrice} onChange={(e) => setMarkPrice(e.target.value)}
+                  className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold text-emerald-900 mb-1">{t("farmer.lotDetail.markSoldBuyer", "Buyer name")}</span>
+                <input required value={markBuyer} onChange={(e) => setMarkBuyer(e.target.value)}
+                  className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              </label>
+              {actionError && <p className="text-xs text-rose-700 bg-rose-50 rounded-lg px-3 py-2">{actionError}</p>}
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={() => setMarkSoldOpen(false)} className="rounded-xl bg-stone-100 text-stone-700 text-sm font-semibold px-4 py-2 hover:bg-stone-200">{t("farmer.common.cancel", "Cancel")}</button>
+                <button type="submit" disabled={markLotSold.isPending} className="rounded-xl bg-emerald-600 text-white text-sm font-semibold px-4 py-2 hover:bg-emerald-700 disabled:opacity-50">
+                  {markLotSold.isPending ? t("farmer.common.submitting", "Submitting...") : t("farmer.lotDetail.confirmSold", "Confirm sale")}
+                </button>
+              </div>
+            </form>
+          </FarmerCard>
+        </div>
+      )}
     </FarmerPageContainer>
   );
 }

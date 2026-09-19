@@ -39,9 +39,13 @@ export function MarketComparisonPage() {
   const { data: prices } = useAllMarketPrices();
   const { data: buyers } = useBuyers();
   const { data: grievances } = useGrievances();
+  const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
 
-  const activeLot =
+  const autoLot =
     lots?.find((l) => l.status === "active") ?? lots?.[0] ?? null;
+  const activeLot = selectedLotId
+    ? lots?.find((l) => l.id === selectedLotId) ?? autoLot
+    : autoLot;
 
   const candidates = activeLot
     ? recommendBestMarketForLot({
@@ -86,6 +90,26 @@ export function MarketComparisonPage() {
       >
         {t("farmer.recommend.title", "Market comparison")}
       </FarmerSectionTitle>
+      {(lots ?? []).length > 1 && (
+        <FarmerCard className="p-3">
+          <label className="block">
+            <span className="block text-xs font-semibold text-emerald-900/70 mb-1">
+              {t("farmer.recommend.chooseLot", "Compare for lot")}
+            </span>
+            <select
+              value={selectedLotId ?? activeLot?.id ?? ""}
+              onChange={(e) => setSelectedLotId(e.target.value || null)}
+              className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              {(lots ?? []).map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.crop} - {formatKg(l.quantityKg)} - Grade {l.qualityGrade}
+                </option>
+              ))}
+            </select>
+          </label>
+        </FarmerCard>
+      )}
       <FarmerCard className="p-4 sm:p-5 flex items-center gap-3">
         <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
           <Weight className="h-6 w-6" />

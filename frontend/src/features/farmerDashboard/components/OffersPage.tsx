@@ -1,10 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { HandCoins, Calendar, Sprout, Scale } from "lucide-react";
+import {
+  HandCoins,
+  Calendar,
+  Sprout,
+  Scale,
+  X,
+} from "lucide-react";
 import { useTranslation } from "@/locales";
 import {
   useAllMyOffers,
   useUpdateOfferStatus,
+  useCounterOffer,
 } from "@/features/farmerDashboard/hooks/data";
 import {
   FarmerCard,
@@ -21,11 +28,38 @@ export function OffersPage() {
   const { t } = useTranslation();
   const { data: offers } = useAllMyOffers();
   const updateOffer = useUpdateOfferStatus();
+  const counter = useCounterOffer();
   const [filter, setFilter] = useState<Filter>("all");
+  const [counterOpenId, setCounterOpenId] = useState<string | null>(null);
+  const [counterPrice, setCounterPrice] = useState<string>("");
+  const [counterMessage, setCounterMessage] = useState<string>("");
+  const [counterError, setCounterError] = useState<string | null>(null);
 
   const visible = (offers ?? []).filter((o) =>
     filter === "all" ? true : o.status === filter
   );
+
+  function openCounter(offerId: string, currentPrice: number) {
+    setCounterOpenId(offerId);
+    setCounterPrice(String(currentPrice));
+    setCounterMessage("");
+    setCounterError(null);
+  }
+
+  async function submitCounter() {
+    if (!counterOpenId) return;
+    const price = Number(counterPrice);
+    if (!isFinite(price) || price <= 0) {
+      setCounterError(t("farmer.offers.counterError", "Enter a positive price."));
+      return;
+    }
+    await counter.mutateAsync({
+      originalOfferId: counterOpenId,
+      pricePerKg: price,
+      message: counterMessage.trim() || undefined,
+    });
+    setCounterOpenId(null);
+  }
 
   return (
     <FarmerPageContainer className="space-y-5">
@@ -148,6 +182,13 @@ export function OffersPage() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => openCounter(offer.id, offer.pricePerKg)}
+                        className="text-xs font-semibold rounded-lg bg-sky-100 text-sky-800 px-3 py-1.5 hover:bg-sky-200"
+                      >
+                        {t("farmer.offers.counter", "Counter")}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() =>
                           updateOffer.mutate({
                             offerId: offer.id,
@@ -164,6 +205,80 @@ export function OffersPage() {
               </div>
             </FarmerCard>
           ))}
+        </div>
+      )}
+      {counterOpenId && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-2 sm:p-4">
+          <FarmerCard className="w-full max-w-md p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-base font-bold text-emerald-900">
+                {t("farmer.offers.counterTitle", "Send counter offer")}
+              </p>
+              <button
+                type="button"
+                onClick={() => setCounterOpenId(null)}
+                className="text-emerald-900/60 hover:text-emerald-900"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitCounter();
+              }}
+              className="space-y-3"
+            >
+              <label className="block">
+                <span className="block text-xs font-semibold text-emerald-900 mb-1">
+                  {t("farmer.offers.counterPrice", "Your counter price (Rs/kg)")}
+                </span>
+                <input
+                  type="number"
+                  min={0.01}
+                  step={0.01}
+                  required
+                  value={counterPrice}
+                  onChange={(e) => setCounterPrice(e.target.value)}
+                  className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold text-emerald-900 mb-1">
+                  {t("farmer.offers.counterNote", "Optional note")}
+                </span>
+                <textarea
+                  rows={3}
+                  value={counterMessage}
+                  onChange={(e) => setCounterMessage(e.target.value)}
+                  className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </label>
+              {counterError && (
+                <p className="text-xs text-rose-700 bg-rose-50 rounded-lg px-3 py-2">
+                  {counterError}
+                </p>
+              )}
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setCounterOpenId(null)}
+                  className="rounded-xl bg-stone-100 text-stone-700 text-sm font-semibold px-4 py-2 hover:bg-stone-200"
+                >
+                  {t("farmer.common.cancel", "Cancel")}
+                </button>
+                <button
+                  type="submit"
+                  disabled={counter.isPending}
+                  className="rounded-xl bg-emerald-600 text-white text-sm font-semibold px-4 py-2 hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {counter.isPending
+                    ? t("farmer.common.submitting", "Submitting...")
+                    : t("farmer.offers.sendCounter", "Send counter")}
+                </button>
+              </div>
+            </form>
+          </FarmerCard>
         </div>
       )}
     </FarmerPageContainer>

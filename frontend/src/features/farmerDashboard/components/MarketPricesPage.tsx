@@ -120,6 +120,25 @@ export function MarketPricesPage() {
               ))}
             </select>
           </label>
+          <label className="block">
+            <span className="block text-xs font-semibold text-emerald-900/70 mb-1">
+              {t("farmer.prices.district", "District")}
+            </span>
+            <input
+              type="text"
+              className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              value={filters.district ?? ""}
+              onChange={(e) =>
+                setFilters(
+                  (f: MarketPriceQuery): MarketPriceQuery => ({
+                    ...f,
+                    district: e.target.value || undefined,
+                  }),
+                )
+              }
+              placeholder={t("farmer.prices.districtPlaceholder", "Optional")}
+            />
+          </label>
         </div>
         <div className="mt-3 flex flex-wrap gap-3 text-xs">
           <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 px-2 py-1 rounded-full">

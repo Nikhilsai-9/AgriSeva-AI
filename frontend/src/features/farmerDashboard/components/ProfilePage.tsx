@@ -28,19 +28,51 @@ export function ProfilePage() {
     profile?.primaryCrops?.[0] ?? ""
   );
   const [savedHint, setSavedHint] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function validatePhone(value: string): boolean {
+    if (!value) return true;
+    const digits = value.replace(/\D/g, "");
+    return digits.length === 10 || digits.length === 12 || digits.length === 13;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await update.mutateAsync({
-      name,
-      phone,
-      state: stateName,
-      district,
-      village,
-      primaryCrop,
-    });
-    setSavedHint(true);
-    setTimeout(() => setSavedHint(false), 2500);
+    setError(null);
+    if (!name.trim()) {
+      setError(t("farmer.profile.errName", "Name is required."));
+      return;
+    }
+    if (!validatePhone(phone)) {
+      setError(t("farmer.profile.errPhone", "Phone must be 10 digits (with optional 91 prefix)."));
+      return;
+    }
+    if (!stateName) {
+      setError(t("farmer.profile.errState", "Select your state."));
+      return;
+    }
+    if (!district.trim()) {
+      setError(t("farmer.profile.errDistrict", "District is required."));
+      return;
+    }
+    try {
+      await update.mutateAsync({
+        name: name.trim(),
+        phone: phone.trim(),
+        state: stateName,
+        district: district.trim(),
+        village: village.trim(),
+        primaryCrop: primaryCrop.trim(),
+      });
+      setSavedHint(true);
+      setTimeout(() => setSavedHint(false), 2500);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("farmer.profile.errGeneric", "Could not save. Try again."),
+      );
+    }
   }
 
   return (
@@ -161,6 +193,11 @@ export function ProfilePage() {
               </span>
             )}
           </div>
+          {error && (
+            <p className="text-xs text-rose-700 bg-rose-50 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
         </form>
       </FarmerCard>
     </FarmerPageContainer>
