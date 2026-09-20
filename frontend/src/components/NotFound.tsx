@@ -97,7 +97,7 @@ export const NotFound = () => {
         </Link>
 
         <Link
-          to="/farmer"
+          to="/home"
           className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-emerald-700 text-white font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] transition-all hover:bg-emerald-800 active:scale-[0.98] border border-emerald-800/30 rounded-sm shadow-lg"
         >
           <Sprout size={18} aria-hidden="true" />

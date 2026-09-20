@@ -264,13 +264,7 @@ export const PlaygroundPage = () => {
         onValueChange={handleTabChange}
         className="h-full w-full"
       >
-        <PlaygroundHeader
-          user={user}
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          setTab={setActiveTab}
-          setChatbotSource={setChatbotSource}
-        />
+        <PlaygroundHeader user={user} activeTab={activeTab} />
 
         <div className=" h-full py-6 min-w-0">
           <div className="grid h-full items-stretch gap-6 min-w-0">

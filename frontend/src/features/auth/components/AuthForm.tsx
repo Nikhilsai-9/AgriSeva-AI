@@ -130,7 +130,10 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
           } else if (result.appUser?.role === "pae_expert") {
             navigate({ to: "/pae-expert" });
           } else if (result.appUser?.role === "farmer") {
-            navigate({ to: "/farmer" });
+            // Farmers now land on the unified main dashboard (/home) so they
+            // can reach the Farmer Dashboard via the new nav entry at
+            // position 2 instead of bypassing it with a direct /farmer route.
+            navigate({ to: "/home" });
           } else {
             navigate({ to: "/home" });
           }
@@ -191,7 +194,10 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
         } else if (appUser?.role === "pae_expert") {
           navigate({ to: "/pae-expert" });
         } else if (appUser?.role === "farmer") {
-          navigate({ to: "/farmer" });
+          // Farmers now land on the unified main dashboard (/home) so they
+          // can reach the Farmer Dashboard via the new nav entry at
+          // position 2 instead of bypassing it with a direct /farmer route.
+          navigate({ to: "/home" });
         } else {
           navigate({ to: "/home" });
         }
