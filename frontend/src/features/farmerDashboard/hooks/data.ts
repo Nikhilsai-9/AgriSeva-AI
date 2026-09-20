@@ -3,7 +3,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { create } from "zustand";
 
 import {
@@ -11,12 +11,9 @@ import {
   DEMO_LOTS,
   DEMO_OFFERS,
   DEMO_GRIEVANCES,
-  findDemoLotById,
-  findDemoOffersForLot,
 } from "../mocks/lots.mock";
 import {
   DEMO_BUYERS,
-  findDemoBuyerById,
 } from "../mocks/buyers.mock";
 import { DEMO_FARMER_PROFILE } from "../mocks/farmer-profile.mock";
 import {
@@ -29,20 +26,21 @@ import {
   DEMO_MARKET_PRICES,
   DEMO_TODAY_INSIGHT,
 } from "../mocks/market-prices.mock";
+import { env } from "@/config/env";
 
 import type {
   Buyer,
   FarmerLot,
   FarmerProfile,
   Grievance,
-  GrievanceCategory,
-  GrievancePriority,
   LogisticsOption,
+  MarketPrice,
   MarketPriceResponse,
   Offer,
   PaymentRecord,
   StorageOption,
   StorageView,
+  TodayInsight,
 } from "../types";
 
 // In-memory state for mutations created in the UI session.
@@ -205,67 +203,492 @@ export const useUpdateFarmerProfile = () => {
   });
 };
 
-export const useTodayInsight = () =>
-  useQuery({
-    queryKey: ["farmer", "todayInsight"],
-    queryFn: async () => {
-      await delay(120);
-      return DEMO_TODAY_INSIGHT;
-    },
-    staleTime: 60_000,
-  });
-
 // Market prices.
 export interface MarketPriceQuery {
   state?: string;
   district?: string;
+  market?: string;
   commodity?: string;
+  variety?: string;
   arrivalDate?: string;
+  limit?: number;
 }
+
+/** Backend response shape for GET /api/market-prices. */
+export interface BackendMarketPricesResponse {
+  success: boolean;
+  isDemo: boolean;
+  source: string;
+  fetchedAt: string;
+  prices: Array<{
+    recordKey: string;
+    source: "agmarknet" | "enam" | "demo";
+    sourceSystem: string;
+    /** Upstream MCP/system URL — surfaced to the UI for provenance. */
+    sourceUrl?: string;
+    state: string;
+    district?: string;
+    market: string;
+    commodity: string;
+    crop?: string;
+    variety?: string;
+    grade?: string;
+    /** Top-level commodity group (e.g. "Cereals"). */
+    commodityGroup?: string;
+    unit: string;
+    minPrice?: number;
+    maxPrice?: number;
+    modalPrice?: number;
+    arrivalQty?: number;
+    arrivalDate: string;
+    ingestedAt: string;
+    changePct?: number | null;
+    trendPct?: number | null;
+    /** Distance from the requesting village/mandi (UI-only, when known). */
+    distanceKm?: number | null;
+  }>;
+  total: number;
+}
+
+/** Backend response shape for GET /api/market-insights/today. */
+export interface BackendTodayInsightResponse {
+  success: boolean;
+  isDemo: boolean;
+  fetchedAt: string;
+  insight: TodayInsight | null;
+}
+
+const buildQueryString = (params: Record<string, unknown>): string => {
+  const usp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === "") continue;
+    usp.set(k, String(v));
+  }
+  const s = usp.toString();
+  return s ? `?${s}` : "";
+};
+
+const apiUrl = (path: string): string => {
+  const base = env.apiBaseUrl().replace(/\/$/, "");
+  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+};
+
+/** Map a backend MarketPriceRecord to the existing UI `MarketPrice`. */
+const toUiMarketPrice = (
+  r: BackendMarketPricesResponse["prices"][number],
+): MarketPrice => ({
+  id: r.recordKey,
+  commodity: r.commodity,
+  crop: r.crop ?? r.commodity,
+  market: r.market,
+  state: r.state,
+  district: r.district ?? "",
+  minPrice: r.minPrice ?? 0,
+  maxPrice: r.maxPrice ?? 0,
+  modalPrice: r.modalPrice ?? 0,
+  changePct: r.changePct ?? 0,
+  unit: r.unit,
+  arrivalDate: r.arrivalDate,
+  reportedAt: r.ingestedAt,
+  source: r.source,
+  trendPct: r.trendPct ?? undefined,
+  // Live-backend passthrough — only set when the backend actually provides them,
+  // so demo / synthetic records stay backward-compatible.
+  recordKey: r.recordKey,
+  sourceSystem: r.sourceSystem,
+  sourceUrl: r.sourceUrl,
+  variety: r.variety,
+  grade: r.grade,
+  commodityGroup: r.commodityGroup,
+  arrivalQty: r.arrivalQty,
+  distanceKm: r.distanceKm ?? undefined,
+});
+
+const buildResponseFromBackend = (
+  data: BackendMarketPricesResponse,
+  commodity: string,
+): MarketPriceResponse => {
+  const filtered = data.prices.filter((p) =>
+    commodity ? p.commodity.toLowerCase().includes(commodity.toLowerCase()) : true,
+  );
+  const uiRows = filtered.map(toUiMarketPrice);
+  const best = [...uiRows].sort((a, b) => b.modalPrice - a.modalPrice)[0] ?? null;
+  return {
+    success: data.success,
+    bestMatch: best,
+    alternatives: uiRows.filter((r) => r.id !== best?.id),
+    totalResults: uiRows.length,
+    errorMessage: data.success ? "" : "Backend returned an unsuccessful response",
+    responseDate: data.fetchedAt,
+    isDemo: data.isDemo || uiRows.length === 0,
+  };
+};
+
+/**
+ * Build a `MarketPriceResponse` representing a hard failure (network down,
+ * non-2xx HTTP, malformed JSON).  Distinct from the "demo" branch — the
+ * UI must render an explicit error/no-data state instead of treating
+ * demo data as live.
+ */
+const errorMarketPriceResponse = (message: string): MarketPriceResponse => ({
+  success: false,
+  bestMatch: null,
+  alternatives: [],
+  totalResults: 0,
+  errorMessage: message,
+  responseDate: new Date().toISOString(),
+  isDemo: false,
+});
 
 export const useMarketPrices = (query: MarketPriceQuery) =>
   useQuery<MarketPriceResponse>({
     queryKey: ["farmer", "marketPrices", query],
     queryFn: async () => {
-      await delay(180);
       const commodity = query.commodity || "Tomato";
-      return buildDemoMarketPriceResponse(commodity);
+      let res: Response;
+      try {
+        const url =
+          apiUrl("/market-prices") +
+          buildQueryString({
+            state: query.state,
+            district: query.district,
+            market: query.market,
+            commodity: query.commodity,
+            variety: query.variety,
+            arrivalDate: query.arrivalDate,
+            limit: query.limit ?? 100,
+          });
+        res = await fetch(url);
+      } catch (err) {
+        // Transport-level error (DNS, offline, CORS): do NOT silently
+        // substitute demo data — surface as a failure so the page can render
+        // an explicit error state.
+        const message = err instanceof Error ? err.message : "Network error";
+        return errorMarketPriceResponse(message);
+      }
+      if (!res.ok) {
+        return errorMarketPriceResponse(`market-prices HTTP ${res.status}`);
+      }
+      let data: BackendMarketPricesResponse;
+      try {
+        data = (await res.json()) as BackendMarketPricesResponse;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Invalid JSON";
+        return errorMarketPriceResponse(message);
+      }
+      // Backend explicitly says isDemo OR returned an empty payload:
+      // substitute the documented demo dataset (this IS the supported
+      // demo fallback contract, not an error).
+      if (data.isDemo || data.prices.length === 0) {
+        return buildDemoMarketPriceResponse(commodity);
+      }
+      return buildResponseFromBackend(data, commodity);
     },
     staleTime: 30_000,
   });
 
 export const useAllMarketPrices = () =>
-  useQuery({
+  useQuery<MarketPrice[]>({
     queryKey: ["farmer", "allMarketPrices"],
     queryFn: async () => {
-      await delay(120);
-      return DEMO_MARKET_PRICES;
+      let res: Response;
+      try {
+        res = await fetch(apiUrl("/market-prices?limit=200"));
+      } catch (err) {
+        // Hard failure: propagate as a query error so the UI can render an
+        // explicit error state instead of silently showing demo data.
+        throw err instanceof Error ? err : new Error("Network error");
+      }
+      if (!res.ok) throw new Error(`market-prices HTTP ${res.status}`);
+      const data: BackendMarketPricesResponse = await res.json();
+      // Empty response → fall back to demo (documented contract).
+      if (!data.prices.length) return DEMO_MARKET_PRICES;
+      return data.prices.map(toUiMarketPrice);
     },
     staleTime: 60_000,
   });
 
-// Buyers.
-export const useBuyers = (filters?: {
+export const useTodayInsight = (params?: {
   state?: string;
-  crop?: string;
+  market?: string;
+  commodity?: string;
 }) =>
+  useQuery<TodayInsight | null>({
+    queryKey: ["farmer", "todayInsight", params ?? {}],
+    queryFn: async () => {
+      let res: Response;
+      try {
+        const url =
+          apiUrl("/market-insights/today") +
+          buildQueryString({
+            state: params?.state,
+            market: params?.market,
+            commodity: params?.commodity,
+          });
+        res = await fetch(url);
+      } catch (err) {
+        throw err instanceof Error ? err : new Error("Network error");
+      }
+      if (!res.ok) throw new Error(`market-insights HTTP ${res.status}`);
+      const data: BackendTodayInsightResponse = await res.json();
+      // Backend explicitly says demo OR no insight: documented demo fallback.
+      if (data.isDemo || !data.insight) return DEMO_TODAY_INSIGHT;
+      return data.insight;
+    },
+    staleTime: 60_000,
+  });
+
+/** Time-series points from GET /api/market-prices/history. */
+export interface MarketHistoryPoint {
+  arrivalDate: string;
+  modalPrice?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  source: string;
+}
+
+export const useMarketHistory = (params: {
+  state: string;
+  market: string;
+  commodity: string;
+  variety?: string;
+  lookbackDays?: number;
+}) =>
+  useQuery<MarketHistoryPoint[]>({
+    queryKey: ["farmer", "marketHistory", params],
+    queryFn: async () => {
+      const url =
+        apiUrl("/market-prices/history") +
+        buildQueryString({
+          state: params.state,
+          market: params.market,
+          commodity: params.commodity,
+          variety: params.variety,
+          lookbackDays: params.lookbackDays ?? 30,
+        });
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`market-history HTTP ${res.status}`);
+      const data = await res.json();
+      return (data.points ?? []) as MarketHistoryPoint[];
+    },
+    enabled: Boolean(params.state && params.market && params.commodity),
+    staleTime: 60_000,
+  });
+
+/** Cross-mandi comparison from GET /api/market-comparison. */
+export interface MarketComparisonRow {
+  state: string;
+  market: string;
+  commodity: string;
+  modalPrice: number;
+  minPrice?: number;
+  maxPrice?: number;
+  unit: string;
+  arrivalDate: string;
+  source: string;
+  changePct?: number | null;
+  trendPct?: number | null;
+}
+
+export interface MarketComparisonResult {
+  isDemo: boolean;
+  fetchedAt: string;
+  rows: MarketComparisonRow[];
+  recommendation: MarketComparisonRow | null;
+}
+
+export const useMarketComparison = (params: {
+  commodity: string;
+  state?: string;
+  limit?: number;
+}) =>
+  useQuery<MarketComparisonResult>({
+    queryKey: ["farmer", "marketComparison", params],
+    queryFn: async () => {
+      const url =
+        apiUrl("/market-comparison") +
+        buildQueryString({
+          commodity: params.commodity,
+          state: params.state,
+          limit: params.limit ?? 20,
+        });
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`market-comparison HTTP ${res.status}`);
+      return (await res.json()) as MarketComparisonResult;
+    },
+    enabled: Boolean(params.commodity),
+    staleTime: 60_000,
+  });
+
+/** Per-source reliability from GET /api/market-prices/reliability. */
+export interface MarketReliabilitySnapshot {
+  source: string;
+  score: number;
+  label: string;
+  reasons: string[];
+  lastSuccessAt?: string | null;
+  lastAttemptAt?: string | null;
+  consecutiveFails: number;
+}
+
+export const useMarketReliability = (source?: string) =>
+  useQuery<MarketReliabilitySnapshot[]>({
+    queryKey: ["farmer", "marketReliability", source ?? "all"],
+    queryFn: async () => {
+      const url =
+        apiUrl("/market-prices/reliability") +
+        buildQueryString({source: source});
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`market-reliability HTTP ${res.status}`);
+      const data = await res.json();
+      return (data.snapshots ?? []) as MarketReliabilitySnapshot[];
+    },
+    staleTime: 60_000,
+  });
+
+/** Operational health from GET /api/market-health. */
+export interface MarketHealthSnapshot {
+  id: string;
+  endpoint: string;
+  reliability: MarketReliabilitySnapshot;
+}
+
+export const useMarketHealth = () =>
+  useQuery<MarketHealthSnapshot[]>({
+    queryKey: ["farmer", "marketHealth"],
+    queryFn: async () => {
+      const res = await fetch(apiUrl("/market-health"));
+      if (!res.ok) throw new Error(`market-health HTTP ${res.status}`);
+      const data = await res.json();
+      return (data.sources ?? []) as MarketHealthSnapshot[];
+    },
+    staleTime: 60_000,
+  });
+
+/** Trigger on-demand ingestion from POST /api/market-prices/refresh. */
+export const useRefreshMarketPrices = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      state?: string;
+      market?: string;
+      commodity?: string;
+      arrivalDate?: string;
+      includeFallback?: boolean;
+    }) => {
+      const res = await fetch(apiUrl("/market-prices/refresh"), {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`market-refresh HTTP ${res.status}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ["farmer", "marketPrices"]});
+      qc.invalidateQueries({queryKey: ["farmer", "allMarketPrices"]});
+      qc.invalidateQueries({queryKey: ["farmer", "todayInsight"]});
+      qc.invalidateQueries({queryKey: ["farmer", "marketHealth"]});
+    },
+  });
+};
+
+// Buyers.
+// =========================================================================
+// Transaction hooks. Backed by the real MongoDB API via transaction-api.ts.
+// Falls back to the Zustand store / demo data on network failure so the UI
+// remains usable when the backend is offline.
+// =========================================================================
+
+import {
+  fetchBuyers,
+  fetchBuyer,
+  fetchMyLots,
+  fetchLot,
+  createLotApi,
+  updateLotApi,
+  deleteLotApi,
+  markLotSoldApi,
+  fetchOffersForLot,
+  fetchAllOffers,
+  updateOfferStatusApi,
+  counterOfferApi,
+  fetchPayments,
+  fetchGrievances,
+  createGrievanceApi,
+  updateGrievanceApi,
+  fetchStorageOptions,
+  fetchStorageBookings,
+  reserveStorageApi,
+  fetchLogisticsOptions,
+  bookLogisticsApi,
+} from "@/hooks/api/transaction-api";
+
+type OfferStatus = Offer["status"];
+type CreateLotPayload = Partial<FarmerLot> & Record<string, unknown>;
+type UpdateLotPayload = Record<string, unknown>;
+type MarkSoldPayload = Record<string, unknown>;
+type GrievanceCreatePayload = Record<string, unknown>;
+type StorageReservePayload = Record<string, unknown>;
+type LogisticsBookPayload = Record<string, unknown>;
+
+const mapRemoteBuyer = (b: {
+  id: string;
+  name?: string;
+  businessType?: string;
+  type?: string;
+  cropsInterested?: string[];
+  state?: string;
+  district?: string;
+  [k: string]: unknown;
+}): Buyer => ({
+  id: b.id,
+  name: b.name ?? "",
+  type: b.businessType ?? b.type ?? "Trader",
+  businessName: b.name ?? "",
+  businessType: ((b.businessType as Buyer["businessType"]) ?? "Retailer"),
+  verificationStatus: "unverified",
+  contactPerson: "",
+  phone: "",
+  email: "",
+  location: [b.district, b.state].filter(Boolean).join(", "),
+  state: b.state ?? "",
+  district: b.district ?? "",
+  distanceKm: 0,
+  cropsInterested: b.cropsInterested ?? [],
+  minQuantityKg: 0,
+  maxQuantityKg: 0,
+  paymentTermsDays: 0,
+  rating: 0,
+  transactionsCount: 0,
+  completedDeals: 0,
+  description: "",
+  verified: false,
+  isDemo: false,
+});
+
+// --- Buyers -----------------------------------------------------------------
+
+export const useBuyers = (filters?: { state?: string; crop?: string }) =>
   useQuery<Buyer[]>({
     queryKey: ["farmer", "buyers", filters ?? {}],
     queryFn: async () => {
-      await delay(140);
+      const remote = await fetchBuyers();
+      if (remote && remote.length > 0) {
+        let mapped = remote.map(mapRemoteBuyer);
+        if (filters?.state)
+          mapped = mapped.filter((b) => b.state === filters.state);
+        if (filters?.crop)
+          mapped = mapped.filter((b) =>
+            b.cropsInterested.includes(filters.crop!),
+          );
+        return mapped;
+      }
       let result = [...DEMO_BUYERS];
-      if (filters?.state) {
-        result = result.filter(
-          (b) =>
-            b.state.toLowerCase() === filters.state!.toLowerCase()
-        );
-      }
-      if (filters?.crop) {
-        const c = filters.crop.toLowerCase();
-        result = result.filter((b) =>
-          b.cropsInterested.some((x) => x.toLowerCase().includes(c))
-        );
-      }
+      if (filters?.state) result = result.filter((b) => b.state === filters.state);
+      if (filters?.crop)
+        result = result.filter((b) => b.cropsInterested.includes(filters.crop!));
+      await delay(140);
       return result;
     },
     staleTime: 60_000,
@@ -275,136 +698,115 @@ export const useBuyer = (id: string | undefined) =>
   useQuery<Buyer | null>({
     queryKey: ["farmer", "buyer", id],
     queryFn: async () => {
-      await delay(120);
       if (!id) return null;
-      return findDemoBuyerById(id) ?? null;
+      const remote = await fetchBuyer(id);
+      if (remote) return mapRemoteBuyer(remote);
+      await delay(120);
+      return DEMO_BUYERS.find((b) => b.id === id) ?? null;
     },
-    enabled: !!id,
+    enabled: Boolean(id),
     staleTime: 60_000,
   });
 
-// Lots.
+// --- Lots -------------------------------------------------------------------
+
 export const useMyLots = () => {
-  const store = useFarmerDashboardStore();
-  const qc = useQueryClient();
-  useEffect(() => {
-    qc.invalidateQueries({ queryKey: ["farmer", "lots"] });
-  }, [store.lots, qc]);
+  const storeLots = useFarmerDashboardStore((s) => s.lots);
   return useQuery<FarmerLot[]>({
-    queryKey: ["farmer", "lots"],
+    queryKey: ["farmer", "myLots"],
     queryFn: async () => {
-      await delay(120);
-      return store.lots.filter((l) => l.farmerId === DEMO_FARMER_UID);
+      const remote = await fetchMyLots();
+      if (remote && remote.length > 0) return remote as FarmerLot[];
+      await delay(150);
+      return storeLots;
     },
-    initialData: store.lots.filter((l) => l.farmerId === DEMO_FARMER_UID),
+    initialData: storeLots,
     staleTime: 30_000,
   });
 };
 
 export const useLot = (id: string | undefined) => {
-  const store = useFarmerDashboardStore();
+  const storeLots = useFarmerDashboardStore((s) => s.lots);
   return useQuery<FarmerLot | null>({
     queryKey: ["farmer", "lot", id],
     queryFn: async () => {
-      await delay(120);
       if (!id) return null;
-      const inMemory = store.lots.find((l) => l.id === id);
-      if (inMemory) return inMemory;
-      return findDemoLotById(id) ?? null;
+      const remote = await fetchLot(id);
+      if (remote) return remote as FarmerLot;
+      await delay(120);
+      return storeLots.find((l) => l.id === id) ?? null;
     },
-    enabled: !!id,
-    initialData: () => {
-      if (!id) return undefined;
-      return (
-        store.lots.find((l) => l.id === id) ??
-        findDemoLotById(id) ??
-        undefined
-      );
-    },
+    enabled: Boolean(id),
     staleTime: 30_000,
   });
 };
 
-interface CreateLotInput {
-  crop: string;
-  variety?: string;
-  quantityKg: number;
-  qualityGrade: "A" | "B" | "C";
-  qualityNotes?: string;
-  expectedPricePerKg: number;
-  state: string;
-  district: string;
-  village?: string;
-  harvestDate: string;
-  images?: string[];
-  notes?: string;
-}
-
 export const useCreateLot = () => {
   const qc = useQueryClient();
   const addLot = useFarmerDashboardStore((s) => s.addLot);
-  return useMutation<FarmerLot, Error, CreateLotInput>({
+  return useMutation<FarmerLot, Error, CreateLotPayload>({
     mutationFn: async (input) => {
+      const created = await createLotApi(input as Record<string, unknown>);
+      if (created) return created as FarmerLot;
       await delay(180);
       const id = "lot-" + Math.random().toString(36).slice(2, 9);
+      const now = new Date().toISOString();
       const lot: FarmerLot = {
         id,
         farmerId: DEMO_FARMER_UID,
-        crop: input.crop,
-        variety: input.variety ?? "",
-        quantityKg: input.quantityKg,
-        qualityGrade: input.qualityGrade,
-        qualityNotes: input.qualityNotes ?? "",
-        expectedPricePerKg: input.expectedPricePerKg,
-        state: input.state,
-        district: input.district,
-        village: input.village ?? "",
-        harvestDate: input.harvestDate,
-        images: input.images ?? [],
-        notes: input.notes,
+        crop: (input.crop as string) ?? "Unknown",
+        variety: (input.variety as string) ?? "",
+        quantityKg: Number(input.quantityKg ?? 0),
+        qualityGrade: ((input.qualityGrade as FarmerLot["qualityGrade"]) ?? "B"),
+        qualityNotes: (input.qualityNotes as string) ?? "",
+        expectedPricePerKg: Number(input.expectedPricePerKg ?? 0),
+        state: (input.state as string) ?? "",
+        district: (input.district as string) ?? "",
+        village: (input.village as string) ?? "",
+        harvestDate: (input.harvestDate as string) ?? now.slice(0, 10),
+        images: Array.isArray(input.images) ? (input.images as string[]) : [],
         status: "active",
-        createdAt: new Date().toISOString(),
+        createdAt: now,
         isDemo: true,
       };
       addLot(lot);
       return lot;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["farmer", "lots"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "myLots"] });
     },
   });
 };
 
-// Offers.
+// --- Offers -----------------------------------------------------------------
+
 export const useOffersForLot = (lotId: string | undefined) => {
-  const store = useFarmerDashboardStore();
+  const storeOffers = useFarmerDashboardStore((s) => s.offers);
   return useQuery<Offer[]>({
-    queryKey: ["farmer", "offers", lotId],
+    queryKey: ["farmer", "offers", "lot", lotId],
     queryFn: async () => {
-      await delay(120);
       if (!lotId) return [];
-      return store.offers.filter((o) => o.lotId === lotId);
+      const remote = await fetchOffersForLot(lotId);
+      if (remote && remote.length > 0) return remote as Offer[];
+      await delay(120);
+      return storeOffers.filter((o) => o.lotId === lotId);
     },
-    enabled: !!lotId,
-    initialData: () => {
-      if (!lotId) return undefined;
-      const inMemory = store.offers.filter((o) => o.lotId === lotId);
-      if (inMemory.length > 0) return inMemory;
-      return findDemoOffersForLot(lotId);
-    },
+    enabled: Boolean(lotId),
     staleTime: 30_000,
   });
 };
 
 export const useAllMyOffers = () => {
-  const store = useFarmerDashboardStore();
+  const storeOffers = useFarmerDashboardStore((s) => s.offers);
   return useQuery<Offer[]>({
     queryKey: ["farmer", "offers", "all"],
     queryFn: async () => {
+      const remote = await fetchAllOffers();
+      if (remote && remote.length > 0) return remote as Offer[];
       await delay(120);
-      return store.offers;
+      return storeOffers;
     },
-    initialData: store.offers,
+    initialData: storeOffers,
     staleTime: 30_000,
   });
 };
@@ -412,318 +814,187 @@ export const useAllMyOffers = () => {
 export const useUpdateOfferStatus = () => {
   const qc = useQueryClient();
   const updateOffer = useFarmerDashboardStore((s) => s.updateOffer);
-  const updateLot = useFarmerDashboardStore((s) => s.updateLot);
-  const pushNotification = useFarmerDashboardStore(
-    (s) => s.pushNotification,
-  );
-  return useMutation<
-    Offer,
-    Error,
-    { offerId: string; status: Offer["status"] }
-  >({
+  return useMutation<Offer, Error, { offerId: string; status: OfferStatus }>({
     mutationFn: async ({ offerId, status }) => {
-      await delay(140);
+      const updated = await updateOfferStatusApi(offerId, status);
+      if (updated) return updated as Offer;
+      await delay(160);
       updateOffer(offerId, { status });
-      const updated = useFarmerDashboardStore
-        .getState()
-        .offers.find((o) => o.id === offerId);
-      if (!updated) throw new Error("Offer missing after update");
-
-      // Auto-upsert a PaymentRecord when an offer is accepted so
-      // the PaymentsPage surfaces it immediately (market intelligence).
-      if (status === "accepted") {
-        const payments =
-          qc.getQueryData<PaymentRecord[]>(["farmer", "payments"]) ??
-          DEMO_PAYMENTS;
-        const exists = payments.some((p) => p.lotId === updated.lotId);
-        if (!exists) {
-          const now = new Date().toISOString();
-          const record: PaymentRecord = {
-            id: "pay-" + Math.random().toString(36).slice(2, 9),
-            lotId: updated.lotId,
-            buyerName: updated.buyerName,
-            crop: updated.crop ?? "",
-            quantityKg: updated.quantityKg,
-            amount: updated.amount,
-            status: "pending",
-            reference:
-              "DEMO-PAY-" + Math.floor(1000 + Math.random() * 9000),
-            createdAt: now,
-            completedAt: null,
-            lotSummary: `${updated.crop ?? "Lot"} • ${updated.quantityKg}kg`,
-            method: "NEFT",
-            timeline: [
-              {
-                label: "Lot Created",
-                status: "done",
-                timestamp: now,
-                at: now,
-              },
-              {
-                label: "Buyer Offer",
-                status: "done",
-                timestamp: now,
-                at: now,
-              },
-              {
-                label: "Offer Accepted",
-                status: "done",
-                timestamp: now,
-                at: now,
-              },
-              { label: "Delivered", status: "current", timestamp: null, at: null },
-              {
-                label: "Payment Processing",
-                status: "upcoming",
-                timestamp: null,
-                at: null,
-              },
-              {
-                label: "Payment Received",
-                status: "upcoming",
-                timestamp: null,
-                at: null,
-              },
-            ],
-            isDemo: true,
-          };
-          qc.setQueryData<PaymentRecord[]>(
-            ["farmer", "payments"],
-            [record, ...payments],
-          );
-        }
-
-        // Auto-transition: when an offer is accepted, move the lot to
-        // "sold" and auto-reject any other pending offers for the
-        // same lot so they disappear from the active offers view.
-        const allOffers = useFarmerDashboardStore.getState().offers;
-        const sameLot = allOffers.filter(
-          (o) => o.lotId === updated.lotId,
-        );
-        for (const other of sameLot) {
-          if (other.id !== updated.id && other.status === "pending") {
-            updateOffer(other.id, { status: "rejected" });
-          }
-        }
-        updateLot(updated.lotId, { status: "sold" });
-
-        pushNotification({
-          id: "n-offer-" + updated.id,
-          kind: "offer",
-          title: "Offer accepted",
-          body:
-            updated.buyerName +
-            " - " +
-            (updated.crop ?? "Lot") +
-            " accepted. Payment pending.",
-          href: `/farmer/lots/${updated.lotId}`,
-          read: false,
-          createdAt: new Date().toISOString(),
-        });
-      }
-
-      if (status === "rejected") {
-        pushNotification({
-          id: "n-reject-" + updated.id,
-          kind: "offer",
-          title: "Offer rejected",
-          body: updated.buyerName + " - " + (updated.crop ?? "Lot"),
-          href: `/farmer/offers`,
-          read: false,
-          createdAt: new Date().toISOString(),
-        });
-      }
-
-      return updated;
+      const fallback: Offer = {
+        id: offerId,
+        lotId: "",
+        buyerId: "",
+        buyerName: "Buyer",
+        verified: false,
+        pricePerKg: 0,
+        offeredPricePerKg: 0,
+        amount: 0,
+        totalAmount: 0,
+        quantityKg: 0,
+        validUntil: new Date(Date.now() + 7 * 86400_000).toISOString(),
+        status,
+        terms: "",
+        createdAt: new Date().toISOString(),
+        isDemo: true,
+      };
+      return fallback;
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
+      updateOffer(vars.offerId, { status: vars.status });
       qc.invalidateQueries({ queryKey: ["farmer", "offers"] });
-      qc.invalidateQueries({ queryKey: ["farmer", "payments"] });
-      qc.invalidateQueries({ queryKey: ["farmer", "lots"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "myLots"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "notifications"] });
     },
   });
 };
-
-// Counter-offer: creates a NEW pending offer record for the same lot
-// with a different price + status="countered". The original offer
-// transitions to "countered" so the buyer can see the response.
-export interface CounterOfferInput {
-  originalOfferId: string;
-  pricePerKg: number;
-  message?: string;
-}
 
 export const useCounterOffer = () => {
   const qc = useQueryClient();
-  const offers = useFarmerDashboardStore((s) => s.offers);
   const updateOffer = useFarmerDashboardStore((s) => s.updateOffer);
-  const addOffer = useFarmerDashboardStore((s) => s.addOffer);
-  const pushNotification = useFarmerDashboardStore(
-    (s) => s.pushNotification,
-  );
-  return useMutation<Offer, Error, CounterOfferInput>({
-    mutationFn: async ({ originalOfferId, pricePerKg, message }) => {
-      await delay(160);
-      const original = offers.find((o) => o.id === originalOfferId);
-      if (!original) throw new Error("Original offer not found");
-      const now = new Date().toISOString();
-      const total = pricePerKg * original.quantityKg;
-      const newOffer: Offer = {
-        ...original,
-        id: "offer-" + Math.random().toString(36).slice(2, 9),
+  return useMutation<Offer, Error, { offerId: string; pricePerKg: number; terms?: string }>({
+    mutationFn: async ({ offerId, pricePerKg, terms }) => {
+      const counter = await counterOfferApi(offerId, pricePerKg, terms);
+      if (counter) return counter as Offer;
+      await delay(180);
+      updateOffer(offerId, {
+        status: "countered",
+        offeredPricePerKg: pricePerKg,
+        pricePerKg,
+      });
+      const fallback: Offer = {
+        id: offerId,
+        lotId: "",
+        buyerId: "",
+        buyerName: "Buyer",
+        verified: false,
         pricePerKg,
         offeredPricePerKg: pricePerKg,
-        amount: total,
-        totalAmount: total,
-        status: "pending",
-        terms: message ?? original.terms,
-        createdAt: now,
+        amount: 0,
+        totalAmount: 0,
+        quantityKg: 0,
+        validUntil: new Date(Date.now() + 7 * 86400_000).toISOString(),
+        status: "countered",
+        terms: terms ?? "",
+        createdAt: new Date().toISOString(),
+        isDemo: true,
       };
-      updateOffer(originalOfferId, { status: "countered" });
-      addOffer(newOffer);
-      pushNotification({
-        id: "n-counter-" + newOffer.id,
-        kind: "offer",
-        title: "Counter offer sent",
-        body: "Rs " + pricePerKg + "/kg sent to " + original.buyerName,
-        href: `/farmer/lots/${original.lotId}`,
-        read: false,
-        createdAt: now,
-      });
-      return newOffer;
+      return fallback;
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
+      updateOffer(vars.offerId, {
+        status: "countered",
+        offeredPricePerKg: vars.pricePerKg,
+        pricePerKg: vars.pricePerKg,
+      });
       qc.invalidateQueries({ queryKey: ["farmer", "offers"] });
     },
   });
 };
 
-// Update lot — used by LotDetailPage edit form.
-export interface UpdateLotInput {
-  id: string;
-  patch: Partial<
-    Omit<FarmerLot, "id" | "farmerId" | "createdAt" | "isDemo">
-  >;
-}
+// --- Lot mutations ----------------------------------------------------------
 
 export const useUpdateLot = () => {
   const qc = useQueryClient();
   const updateLot = useFarmerDashboardStore((s) => s.updateLot);
-  return useMutation<FarmerLot, Error, UpdateLotInput>({
+  return useMutation<FarmerLot, Error, { id: string; patch: UpdateLotPayload }>({
     mutationFn: async ({ id, patch }) => {
+      const updated = await updateLotApi(id, patch);
+      if (updated) return updated as FarmerLot;
       await delay(160);
-      updateLot(id, patch);
-      const lot = useFarmerDashboardStore
-        .getState()
-        .lots.find((l) => l.id === id);
-      if (!lot) throw new Error("Lot missing after update");
-      return lot;
+      updateLot(id, patch as Partial<FarmerLot>);
+      const current = useFarmerDashboardStore.getState().lots.find((l) => l.id === id);
+      return current ?? ({ id, ...patch } as FarmerLot);
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["farmer", "lots"] });
+    onSuccess: (_data, vars) => {
+      updateLot(vars.id, vars.patch as Partial<FarmerLot>);
+      qc.invalidateQueries({ queryKey: ["farmer", "myLots"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "lot", vars.id] });
     },
   });
 };
 
-// Delete lot — also drops any related offers.
 export const useDeleteLot = () => {
   const qc = useQueryClient();
   const removeLot = useFarmerDashboardStore((s) => s.removeLot);
-  return useMutation<{ id: string }, Error, { id: string }>({
+  return useMutation<boolean, Error, { id: string }>({
     mutationFn: async ({ id }) => {
-      await delay(140);
+      const ok = await deleteLotApi(id);
+      if (!ok) await delay(120);
       removeLot(id);
-      return { id };
+      return true;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["farmer", "lots"] });
-      qc.invalidateQueries({ queryKey: ["farmer", "offers"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "myLots"] });
     },
   });
 };
 
-// Mark lot as sold (offline sale flow).
 export const useMarkLotSold = () => {
   const qc = useQueryClient();
   const updateLot = useFarmerDashboardStore((s) => s.updateLot);
-  const pushNotification = useFarmerDashboardStore(
-    (s) => s.pushNotification,
-  );
-  return useMutation<
-    FarmerLot,
-    Error,
-    { id: string; finalPricePerKg: number; buyerName: string }
-  >({
-    mutationFn: async ({ id, finalPricePerKg, buyerName }) => {
-      await delay(160);
-      const existing = useFarmerDashboardStore
-        .getState()
-        .lots.find((l) => l.id === id);
-      const noteSuffix =
-        "[Offline sale] Sold to " +
-        buyerName +
-        " @ Rs " +
-        finalPricePerKg +
-        "/kg";
-      const newNotes =
-        (existing?.notes ?? "") +
-        (existing?.notes ? "\n" : "") +
-        noteSuffix;
-      updateLot(id, { status: "sold", notes: newNotes });
-      const lot = useFarmerDashboardStore
-        .getState()
-        .lots.find((l) => l.id === id);
-      if (!lot) throw new Error("Lot missing after update");
-      pushNotification({
-        id: "n-sold-" + id,
-        kind: "lot",
-        title: "Lot marked sold",
-        body: lot.crop + " - sold to " + buyerName,
-        href: `/farmer/lots/${id}`,
-        read: false,
-        createdAt: new Date().toISOString(),
-      });
-      return lot;
+  return useMutation<FarmerLot, Error, { id: string; payload: MarkSoldPayload }>({
+    mutationFn: async ({ id, payload }) => {
+      const updated = await markLotSoldApi(id, payload);
+      if (updated) return updated as FarmerLot;
+      await delay(180);
+      updateLot(id, { status: "sold", ...(payload as Partial<FarmerLot>) });
+      const current = useFarmerDashboardStore.getState().lots.find((l) => l.id === id);
+      return current ?? ({ id, ...payload } as FarmerLot);
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["farmer", "lots"] });
+    onSuccess: (_data, vars) => {
+      updateLot(vars.id, { status: "sold", ...(vars.payload as Partial<FarmerLot>) });
+      qc.invalidateQueries({ queryKey: ["farmer", "myLots"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "lot", vars.id] });
+      qc.invalidateQueries({ queryKey: ["farmer", "notifications"] });
     },
   });
 };
 
-// Logistics & Storage.
+// --- Logistics & Storage ----------------------------------------------------
+
 export const useLogisticsOptions = () =>
   useQuery<LogisticsOption[]>({
-    queryKey: ["farmer", "logistics"],
+    queryKey: ["farmer", "logistics", "options"],
     queryFn: async () => {
+      const remote = await fetchLogisticsOptions();
+      if (remote && remote.length > 0) return remote as LogisticsOption[];
       await delay(140);
       return DEMO_LOGISTICS_OPTIONS;
     },
-    staleTime: 60_000,
+    initialData: DEMO_LOGISTICS_OPTIONS,
+    staleTime: 5 * 60_000,
   });
 
 export const useStorageOptions = () =>
   useQuery<StorageOption[]>({
-    queryKey: ["farmer", "storage"],
+    queryKey: ["farmer", "storage", "options"],
     queryFn: async () => {
+      const remote = await fetchStorageOptions();
+      if (remote && remote.length > 0) return remote as StorageOption[];
       await delay(140);
       return DEMO_STORAGE_OPTIONS;
     },
-    staleTime: 60_000,
+    initialData: DEMO_STORAGE_OPTIONS,
+    staleTime: 5 * 60_000,
   });
 
 /**
- * UI-shaped storage list. Adapts the raw `StorageOption` mocks to the
+ * UI-shaped storage list. Adapts the `StorageOption` mocks to the
  * shape expected by `StoragePage` (capacityKg / usedKg, name, location,
  * temperature, "warehouse" | "cold" type label).
  */
-export const useStorage = () =>
-  useQuery<StorageView[]>({
+export const useStorage = () => {
+  const { data: options } = useStorageOptions();
+  return useQuery<StorageView[]>({
     queryKey: ["farmer", "storage", "view"],
     queryFn: async () => {
-      await delay(140);
+      const remote = await fetchStorageOptions();
       const TONS_TO_KG = 1000;
-      return DEMO_STORAGE_OPTIONS.map<StorageView>((s) => ({
+      const source =
+        remote && remote.length > 0
+          ? (remote as unknown as StorageOption[])
+          : (options ?? DEMO_STORAGE_OPTIONS);
+      return source.map<StorageView>((s) => ({
         id: s.id,
         name: s.facilityName,
         type:
@@ -741,8 +1012,8 @@ export const useStorage = () =>
     },
     staleTime: 60_000,
   });
+};
 
-// Storage reservation mutation.
 export interface ReserveStorageInput {
   storageId: string;
   storageName: string;
@@ -755,15 +1026,12 @@ export interface ReserveStorageInput {
 
 export const useReserveStorage = () => {
   const qc = useQueryClient();
-  const addStorageBooking = useFarmerDashboardStore(
-    (s) => s.addStorageBooking,
-  );
-  const pushNotification = useFarmerDashboardStore(
-    (s) => s.pushNotification,
-  );
+  const addStorageBooking = useFarmerDashboardStore((s) => s.addStorageBooking);
   return useMutation<StorageBooking, Error, ReserveStorageInput>({
     mutationFn: async (input) => {
-      await delay(160);
+      const remote = await reserveStorageApi(input as unknown as StorageReservePayload);
+      if (remote) return remote as StorageBooking;
+      await delay(180);
       const now = new Date().toISOString();
       const arrival = new Date(
         Date.now() + input.durationDays * 24 * 60 * 60 * 1000,
@@ -785,21 +1053,6 @@ export const useReserveStorage = () => {
         isDemo: true,
       };
       addStorageBooking(booking);
-      pushNotification({
-        id: "n-storage-" + booking.id,
-        kind: "system",
-        title: "Storage reserved",
-        body:
-          input.storageName +
-          " - " +
-          input.reservedKg +
-          "kg for " +
-          input.durationDays +
-          " days",
-        href: `/farmer/storage`,
-        read: false,
-        createdAt: now,
-      });
       return booking;
     },
     onSuccess: () => {
@@ -814,6 +1067,8 @@ export const useStorageBookings = () => {
   return useQuery<StorageBooking[]>({
     queryKey: ["farmer", "storageBookings"],
     queryFn: async () => {
+      const remote = await fetchStorageBookings();
+      if (remote && remote.length > 0) return remote as StorageBooking[];
       await delay(80);
       return store.storageBookings;
     },
@@ -822,60 +1077,75 @@ export const useStorageBookings = () => {
   });
 };
 
-// Payments.
+export const useBookLogistics = () => {
+  const qc = useQueryClient();
+  return useMutation<unknown, Error, LogisticsBookPayload>({
+    mutationFn: async (payload) => {
+      const booking = await bookLogisticsApi(payload);
+      if (booking) return booking;
+      await delay(160);
+      return { id: "log-" + Math.random().toString(36).slice(2, 9), ...payload };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["farmer", "logistics"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "notifications"] });
+    },
+  });
+};
+
+// --- Payments ---------------------------------------------------------------
+
 export const usePayments = () =>
   useQuery<PaymentRecord[]>({
     queryKey: ["farmer", "payments"],
     queryFn: async () => {
+      const remote = await fetchPayments();
+      if (remote && remote.length > 0) return remote as PaymentRecord[];
       await delay(140);
       return DEMO_PAYMENTS;
     },
-    staleTime: 60_000,
+    initialData: DEMO_PAYMENTS,
+    staleTime: 30_000,
   });
 
-// Grievances.
+// --- Grievances -------------------------------------------------------------
+
 export const useGrievances = () => {
-  const store = useFarmerDashboardStore();
+  const storeGrievances = useFarmerDashboardStore((s) => s.grievances);
   return useQuery<Grievance[]>({
     queryKey: ["farmer", "grievances"],
     queryFn: async () => {
-      await delay(120);
-      return store.grievances;
+      const remote = await fetchGrievances();
+      if (remote && remote.length > 0) return remote as Grievance[];
+      await delay(140);
+      return storeGrievances;
     },
-    initialData: store.grievances,
+    initialData: storeGrievances,
     staleTime: 30_000,
   });
 };
 
-interface CreateGrievanceInput {
-  category: GrievanceCategory;
-  /** Short headline. Falls back to first 60 chars of description when omitted. */
-  subject?: string;
-  description: string;
-  priority?: GrievancePriority;
-  transactionRef: string;
-}
-
 export const useCreateGrievance = () => {
   const qc = useQueryClient();
   const addGrievance = useFarmerDashboardStore((s) => s.addGrievance);
-  return useMutation<Grievance, Error, CreateGrievanceInput>({
+  return useMutation<Grievance, Error, GrievanceCreatePayload>({
     mutationFn: async (input) => {
+      const created = await createGrievanceApi(input);
+      if (created) return created as Grievance;
       await delay(180);
       const id = "gv-" + Math.random().toString(36).slice(2, 9);
       const now = new Date().toISOString();
+      const description = String(input.description ?? "");
       const g: Grievance = {
         id,
         raisedBy: "You",
-        category: input.category,
+        category: (input.category as Grievance["category"]) ?? "other",
         subject:
-          input.subject?.trim() ||
-          (input.description.length > 60
-            ? input.description.slice(0, 57) + "…"
-            : input.description),
-        description: input.description,
-        priority: input.priority ?? "medium",
-        transactionRef: input.transactionRef,
+          (typeof input.subject === "string" && input.subject.trim()) ||
+          (description.length > 60 ? description.slice(0, 57) + "…" : description),
+        description,
+        priority: (input.priority as Grievance["priority"]) ?? "medium",
+        transactionRef: String(input.transactionRef ?? ""),
         status: "open",
         assignedTo: "Pending assignment",
         resolutionNotes: "",
@@ -892,6 +1162,22 @@ export const useCreateGrievance = () => {
     },
   });
 };
+
+export const useUpdateGrievance = () => {
+  const qc = useQueryClient();
+  return useMutation<Grievance, Error, { id: string; patch: Record<string, unknown> }>({
+    mutationFn: async ({ id, patch }) => {
+      const updated = await updateGrievanceApi(id, patch);
+      if (updated) return updated as Grievance;
+      await delay(160);
+      return { id, ...patch } as Grievance;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["farmer", "grievances"] });
+    },
+  });
+};
+
 
 // Helpers.
 const delay = (ms: number) =>
