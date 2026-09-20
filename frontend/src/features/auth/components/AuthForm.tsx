@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useAuthStore } from "@/stores/auth-store";
 import { loginWithEmail } from "@/lib/firebase";
@@ -130,10 +130,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
           } else if (result.appUser?.role === "pae_expert") {
             navigate({ to: "/pae-expert" });
           } else if (result.appUser?.role === "farmer") {
-            // Farmers now land on the unified main dashboard (/home) so they
-            // can reach the Farmer Dashboard via the new nav entry at
-            // position 2 instead of bypassing it with a direct /farmer route.
-            navigate({ to: "/home" });
+            navigate({ to: "/farmer" });
           } else {
             navigate({ to: "/home" });
           }
@@ -194,10 +191,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
         } else if (appUser?.role === "pae_expert") {
           navigate({ to: "/pae-expert" });
         } else if (appUser?.role === "farmer") {
-          // Farmers now land on the unified main dashboard (/home) so they
-          // can reach the Farmer Dashboard via the new nav entry at
-          // position 2 instead of bypassing it with a direct /farmer route.
-          navigate({ to: "/home" });
+          navigate({ to: "/farmer" });
         } else {
           navigate({ to: "/home" });
         }
@@ -279,7 +273,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
 
         {/* Bottom Footer Note */}
         <div className="relative z-20 text-xs text-emerald-300/70">
-          {t("auth.footerCopyright", "© 2026 AgriSeva-AI Platform. All rights reserved.")}
+          {t("auth.footerCopyright", "┬⌐ 2026 AgriSeva-AI Platform. All rights reserved.")}
         </div>
       </div>
 
@@ -393,7 +387,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó"
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition shadow-2xs pr-10"
                   />
                   <button
@@ -419,7 +413,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó"
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition shadow-2xs pr-10"
                   />
                   <button

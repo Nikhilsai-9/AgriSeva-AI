@@ -1,21 +1,21 @@
-/**
- * FarmerSubLayout — the Farmer-specific sub-navigation that sits inside
- * the shared `MainDashboardShell` (the global authenticated header).
+﻿/**
+ * FarmerLayout ΓÇö the shell for the new Farmer Market Intelligence
+ * Dashboard.
  *
- * The global brand row, sign-out, profile menu, language switcher and
- * notifications bell are provided ONCE by the main shell. This layout
- * is responsible only for the Farmer-specific sub-navigation:
- *   - demo-data banner (visible whenever any data on the page is demo)
+ * This is the FIRST component the user sees when they navigate to
+ * /farmer/*. It provides:
+ *   - top header with greeting + language switcher + sign-out
  *   - left side navigation (desktop / tablet)
  *   - bottom navigation (mobile, large touch targets)
- *   - the matching child route via <Outlet />
+ *   - demo-data banner (visible whenever any data on the page is demo)
  *
- * Reuses ONLY the existing useTranslation() hook — everything else is
- * intentionally lifted to the global shell so a single sign-out / profile
- * menu / language switcher covers the entire authenticated app.
+ * The shell is fully isolated from the existing /home dashboard.
+ * It reuses ONLY the existing useTranslation() + useAuthStore() + the
+ * LanguageSwitcher, which are intentionally framework-level.
  */
 
-import { Link, Outlet, useLocation } from "@tanstack/react-router";
+import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import {
   Home,
   TrendingUp,
@@ -27,10 +27,19 @@ import {
   Wallet,
   MessageCircleWarning,
   User,
+  Bell,
+  LogOut,
+  ChevronLeft,
   Scale,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
+import {
+  useNotifications,
+  useMarkAllNotificationsRead,
+} from "@/features/farmerDashboard/hooks/data";
 import type { ReactNode } from "react";
 
 interface NavItem {
@@ -67,11 +76,23 @@ const BOTTOM_NAV: NavItem[] = [
 
 export function FarmerLayout() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const location = useLocation();
+  const auth = useAuthStore();
+
+  const handleSignOut = async () => {
+    await auth.logout();
+    navigate({ to: "/auth" });
+  };
 
   return (
-    <div className="farmer-shell w-full bg-gradient-to-b from-emerald-50 via-white to-amber-50 text-foreground">
+    <div className="farmer-shell min-h-screen w-full bg-gradient-to-b from-emerald-50 via-white to-amber-50 text-foreground">
       <DemoBanner t={t} />
+      <Header
+        t={t}
+        userName={auth.user?.name || "Farmer"}
+        onSignOut={handleSignOut}
+      />
       <div className="flex w-full">
         <SideNav
           t={t}
@@ -89,12 +110,6 @@ export function FarmerLayout() {
 }
 
 function DemoBanner({ t }: { t: (k: string, fb: string) => string }) {
-  // Honest boundary: market prices are real (Agmarknet), but the
-  // buyer directory is still seeded demo data while KYC integration
-  // is being built out. Lots, offers, payments, grievances,
-  // storage + logistics bookings, the profile, and the notifications
-  // bell are all persisted per authenticated farmer via the real
-  // Mongo backend — they are no longer fabricated client-side.
   return (
     <div className="w-full bg-amber-100 border-b border-amber-300 text-amber-900 text-xs sm:text-sm">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 flex items-center gap-2">
@@ -102,7 +117,7 @@ function DemoBanner({ t }: { t: (k: string, fb: string) => string }) {
         <p>
           {t(
             "farmer.banner.demo",
-            "Mixed Mode — Market prices are live (Agmarknet), your lots, offers, payments, grievances, storage/logistics bookings, profile and notifications are persisted per signed-in farmer. The buyer directory is still demo seed data until KYC integration is enabled.",
+            "Demo Data ΓÇö This dashboard currently renders sample data so you can explore the experience. Live mandi feeds and buyer KYC will be enabled when the production backend is connected."
           )}
         </p>
       </div>
@@ -110,6 +125,67 @@ function DemoBanner({ t }: { t: (k: string, fb: string) => string }) {
   );
 }
 
+function Header({
+  t,
+  userName,
+  onSignOut,
+}: {
+  t: (k: string, fb: string) => string;
+  userName: string;
+  onSignOut: () => void;
+}) {
+  return (
+    <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-emerald-100">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="hidden sm:inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-emerald-50 text-emerald-700"
+            aria-label="Back"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <Link to="/farmer" className="flex items-center gap-2 min-w-0">
+            <span className="inline-flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow">
+              <Sprout className="h-4 w-4 sm:h-5 sm:w-5" />
+            </span>
+            <div className="flex flex-col leading-tight min-w-0">
+              <span className="text-[11px] uppercase tracking-wider text-emerald-700 font-semibold truncate">
+                {t("farmer.brand.kicker", "AgriSeva ΓÇó Farmer")}
+              </span>
+              <span className="text-base sm:text-lg font-bold text-emerald-900 truncate">
+                {t("farmer.brand.title", "Market Intelligence")}
+              </span>
+            </div>
+          </Link>
+        </div>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <LanguageSwitcher variant="light" />
+          <NotificationsDropdown t={t} />
+          <div className="hidden md:flex items-center gap-2 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100">
+            <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-emerald-600 text-white text-xs font-semibold">
+              {(userName || "F").charAt(0).toUpperCase()}
+            </span>
+            <span className="text-sm font-medium text-emerald-900 truncate max-w-[120px]">
+              {userName}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="inline-flex items-center gap-1 px-2 sm:px-3 h-9 rounded-md text-sm text-rose-700 hover:bg-rose-50"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {t("farmer.header.signOut", "Sign out")}
+            </span>
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
 
 function SideNav({
   t,
@@ -123,7 +199,7 @@ function SideNav({
   secondary: NavItem[];
 }) {
   return (
-    <aside className="hidden lg:flex flex-col w-60 xl:w-64 shrink-0 border-r border-emerald-100 bg-white/70 backdrop-blur-sm h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto py-4">
+    <aside className="hidden lg:flex flex-col w-60 xl:w-64 shrink-0 border-r border-emerald-100 bg-white/70 backdrop-blur-sm h-[calc(100vh-7rem)] sticky top-16 overflow-y-auto py-4">
       <NavGroup
         title={t("farmer.nav.marketGroup", "Market")}
         items={primary}
@@ -334,6 +410,94 @@ export function FarmerPageContainer({
       )}
     >
       {children}
+    </div>
+  );
+}
+
+
+
+
+
+function NotificationsDropdown({
+  t,
+}: {
+  t: (k: string, fb: string) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const { data: items } = useNotifications();
+  const markAllRead = useMarkAllNotificationsRead();
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) {
+      document.addEventListener("mousedown", onClick);
+      return () => document.removeEventListener("mousedown", onClick);
+    }
+  }, [open]);
+
+  const list = items ?? [];
+  const unread = list.length;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="relative inline-flex h-9 w-9 rounded-md items-center justify-center hover:bg-emerald-50 text-emerald-700"
+        aria-label={t("farmer.header.notifications", "Notifications")}
+      >
+        <Bell className="h-5 w-5" />
+        {unread > 0 && (
+          <span className="absolute top-1 right-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-rose-600 text-white text-[10px] font-bold">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-xl border border-emerald-100 z-40">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-emerald-100">
+            <p className="text-sm font-bold text-emerald-900">
+              {t("farmer.header.notificationsTitle", "Notifications")}
+            </p>
+            {unread > 0 && (
+              <button
+                type="button"
+                onClick={() => markAllRead()}
+                className="text-xs font-semibold text-emerald-700 hover:underline"
+              >
+                {t("farmer.header.markAllRead", "Mark all read")}
+              </button>
+            )}
+          </div>
+          {list.length === 0 ? (
+            <div className="p-6 text-center text-sm text-emerald-900/60">
+              {t("farmer.header.emptyNotifications", "No new notifications.")}
+            </div>
+          ) : (
+            <ul className="divide-y divide-emerald-50">
+              {list.slice(0, 12).map((n) => (
+                <li key={n.id}>
+                  <Link
+                    to={n.href}
+                    onClick={() => setOpen(false)}
+                    className="block px-3 py-2 hover:bg-emerald-50/60"
+                  >
+                    <p className="text-xs font-bold text-emerald-900">{n.title}</p>
+                    <p className="text-xs text-emerald-900/70 line-clamp-2">{n.body}</p>
+                    <p className="text-[10px] text-emerald-900/40 mt-0.5">
+                      {new Date(n.createdAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

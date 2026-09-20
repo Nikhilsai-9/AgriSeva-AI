@@ -1,4 +1,4 @@
-import {
+﻿import {
   Tabs,
   TabsContent,
 } from "@/components/atoms/tabs";
@@ -150,7 +150,7 @@ export const PlaygroundPage = () => {
   }, [user?.role, user?.isCallAgentActive]);
 
   // The selection this effect last navigated for. Navigation must happen only when the
-  // selection itself changes — NOT when the `user` object merely gets a new identity
+  // selection itself changes ΓÇö NOT when the `user` object merely gets a new identity
   // (react-query refetches it on window focus and whenever a notification action
   // invalidates ["user"]). Without this guard, switching browser tabs or reviewing an
   // answer re-ran the effect and yanked the moderator back to the question list,
@@ -168,7 +168,7 @@ export const PlaygroundPage = () => {
       selectedCommentId,
       selectedQuestionType,
     ].join("|");
-    // Same selection as last time → this run was caused by something else (a user
+    // Same selection as last time ΓåÆ this run was caused by something else (a user
     // refetch). Leave the current tab alone.
     if (lastNavigatedSelection.current === selectionKey) return;
     lastNavigatedSelection.current = selectionKey;
@@ -264,7 +264,13 @@ export const PlaygroundPage = () => {
         onValueChange={handleTabChange}
         className="h-full w-full"
       >
-        <PlaygroundHeader user={user} activeTab={activeTab} />
+        <PlaygroundHeader
+          user={user}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          setTab={setActiveTab}
+          setChatbotSource={setChatbotSource}
+        />
 
         <div className=" h-full py-6 min-w-0">
           <div className="grid h-full items-stretch gap-6 min-w-0">

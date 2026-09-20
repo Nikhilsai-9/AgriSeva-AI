@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
+﻿import React, { useEffect } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuthStore } from "@/stores/auth-store";
 import { useLanguageStore } from "@/stores/language-store";
 import { useTranslation } from "@/locales";
@@ -175,7 +175,7 @@ export function LandingPage() {
   return (
     <div className="agriseva-landing-wrapper w-full min-h-screen">
       <PageMeta
-        title="AgriSeva-AI — AI Advisory for Indian Farmers"
+        title="AgriSeva-AI ΓÇö AI Advisory for Indian Farmers"
         description="AgriSeva-AI is an AI-powered advisory platform that helps Indian farmers make better decisions with live Agmarknet market prices, weather, soil health, government schemes, and multilingual voice support."
       />
       <style>{`
@@ -1087,9 +1087,9 @@ export function LandingPage() {
               <a href="#features">{t("nav.features", "Features")}</a>
               <a href="#simulation">{t("nav.simulation", "Simulation")}</a>
               <a href="#impact">{t("nav.impact", "Impact")}</a>
-              {/* Farmer Dashboard entry is intentionally not linked from the
-                  landing-page nav anymore — it lives inside the main
-                  authenticated dashboard at /home (position 2 in the nav). */}
+              <Link to="/farmer" id="nav-farmer-dashboard">
+                {t("nav.farmerDashboard", "Farmer Dashboard ΓåÆ")}
+              </Link>
             </div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "12px" }}>
               <LanguageSwitcher variant="light" />
@@ -1097,9 +1097,9 @@ export function LandingPage() {
                 onClick={() => navigate({ to: user ? "/home" : "/auth" })}
                 className="cart cursor-pointer"
                 id="nav-demo-btn"
-                aria-label={user ? t("nav.dashboardCta", "Dashboard →") : t("nav.getStartedCta", "Get Started →")}
+                aria-label={user ? t("nav.dashboardCta", "Dashboard ΓåÆ") : t("nav.getStartedCta", "Get Started ΓåÆ")}
               >
-                {user ? t("nav.dashboardCta", "Dashboard →") : t("nav.getStartedCta", "Get Started →")}
+                {user ? t("nav.dashboardCta", "Dashboard ΓåÆ") : t("nav.getStartedCta", "Get Started ΓåÆ")}
               </button>
             </div>
           </nav>
@@ -1127,9 +1127,9 @@ export function LandingPage() {
                 onClick={() => navigate({ to: user ? "/home" : "/auth" })}
                 className="btn-primary cursor-pointer"
                 id="hero-demo-btn"
-                aria-label={user ? t("hero.ctaPrimaryDashboard", "Go to Dashboard →") : t("hero.ctaPrimary", "Get Started with AgriSeva-AI →")}
+                aria-label={user ? t("hero.ctaPrimaryDashboard", "Go to Dashboard ΓåÆ") : t("hero.ctaPrimary", "Get Started with AgriSeva-AI ΓåÆ")}
               >
-                {user ? t("hero.ctaPrimaryDashboard", "Go to Dashboard →") : t("hero.ctaPrimary", "Get Started with AgriSeva-AI →")}
+                {user ? t("hero.ctaPrimaryDashboard", "Go to Dashboard ΓåÆ") : t("hero.ctaPrimary", "Get Started with AgriSeva-AI ΓåÆ")}
               </button>
               <button
                 className="btn-ghost"
@@ -1475,7 +1475,7 @@ export function LandingPage() {
           </div>
           <div className="tgrid">
             <div className="tcard">
-              <div className="stars">★★★★★</div>
+              <div className="stars">ΓÿàΓÿàΓÿàΓÿàΓÿà</div>
               <p className="quote">
                 {t(
                   "testimonials.quote1",
@@ -1495,7 +1495,7 @@ export function LandingPage() {
               </div>
             </div>
             <div className="tcard">
-              <div className="stars">★★★★★</div>
+              <div className="stars">ΓÿàΓÿàΓÿàΓÿàΓÿà</div>
               <p className="quote">
                 {t(
                   "testimonials.quote2",
@@ -1515,7 +1515,7 @@ export function LandingPage() {
               </div>
             </div>
             <div className="tcard">
-              <div className="stars">★★★★★</div>
+              <div className="stars">ΓÿàΓÿàΓÿàΓÿàΓÿà</div>
               <p className="quote">
                 {t(
                   "testimonials.quote3",
@@ -1638,7 +1638,7 @@ export function LandingPage() {
                   border: "none",
                 }}
               >
-                {t("footer.signupBtn", "Get Started →")}
+                {t("footer.signupBtn", "Get Started ΓåÆ")}
               </button>
             </div>
           </div>
@@ -1646,7 +1646,7 @@ export function LandingPage() {
             <span>
               {t(
                 "footer.copyright",
-                "© 2026 AgriSeva-AI — Agricultural Decision Support Platform. All rights reserved."
+                "┬⌐ 2026 AgriSeva-AI ΓÇö Agricultural Decision Support Platform. All rights reserved."
               )}
             </span>
             <span>{t("footer.slogan", "Every Farmer a King, with AI by their side.")}</span>
@@ -1689,7 +1689,7 @@ export function LandingPage() {
           <div className="demo-body">
             <div className="sim-grid">
               <div className="sim-controls">
-                <h4>{t("simulator.paramsTitle", "🌾 Agricultural Parameters")}</h4>
+                <h4>{t("simulator.paramsTitle", "≡ƒî╛ Agricultural Parameters")}</h4>
 
                 <div className="sim-control-group">
                   <div className="sim-label-row">
@@ -1782,7 +1782,7 @@ export function LandingPage() {
               </div>
 
               <div className="sim-results">
-                <h4>{t("simulator.outcomesTitle", "📊 Simulated Agricultural Outcomes")}</h4>
+                <h4>{t("simulator.outcomesTitle", "≡ƒôè Simulated Agricultural Outcomes")}</h4>
                 <div className="metric-cards">
                   <div className="metric-card">
                     <div className="m-lbl">{t("simulator.projectedYield", "Projected Yield")}</div>
@@ -1812,7 +1812,7 @@ export function LandingPage() {
                   </div>
                 </div>
                 <div className="explain-box">
-                  <strong>{t("simulator.guidanceTitle", "💡 Agricultural Decision Guidance:")}</strong>
+                  <strong>{t("simulator.guidanceTitle", "≡ƒÆí Agricultural Decision Guidance:")}</strong>
                   <span id="resExplain">
                     {t(
                       "simulator.guidanceText",
@@ -1839,7 +1839,7 @@ export function LandingPage() {
                       background: "var(--green-deep)",
                     }}
                   >
-                    {t("simulator.openPlatform", "Open Platform →")}
+                    {t("simulator.openPlatform", "Open Platform ΓåÆ")}
                   </button>
                   <button
                     onClick={() => {
@@ -1859,7 +1859,7 @@ export function LandingPage() {
                       color: "#fff",
                     }}
                   >
-                    {t("simulator.signIn", "Sign In (/auth) →")}
+                    {t("simulator.signIn", "Sign In (/auth) ΓåÆ")}
                   </button>
                 </div>
               </div>
