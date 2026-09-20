@@ -80,6 +80,95 @@ def resolve_state_name(state_name: str) -> tuple[str | None, list[str]]:
     return None, suggestions
 
 
+def _body_excerpt(text: str, limit: int = 200) -> str:
+    """Return first ``limit`` chars of ``text`` with non-printable chars trimmed."""
+    cleaned = " ".join(text.split())
+    return cleaned[:limit]
+
+
+async def _safe_fetch_json(
+    session: aiohttp.ClientSession,
+    url: str,
+    *,
+    label: str,
+    form: aiohttp.FormData | None = None,
+    timeout: float = 20.0,
+) -> dict:
+    """
+    Robustly POST to an eNAM endpoint and parse the JSON response.
+
+    eNAM frequently returns HTML (challenge/captcha pages, maintenance banners,
+    login pages) or non-2xx errors instead of JSON. Calling ``json.loads``
+    blindly on such a body raises ``JSONDecodeError`` and crashes the MCP tool.
+
+    This helper ALWAYS returns a dict so the caller can simply use
+    ``result.get("status")`` / ``result.get("data")``. It NEVER fabricates
+    records — on failure it returns a structured error envelope that the
+    ``MarketNormaliser`` will treat as zero records.
+
+    Success: ``{"status": 200, "data": <parsed-json>}``
+
+    Non-success (any of): non-2xx, non-JSON ``Content-Type``,
+    body that fails ``json.loads``. Always carries ``error``,
+    ``content_type`` (when known), and ``body_excerpt``.
+    """
+    request_kwargs: dict = {"timeout": aiohttp.ClientTimeout(total=timeout)}
+    if form is not None:
+        request_kwargs["data"] = form
+
+    try:
+        async with session.post(url, **request_kwargs) as response:
+            content_type = response.headers.get("Content-Type", "") or ""
+            status = response.status
+            text = await response.text()
+    except aiohttp.ClientError as exc:
+        return {
+            "status": 0,
+            "error": "network_error",
+            "label": label,
+            "message": f"{type(exc).__name__}: {exc}",
+        }
+    except Exception as exc:  # noqa: BLE001 — never crash the MCP tool
+        return {
+            "status": 0,
+            "error": "fetch_exception",
+            "label": label,
+            "message": f"{type(exc).__name__}: {exc}",
+        }
+
+    if status >= 400:
+        return {
+            "status": status,
+            "error": "http_error",
+            "label": label,
+            "content_type": content_type,
+            "body_excerpt": _body_excerpt(text),
+        }
+
+    if "json" not in content_type.lower():
+        return {
+            "status": status,
+            "error": "non_json_response",
+            "label": label,
+            "content_type": content_type,
+            "body_excerpt": _body_excerpt(text),
+        }
+
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        return {
+            "status": status,
+            "error": "json_parse_error",
+            "label": label,
+            "content_type": content_type,
+            "message": f"{type(exc).__name__}: {exc}",
+            "body_excerpt": _body_excerpt(text),
+        }
+
+    return {"status": 200, "data": payload, "content_type": content_type}
+
+
 # -------------------------------------------------------------------
 # Internal business logic (NO decorators)
 # -------------------------------------------------------------------
@@ -98,22 +187,25 @@ async def _get_apmc_list_from_enam(state_name: str) -> dict:
     form.add_field("state_id", STATE_NAME_TO_ID[resolved_state])
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=form) as response:
-            response.raise_for_status()
-            payload = json.loads(await response.text())
+        result = await _safe_fetch_json(
+            session, url, label="apmc_list", form=form
+        )
+        if result.get("error") or result.get("status") != 200:
+            return result
 
-            apmcs = [
-                item["apmc_name"]
-                for item in payload.get("data", [])
-                if "apmc_name" in item
-            ]
+        payload = result["data"]
+        apmcs = [
+            item["apmc_name"]
+            for item in payload.get("data", [])
+            if "apmc_name" in item
+        ]
 
-            return {
-                "status": 200,
-                "state": resolved_state,
-                "count": len(apmcs),
-                "apmcs": apmcs,
-            }
+        return {
+            "status": 200,
+            "state": resolved_state,
+            "count": len(apmcs),
+            "apmcs": apmcs,
+        }
 
 
 async def _get_commodity_list_from_enam(
@@ -129,7 +221,7 @@ async def _get_commodity_list_from_enam(
         }
 
     apmc_resp = await _get_apmc_list_from_enam(resolved_state)
-    if apmc_resp["status"] != 200:
+    if apmc_resp.get("error") or apmc_resp.get("status") != 200:
         return apmc_resp
 
     apmc_lookup = {a.lower(): a for a in apmc_resp["apmcs"]}
@@ -154,6 +246,7 @@ async def _get_commodity_list_from_enam(
     start_dt = datetime.strptime(to_date, "%Y-%m-%d")
 
     async with aiohttp.ClientSession() as session:
+        upstream_error: dict | None = None
         for i in range(MAX_LOOKBACK_DAYS):
             date = (start_dt - timedelta(days=i)).strftime("%Y-%m-%d")
 
@@ -164,15 +257,47 @@ async def _get_commodity_list_from_enam(
             form.add_field("fromDate", date)
             form.add_field("toDate", date)
 
-            async with session.post(url, data=form) as response:
-                payload = json.loads(await response.text())
-                rows = payload.get("data", [])
-
-                if rows:
-                    found_data = rows
-                    found_date = date
-                    break
+            result = await _safe_fetch_json(
+                session, url, label=f"commodity_list[{date}]", form=form
+            )
+            if result.get("error") or result.get("status") != 200:
+                # eNAM returned HTML / parse error / 4xx / network error.
+                # If upstream is consistently broken (e.g. blocked), every
+                # date in the lookback window will fail the same way. Record
+                # the first such error and keep trying the remaining dates,
+                # but bail out immediately on hard network/parse errors since
+                # retrying the same upstream is pointless.
                 missing_dates.append(date)
+                upstream_error = result
+                err_code = result.get("error")
+                if err_code in ("network_error", "fetch_exception", "json_parse_error", "http_error"):
+                    # retrying the same upstream won't help
+                    break
+                continue
+
+            payload = result["data"]
+            rows = payload.get("data", []) if isinstance(payload, dict) else []
+
+            if rows:
+                found_data = rows
+                found_date = date
+                break
+            missing_dates.append(date)
+
+    if not found_data:
+        # If every attempt hit an upstream error, return that error so the
+        # caller can distinguish "no data on the requested date" from
+        # "eNAM is blocked/broken".
+        if upstream_error is not None and all(
+            d == missing_dates[0] for d in missing_dates
+        ) and len(missing_dates) <= 1:
+            return upstream_error
+        return {
+            "status": 204,
+            "state": standard_state,
+            "apmc": standard_apmc,
+            "checked_dates": missing_dates,
+        }
 
     if not found_data:
         return {
@@ -204,7 +329,7 @@ async def _get_trade_data_list(
         state_name, apmc_name, from_date, to_date
     )
 
-    if commodity_resp.get("status") != 200:
+    if commodity_resp.get("error") or commodity_resp.get("status") != 200:
         return commodity_resp
 
     available = {
@@ -227,7 +352,8 @@ async def _get_trade_data_list(
     url = "https://enam.gov.in/web/Ajax_ctrl/trade_data_list"
 
     start_dt = datetime.strptime(to_date, "%Y-%m-%d")
-    missing_dates = []
+    missing_dates: list[str] = []
+    upstream_error: dict | None = None
 
     async with aiohttp.ClientSession() as session:
         for i in range(MAX_LOOKBACK_DAYS):
@@ -241,22 +367,48 @@ async def _get_trade_data_list(
             form.add_field("fromDate", date)
             form.add_field("toDate", date)
 
-            async with session.post(url, data=form) as response:
-                payload = json.loads(await response.text())
-                rows = payload.get("data", [])
-
-                if rows:
-                    return {
-                        "status": 200,
-                        "state": standard_state,
-                        "apmc": standard_apmc,
-                        "commodity": standard_commodity,
-                        "available_date": date,
-                        "missing_dates": missing_dates,
-                        "trade_data": rows,
-                    }
-
+            result = await _safe_fetch_json(
+                session, url, label=f"trade_data_list[{date}]", form=form
+            )
+            if result.get("error") or result.get("status") != 200:
                 missing_dates.append(date)
+                upstream_error = result
+                err_code = result.get("error")
+                # No point retrying the same upstream on a hard failure.
+                if err_code in (
+                    "network_error",
+                    "fetch_exception",
+                    "json_parse_error",
+                    "http_error",
+                ):
+                    break
+                continue
+
+            payload = result["data"]
+            rows = payload.get("data", []) if isinstance(payload, dict) else []
+
+            if rows:
+                return {
+                    "status": 200,
+                    "state": standard_state,
+                    "apmc": standard_apmc,
+                    "commodity": standard_commodity,
+                    "available_date": date,
+                    "missing_dates": missing_dates,
+                    "trade_data": rows,
+                }
+
+            missing_dates.append(date)
+
+    # If we get here with no rows and the very first attempt hit a hard
+    # upstream error, surface that error instead of a generic 204 so the
+    # backend can distinguish "no data" from "eNAM is broken".
+    if (
+        upstream_error is not None
+        and len(missing_dates) == 1
+        and upstream_error.get("error") in ("network_error", "fetch_exception")
+    ):
+        return upstream_error
 
     return {
         "status": 204,

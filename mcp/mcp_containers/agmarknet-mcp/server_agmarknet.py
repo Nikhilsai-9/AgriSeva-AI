@@ -26,6 +26,16 @@ MCP_HOST = os.getenv("AGMARKNET_MCP_HOST", os.getenv("MCP_HOST", "0.0.0.0")).str
 MCP_PORT = int(os.getenv("AGMARKNET_MCP_PORT", "9004"))
 MCP_MOUNT_PATH = os.getenv("AGMARKNET_MCP_MOUNT_PATH", os.getenv("MCP_MOUNT_PATH", "/")).strip() or "/"
 
+HEADERS = {
+    "Accept": "application/json, text/plain, */*",
+    "Origin": os.getenv("AGMARKNET_ORIGIN", "https://www.agmarknet.gov.in"),
+    "Referer": os.getenv("AGMARKNET_REFERER", "https://www.agmarknet.gov.in/"),
+    "User-Agent": os.getenv(
+        "AGMARKNET_USER_AGENT",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+    ),
+}
+
 mcp = FastMCP(
     "agmarknet-mcp",
     host=MCP_HOST,
@@ -100,7 +110,7 @@ async def _request(path: str, params: dict[str, Any] | None = None) -> dict[str,
     cleaned_params = _clean_params(params)
 
     async def make_request():
-        async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS, headers=HEADERS) as client:
             response = await client.get(url, params=cleaned_params)
             response.raise_for_status()
             return response
@@ -177,7 +187,7 @@ async def get_by_absolute_url(url: str) -> dict[str, Any]:
     """Follow Agmarknet pagination links such as pagination.next_page."""
 
     async def make_request():
-        async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS, headers=HEADERS) as client:
             response = await client.get(url)
             response.raise_for_status()
             return response
