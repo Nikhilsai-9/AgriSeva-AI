@@ -1,12 +1,41 @@
 import { resolveEnv } from "./runtime-env";
 
-// Add all .env keys here
-type EnvKey =
+/* -------------------------------------------------------------------------- */
+/* SECRET HANDLING POLICY                                                     */
+/* -------------------------------------------------------------------------- */
+/* Vite inlines any VITE_* variable referenced at build time into the JS      */
+/* bundle. Anything shipped to the browser is, by construction, public.      */
+/*                                                                            */
+/* Safe to expose (already public by design):                                */
+/*   - VITE_FIREBASE_*          Firebase web SDK config — the Firebase docs  */
+/*                              and code samples explicitly publish these.   */
+/*                              Security is enforced by Firebase Security    */
+/*                              Rules, not by hiding the config.             */
+/*   - VITE_VAPID_PUBLIC_KEY    VAPID public key by design.                  */
+/*   - VITE_API_BASE_URL        Public URL of the public REST gateway.       */
+/*   - VITE_PLIVO_*_USERNAME    SIP endpoint/agent usernames (SIP login     */
+/*                              identifiers, not secrets).                   */
+/*   - VITE_PLIVO_STREAM_URL    Public wss: stream URL.                      */
+/*                                                                            */
+/* Sensitive — NEVER bake into the bundle:                                   */
+/*   - VITE_SARVAM_API_KEY      Sarvam STT/TTS. The browser-side use was    */
+/*                              originally a fallback; in production all     */
+/*                              Sarvam calls go through the backend          */
+/*                              PlivoService. The key is kept out of build. */
+/*   - VITE_INTERNAL_API_KEY    Backend service-to-service token. Must not  */
+/*                              be exposed to the browser; rotate if it was. */
+/*   - VITE_PLIVO_*_PASSWORD    SIP endpoint/agent passwords. If you ever    */
+/*                              need them in the browser (only for incoming  */
+/*                              call UI), pass them via /runtime-config.js   */
+/*                              at container start, never via VITE_*.        */
+/* -------------------------------------------------------------------------- */
+
+type EnvKeyPublic =
   // Common
   | "VITE_ENABLE_MOCKS"
   | "VITE_API_BASE_URL"
 
-  // Firebase
+  // Firebase (public by design)
   | "VITE_FIREBASE_API_KEY"
   | "VITE_FIREBASE_AUTH_DOMAIN"
   | "VITE_FIREBASE_PROJECT_ID"
@@ -15,30 +44,38 @@ type EnvKey =
   | "VITE_FIREBASE_APP_ID"
   | "VITE_FIREBASE_MEASUREMENT_ID"
 
-  // Sarvam keys
-  | "VITE_SARVAM_API_KEY"
-
-  // Internal API
-  | "VITE_INTERNAL_API_KEY"
-
-  // Notification
+  // Web Push (VAPID public is safe; private must stay backend-only)
   | "VITE_VAPID_PUBLIC_KEY"
 
-  // Plivo
+  // Plivo SIP — usernames/stream URL only. Passwords are runtime-injected.
   | "VITE_PLIVO_ENDPOINT_USERNAME"
-  | "VITE_PLIVO_ENDPOINT_PASSWORD"
   | "VITE_PLIVO_STREAM_URL"
   | "VITE_PLIVO_AGENT_1_USERNAME"
-  | "VITE_PLIVO_AGENT_1_PASSWORD"
   | "VITE_PLIVO_AGENT_2_USERNAME"
-  | "VITE_PLIVO_AGENT_2_PASSWORD"
   | "VITE_PLIVO_AGENT_3_USERNAME"
-  | "VITE_PLIVO_AGENT_3_PASSWORD"
+  | "VITE_PLIVO_AGENT_4_USERNAME"
   | `VITE_PLIVO_${string}_USERNAME`
-  | `VITE_PLIVO_${string}_PASSWORD`
+
   // FAQ / POP processing servers
   | "VITE_FAQ_API_URL"
   | "VITE_POP_API_URL";
+
+/* The following VITE_* names are intentionally accepted ONLY because        */
+/* `runtime-config.js` injects them at container start. They are NOT built    */
+/* into the bundle because `getEnv` only returns the build-time value if the */
+/* runtime injection is absent (see ./runtime-env.ts). Treat as secrets.     */
+type RuntimeOnlySecretKey =
+  | "VITE_PLIVO_ENDPOINT_PASSWORD"
+  | `VITE_PLIVO_${string}_PASSWORD`;
+
+/* Permissive union covers (a) documented client vars, (b) runtime-only       */
+/* secrets, so existing code paths that wire them through `resolveEnv` /      */
+/* `getEnv` (notably IncomingCallBox for the SIP endpoint) still type-check. */
+/*                                                                        */
+/* NOTE: `VITE_SARVAM_API_KEY` and `VITE_INTERNAL_API_KEY` are intentionally */
+/* NOT in the union. If a future code change reintroduces them, TypeScript    */
+/* will surface an error here instead of silently shipping them. */
+type EnvKey = EnvKeyPublic | RuntimeOnlySecretKey;
 
 /**
  * Internal getter (single source of truth)
@@ -74,7 +111,8 @@ export const env = {
     measurementId: () => getEnv("VITE_FIREBASE_MEASUREMENT_ID", false, "G-DUMMY00000"),
   },
 
-  sarvamApiKey: () => getEnv("VITE_SARVAM_API_KEY", true, "dummy-sarvam-api-key"),
+  // sarvamApiKey — intentionally NOT exposed. Sarvam STT/TTS is now
+  // invoked via the backend (PlivoService). See SECRET HANDLING POLICY above.
 
   vapidPublicKey: () => getEnv("VITE_VAPID_PUBLIC_KEY", true, "dummy-vapid-public-key"),
 
@@ -92,7 +130,9 @@ export const env = {
     agent4Password: () => resolveEnv("VITE_PLIVO_AGENT_4_PASSWORD", import.meta.env.VITE_PLIVO_AGENT_4_PASSWORD) || "",
   },
 
-  internalApiKey: () => getEnv("VITE_INTERNAL_API_KEY", true, "dummy-internal-api-key"),
+  // internalApiKey — intentionally NOT exposed. The INTERNAL_API_KEY is a
+  // service-to-service token used by backend workers. It must never reach
+  // the browser. See SECRET HANDLING POLICY above.
 
   // FAQ and POP are served by the backend's proxy (/api/faq, /api/pop), so they hang off
   // the API base URL like every other call. They must NOT default to a relative path: the

@@ -1,25 +1,29 @@
 {
   "short_name": "AgriSeva-AI",
-  "name": "AgriSeva-AI – Reviewer System",
+  "name": "AgriSeva-AI — AI Advisory for Indian Farmers",
+  "description": "AI-powered farming intelligence: live Agmarknet market prices, weather, soil health, schemes, and multilingual voice advisory for Indian farmers.",
   "icons": [
     {
-      "src": "logo.png",
-      "sizes": "64x64 32x32 24x24 16x16",
+      "src": "favicon.ico",
+      "sizes": "32x32",
       "type": "image/x-icon"
     },
     {
-      "src": "logo.png",
+      "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
-      "src": "logo.png",
+      "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
     }
   ],
   "start_url": ".",
+  "scope": "/",
   "display": "standalone",
-  "theme_color": "#1a7f37",
+  "theme_color": "#15803D",
   "background_color": "#ffffff"
 }

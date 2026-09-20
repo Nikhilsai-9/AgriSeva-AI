@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { PageMeta } from "@/components/PageMeta";
 
 interface AuthFormProps {
   mode?: "login" | "signup" | "forgot";
@@ -206,6 +207,11 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-white font-sans selection:bg-emerald-500 selection:text-white">
+      <PageMeta
+        title="Sign in"
+        description="Sign in to AgriSeva-AI to access personalised AI advisory, live Agmarknet market prices, and the Farmer Dashboard."
+        noindex
+      />
       {/* LEFT 48%: Atmospheric Agricultural Hero Visual & Brand Identity */}
       <div className="hidden lg:flex lg:w-[48%] relative bg-[#06180e] p-12 lg:p-16 flex-col justify-between overflow-hidden">
         {/* Background Image: Atmospheric Farmer in Wheat Field */}

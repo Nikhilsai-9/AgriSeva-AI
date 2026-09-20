@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster as SonnerToast } from "sonner";
 import { NotFound } from "@/components/NotFound";
+import { CookieConsent } from "@/components/CookieConsent";
 import { useAuthStore } from "@/stores/auth-store";
 import { useEffect } from "react";
 
@@ -20,6 +21,7 @@ function RootComponent() {
       <QueryClientProvider client={queryClient}>
         <SonnerToast richColors position="bottom-right" />
         <Outlet />
+        <CookieConsent />
       </QueryClientProvider>
     </ThemeProvider>
   );

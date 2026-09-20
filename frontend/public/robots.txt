@@ -1,3 +1,48 @@
 # https://www.robotstxt.org/robotstxt.html
+#
+# AgriSeva-AI public surface:
+#   /             — landing page
+#   /auth         — sign-in
+#   /privacy      — privacy policy
+#   /terms        — terms & conditions
+#
+# Everything else (/farmer/*, /audit, /coordinator, /pae-expert,
+# /chatbot, /profile, /api/*, /home, /notifications, ...) is behind
+# authentication and must NOT be indexed.
+
 User-agent: *
-Disallow:
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+
+Disallow: /auth/
+Disallow: /farmer
+Disallow: /farmer/
+Disallow: /farmer/*
+Disallow: /audit
+Disallow: /audit/*
+Disallow: /coordinator
+Disallow: /coordinator/*
+Disallow: /pae-expert
+Disallow: /pae-expert/*
+Disallow: /chatbot
+Disallow: /chatbot/*
+Disallow: /profile
+Disallow: /profile/*
+Disallow: /home
+Disallow: /notifications
+Disallow: /user
+Disallow: /user/*
+Disallow: /user-history
+Disallow: /user-history/*
+Disallow: /history
+Disallow: /flags-reported
+Disallow: /whatsapp-history
+Disallow: /api
+Disallow: /api/*
+
+# Crawl-delay is a polite signal; tune per Googlebot/Slurp behaviour.
+Crawl-delay: 1
+
+Sitemap: https://agriseva.ai/sitemap.xml

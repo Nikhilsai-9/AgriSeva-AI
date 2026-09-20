@@ -5,6 +5,8 @@ import { useLanguageStore } from "@/stores/language-store";
 import { useTranslation } from "@/locales";
 import { LanguageGateway } from "@/components/LanguageGateway";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { PageMeta } from "@/components/PageMeta";
+import { LandingFooter } from "@/components/LandingFooter";
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -172,6 +174,10 @@ export function LandingPage() {
 
   return (
     <div className="agriseva-landing-wrapper w-full min-h-screen">
+      <PageMeta
+        title="AgriSeva-AI — AI Advisory for Indian Farmers"
+        description="AgriSeva-AI is an AI-powered advisory platform that helps Indian farmers make better decisions with live Agmarknet market prices, weather, soil health, government schemes, and multilingual voice support."
+      />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -1906,6 +1912,8 @@ export function LandingPage() {
         </svg>
         <span>{t("common.askAgriSeva", "Ask AgriSeva-AI")}</span>
       </button>
+
+      <LandingFooter />
     </div>
   );
 }

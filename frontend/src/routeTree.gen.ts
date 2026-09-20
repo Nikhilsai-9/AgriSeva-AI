@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatsappHistoryRouteImport } from './routes/whatsapp-history'
 import { Route as FarmerRouteImport } from './routes/farmer'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TermsIndexRouteImport } from './routes/terms/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
+import { Route as PrivacyIndexRouteImport } from './routes/privacy/index'
 import { Route as PaeExpertIndexRouteImport } from './routes/pae-expert/index'
 import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
 import { Route as HomeIndexRouteImport } from './routes/home/index'
@@ -55,9 +57,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsIndexRoute = TermsIndexRouteImport.update({
+  id: '/terms/',
+  path: '/terms/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileIndexRoute = ProfileIndexRouteImport.update({
   id: '/profile/',
   path: '/profile/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyIndexRoute = PrivacyIndexRouteImport.update({
+  id: '/privacy/',
+  path: '/privacy/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaeExpertIndexRoute = PaeExpertIndexRouteImport.update({
@@ -218,7 +230,9 @@ export interface FileRoutesByFullPath {
   '/home': typeof HomeIndexRoute
   '/notifications': typeof NotificationsIndexRoute
   '/pae-expert': typeof PaeExpertIndexRoute
+  '/privacy': typeof PrivacyIndexRoute
   '/profile': typeof ProfileIndexRoute
+  '/terms': typeof TermsIndexRoute
   '/farmer/buyers/$buyerId': typeof FarmerBuyersBuyerIdRoute
   '/farmer/lots/$lotId': typeof FarmerLotsLotIdRoute
   '/farmer/lots/new': typeof FarmerLotsNewRoute
@@ -249,7 +263,9 @@ export interface FileRoutesByTo {
   '/home': typeof HomeIndexRoute
   '/notifications': typeof NotificationsIndexRoute
   '/pae-expert': typeof PaeExpertIndexRoute
+  '/privacy': typeof PrivacyIndexRoute
   '/profile': typeof ProfileIndexRoute
+  '/terms': typeof TermsIndexRoute
   '/farmer/buyers/$buyerId': typeof FarmerBuyersBuyerIdRoute
   '/farmer/lots/$lotId': typeof FarmerLotsLotIdRoute
   '/farmer/lots/new': typeof FarmerLotsNewRoute
@@ -282,7 +298,9 @@ export interface FileRoutesById {
   '/home/': typeof HomeIndexRoute
   '/notifications/': typeof NotificationsIndexRoute
   '/pae-expert/': typeof PaeExpertIndexRoute
+  '/privacy/': typeof PrivacyIndexRoute
   '/profile/': typeof ProfileIndexRoute
+  '/terms/': typeof TermsIndexRoute
   '/farmer/buyers/$buyerId': typeof FarmerBuyersBuyerIdRoute
   '/farmer/lots/$lotId': typeof FarmerLotsLotIdRoute
   '/farmer/lots/new': typeof FarmerLotsNewRoute
@@ -316,7 +334,9 @@ export interface FileRouteTypes {
     | '/home'
     | '/notifications'
     | '/pae-expert'
+    | '/privacy'
     | '/profile'
+    | '/terms'
     | '/farmer/buyers/$buyerId'
     | '/farmer/lots/$lotId'
     | '/farmer/lots/new'
@@ -347,7 +367,9 @@ export interface FileRouteTypes {
     | '/home'
     | '/notifications'
     | '/pae-expert'
+    | '/privacy'
     | '/profile'
+    | '/terms'
     | '/farmer/buyers/$buyerId'
     | '/farmer/lots/$lotId'
     | '/farmer/lots/new'
@@ -379,7 +401,9 @@ export interface FileRouteTypes {
     | '/home/'
     | '/notifications/'
     | '/pae-expert/'
+    | '/privacy/'
     | '/profile/'
+    | '/terms/'
     | '/farmer/buyers/$buyerId'
     | '/farmer/lots/$lotId'
     | '/farmer/lots/new'
@@ -401,7 +425,9 @@ export interface RootRouteChildren {
   HomeIndexRoute: typeof HomeIndexRoute
   NotificationsIndexRoute: typeof NotificationsIndexRoute
   PaeExpertIndexRoute: typeof PaeExpertIndexRoute
+  PrivacyIndexRoute: typeof PrivacyIndexRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
+  TermsIndexRoute: typeof TermsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -427,11 +453,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms/': {
+      id: '/terms/'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile/': {
       id: '/profile/'
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy/': {
+      id: '/privacy/'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pae-expert/': {
@@ -692,7 +732,9 @@ const rootRouteChildren: RootRouteChildren = {
   HomeIndexRoute: HomeIndexRoute,
   NotificationsIndexRoute: NotificationsIndexRoute,
   PaeExpertIndexRoute: PaeExpertIndexRoute,
+  PrivacyIndexRoute: PrivacyIndexRoute,
   ProfileIndexRoute: ProfileIndexRoute,
+  TermsIndexRoute: TermsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
