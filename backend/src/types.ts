@@ -41,6 +41,31 @@ const TYPES = {
   CropService: Symbol.for('CropService'),
   ChemicalService: Symbol.for('ChemicalService'),
 
+  // ─── Market Intelligence (added Phase 2) ───
+  MarketPriceRepository: Symbol.for('MarketPriceRepository'),
+  MandiRepository: Symbol.for('MandiRepository'),
+  CommodityAliasRepository: Symbol.for('CommodityAliasRepository'),
+  DataUpdateLogRepository: Symbol.for('DataUpdateLogRepository'),
+  MarketIngestionService: Symbol.for('MarketIngestionService'),
+  MarketNormaliserService: Symbol.for('MarketNormaliserService'),
+  MarketHistoryService: Symbol.for('MarketHistoryService'),
+  MarketReliabilityService: Symbol.for('MarketReliabilityService'),
+  CommodityResolver: Symbol.for('CommodityResolver'),
+  RecommendationService: Symbol.for('RecommendationService'),
+  AgmarknetMcpClient: Symbol.for('AgmarknetMcpClient'),
+  EnamMcpClient: Symbol.for('EnamMcpClient'),
+
+  // ─── Transaction module (added Phase 3) ───
+  TransactionBuyerRepository: Symbol.for('TransactionBuyerRepository'),
+  TransactionLotRepository: Symbol.for('TransactionLotRepository'),
+  TransactionOfferRepository: Symbol.for('TransactionOfferRepository'),
+  TransactionPaymentRepository: Symbol.for('TransactionPaymentRepository'),
+  TransactionGrievanceRepository: Symbol.for('TransactionGrievanceRepository'),
+  TransactionStorageRepository: Symbol.for('TransactionStorageRepository'),
+  TransactionLogisticsRepository: Symbol.for('TransactionLogisticsRepository'),
+  TransactionOfferService: Symbol.for('TransactionOfferService'),
+  TransactionSeedLoader: Symbol.for('TransactionSeedLoader'),
+
   // Constants
   uri: Symbol.for('dbURI'),
   dbName: Symbol.for('dbName'),

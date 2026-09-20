@@ -10,6 +10,7 @@ import './agentStatusCleanupJob.js';
 import './gateKeeperAuditorQueueCron.js'
 import './feedbackAllocationCron.js'
 //import './embeddingBackfill.js'//previously commented
+import './marketIngestCron.js';
 export const initJobs = () => {
   console.log('[CRON] Jobs initialized.');
 };
