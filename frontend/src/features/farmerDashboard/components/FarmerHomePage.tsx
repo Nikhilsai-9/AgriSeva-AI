@@ -23,6 +23,7 @@ import {
   useAllMarketPrices,
   useBuyers,
   useGrievances,
+  useFarmerProfile,
 } from "@/features/farmerDashboard/hooks/data";
 import {
   formatKg,
@@ -49,7 +50,14 @@ const QUICK_ACTIONS = [
 export function FarmerHomePage() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const { data: insight } = useTodayInsight();
+  const profile = useFarmerProfile();
+  const profileState = (profile.data as any)?.state as string | undefined;
+  const profileCrop = ((profile.data as any)?.primaryCrops?.[0] ??
+    (profile.data as any)?.primaryCrop) as string | undefined;
+  const { data: insight } = useTodayInsight({
+    state: profileState,
+    commodity: profileCrop,
+  });
   const { data: lots } = useMyLots();
   const { data: offers } = useAllMyOffers();
   const { data: payments } = usePayments();
@@ -306,8 +314,26 @@ export function FarmerHomePage() {
             "Aggregated from connected mandi sources (demo data)."
           )}
           action={
-            <span className="text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-              Demo
+            <span
+              data-testid="home-insight-source-badge"
+              className={cn(
+                "text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                (insight as any)?.isDemo || !insight
+                  ? "bg-amber-100 text-amber-800"
+                  : (insight as any)?.source === "agmarknet"
+                  ? "bg-emerald-100 text-emerald-800"
+                  : (insight as any)?.source === "enam"
+                  ? "bg-sky-100 text-sky-800"
+                  : "bg-amber-100 text-amber-800",
+              )}
+            >
+              {(insight as any)?.isDemo || !insight
+                ? "DEMO"
+                : (insight as any)?.source === "agmarknet"
+                ? "AGMARKNET"
+                : (insight as any)?.source === "enam"
+                ? "eNAM"
+                : "LIVE"}
             </span>
           }
         >

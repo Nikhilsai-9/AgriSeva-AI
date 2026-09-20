@@ -6,10 +6,13 @@ import {
   ArrowDownRight,
   Filter,
   MapPin,
+  RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import {
   useMarketPrices,
+  useRefreshMarketPrices,
   type MarketPriceQuery,
 } from "@/features/farmerDashboard/hooks/data";
 import {
@@ -29,12 +32,42 @@ import { cn } from "@/lib/utils";
 
 const EMPTY_PRICE: MarketPrice[] = [];
 
+const STALE_HOURS = 6;
+
+const sourceBadgeClass = (source?: string): string =>
+  source === "agmarknet"
+    ? "bg-emerald-100 text-emerald-800"
+    : source === "enam"
+      ? "bg-sky-100 text-sky-800"
+      : source === "demo"
+        ? "bg-stone-200 text-stone-800"
+        : "bg-amber-100 text-amber-800";
+
+const sourceLabel = (
+  source: string | undefined,
+  isDemo: boolean,
+  t: (key: string, fallback: string) => string,
+): string => {
+  if (isDemo) return t("farmer.prices.sourceDemo", "DEMO");
+  if (source === "agmarknet") return t("farmer.prices.sourceAgmarknet", "AGMARKNET");
+  if (source === "enam") return t("farmer.prices.sourceEnam", "eNAM");
+  return t("farmer.prices.sourceLive", "LIVE");
+};
+
+const hoursAgo = (iso?: string): number | null => {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+  return (Date.now() - t) / 36e5;
+};
+
 export function MarketPricesPage() {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<MarketPriceQuery>({
     commodity: "Tomato",
   });
   const { data: prices, isLoading } = useMarketPrices(filters);
+  const refresh = useRefreshMarketPrices();
 
   // `useMarketPrices` returns a structured `MarketPriceResponse` with a
   // bestMatch + alternatives list. Flatten for the grid view; the
@@ -52,6 +85,14 @@ export function MarketPricesPage() {
     return { up, down, neutral: filtered.length - up - down };
   }, [filtered]);
 
+  // Hard failure: backend call errored and we did NOT silently fall back
+  // to demo data. Render an explicit error/no-data state.
+  const isErrorState =
+    !isLoading &&
+    Boolean(prices) &&
+    prices?.success === false &&
+    prices?.isDemo === false;
+
   return (
     <FarmerPageContainer className="space-y-5">
       <FarmerSectionTitle
@@ -60,9 +101,45 @@ export function MarketPricesPage() {
           "Live prices from government & private mandis across India. Demo dataset."
         )}
         action={
-          <span className="text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-            Demo
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              data-testid="market-source-badge"
+              className={cn(
+                "text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                sourceBadgeClass(prices?.isDemo ? "demo" : "agmarknet"),
+              )}
+            >
+              {sourceLabel(
+                prices?.isDemo ? "demo" : "agmarknet",
+                Boolean(prices?.isDemo),
+                t,
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                refresh.mutate({
+                  state: filters.state,
+                  market: filters.market,
+                  commodity: filters.commodity,
+                })
+              }
+              disabled={refresh.isPending}
+              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full disabled:opacity-60"
+              title={t(
+                "farmer.prices.refreshTitle",
+                "Re-fetch latest from upstream MCPs",
+              )}
+            >
+              <RefreshCw
+                className={cn(
+                  "h-3 w-3",
+                  refresh.isPending && "animate-spin",
+                )}
+              />
+              {t("farmer.prices.refresh", "Refresh")}
+            </button>
+          </div>
         }
       >
         {t("farmer.prices.title", "Market Prices")}
@@ -159,6 +236,36 @@ export function MarketPricesPage() {
         <FarmerCard className="p-6 text-center text-emerald-900/70">
           {t("farmer.prices.loading", "Loading latest prices…")}
         </FarmerCard>
+      ) : isErrorState ? (
+        <FarmerCard
+          data-testid="market-error-state"
+          className="p-5 border border-rose-200 bg-rose-50/60"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-rose-700 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-rose-900">
+                {t(
+                  "farmer.prices.errorTitle",
+                  "Unable to load market prices",
+                )}
+              </p>
+              <p className="text-xs text-rose-800/80 mt-1 break-words">
+                {prices?.errorMessage ||
+                  t(
+                    "farmer.prices.errorFallback",
+                    "The market data service is unreachable. Please retry in a moment.",
+                  )}
+              </p>
+              <p className="text-[10px] text-rose-900/60 mt-2">
+                {t(
+                  "farmer.prices.errorNoDemo",
+                  "Demo data is suppressed while the service is down, so you never see synthetic prices labelled as live.",
+                )}
+              </p>
+            </div>
+          </div>
+        </FarmerCard>
       ) : filtered.length === 0 ? (
         <FarmerCard className="p-6 text-center text-emerald-900/70">
           {t("farmer.prices.empty", "No prices match these filters yet.")}
@@ -209,9 +316,44 @@ export function MarketPricesPage() {
                   value={formatRupees(p.maxPrice)}
                 />
               </div>
-              <p className="text-[10px] text-emerald-900/50 mt-1">
-                {t("farmer.prices.perQuintal", "per quintal")} •{" "}
-                {p.reportedAt}
+              <p className="text-[10px] text-emerald-900/50 mt-1 flex items-center gap-1.5 flex-wrap">
+                <span>{t("farmer.prices.perQuintal", "per quintal")}</span>
+                <span aria-hidden>•</span>
+                <span
+                  className={cn(
+                    "px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide",
+                    sourceBadgeClass(
+                      prices?.isDemo ? "demo" : p.source,
+                    ),
+                  )}
+                >
+                  {sourceLabel(
+                    prices?.isDemo ? "demo" : p.source,
+                    Boolean(prices?.isDemo),
+                    t,
+                  )}
+                </span>
+                {(() => {
+                  const h = hoursAgo(p.reportedAt);
+                  const isStale = h !== null && h > STALE_HOURS;
+                  return (
+                    <>
+                      <span aria-hidden>•</span>
+                      <span
+                        className={cn(
+                          "font-semibold",
+                          isStale ? "text-rose-700" : "text-emerald-900/60",
+                        )}
+                      >
+                        {isStale
+                          ? t("farmer.prices.stale", "Stale")
+                          : t("farmer.prices.fresh", "Fresh")}
+                      </span>
+                    </>
+                  );
+                })()}
+                <span aria-hidden>•</span>
+                <span>{p.reportedAt}</span>
               </p>
             </FarmerCard>
           ))}

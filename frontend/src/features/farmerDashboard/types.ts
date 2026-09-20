@@ -49,6 +49,21 @@ export interface MarketPrice {
   source: string;
   distanceKm?: number;
   trendPct?: number;
+  // -------- live-backend passthrough fields (all optional) --------
+  /** Backend `recordKey`; when present, prefer it over `id` for uniqueness. */
+  recordKey?: string;
+  /** Human-friendly upstream system name (e.g. "Agmarknet"). */
+  sourceSystem?: string;
+  /** URL of the upstream MCP/system this record originated from. */
+  sourceUrl?: string;
+  /** Crop variety (e.g. "Cereals", "Hybrid", or local name). */
+  variety?: string;
+  /** Quality grade letter or numeric code (Agmarknet / eNAM specific). */
+  grade?: string;
+  /** Top-level commodity group (e.g. "Cereals", "Pulses"). */
+  commodityGroup?: string;
+  /** Quantity arrived in the source's native unit (quintals or tonnes). */
+  arrivalQty?: number;
 }
 
 export interface MarketPriceResponse {

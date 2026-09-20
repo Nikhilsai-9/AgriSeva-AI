@@ -56,6 +56,21 @@ export function MarketComparisonPage() {
       })
     : [];
 
+  // Derive source label from the price rows the comparison actually used.
+  const sourcesInUse = Array.from(
+    new Set((prices ?? []).map((p) => p.source).filter(Boolean)),
+  );
+  const isDemo = sourcesInUse.length === 0 || sourcesInUse.every((s) => s === "demo");
+  const sourceLabelText = isDemo
+    ? t("farmer.common.sourceDemo", "Demo")
+    : sourcesInUse.includes("agmarknet") && sourcesInUse.includes("enam")
+    ? t("farmer.common.sourceMulti", "Agmarknet + eNAM")
+    : sourcesInUse[0] === "agmarknet"
+    ? "AGMARKNET"
+    : sourcesInUse[0] === "enam"
+    ? "eNAM"
+    : t("farmer.common.sourceLive", "LIVE");
+
   const [expandedIdx, setExpandedIdx] = useState<number | null>(0);
 
   if (!activeLot) {
@@ -86,7 +101,19 @@ export function MarketComparisonPage() {
       </Link>
       <FarmerSectionTitle
         hint={t("farmer.recommend.hint", "Compare all mandis for your active lot side by side.")}
-        action={<span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800">{t("farmer.common.sourceDemo", "Demo")}</span>}
+        action={
+          <span
+            data-testid="compare-source-badge"
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+              isDemo
+                ? "bg-amber-100 text-amber-800"
+                : "bg-emerald-100 text-emerald-800",
+            )}
+          >
+            {sourceLabelText}
+          </span>
+        }
       >
         {t("farmer.recommend.title", "Market comparison")}
       </FarmerSectionTitle>
