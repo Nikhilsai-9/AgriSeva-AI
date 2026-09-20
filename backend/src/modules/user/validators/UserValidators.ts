@@ -27,6 +27,61 @@ export class KVKCoveredItemDto {
   name?: string;
 }
 
+/**
+ * Validator for `PATCH /api/users/me/farmer-profile`.
+ *
+ * Every field is optional — the body is a partial patch that merges
+ * into the existing `IUser.farmerProfile` sub-document. Empty bodies
+ * are accepted (no-op) so the frontend can safely send conditional
+ * updates.
+ *
+ * NOTE: declared without `export` — re-exported at the bottom of this
+ * file via `export { ... }` (matches the file's existing convention).
+ */
+class FarmerProfilePatchDto {
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
+  district?: string;
+
+  @IsOptional()
+  @IsString()
+  village?: string;
+
+  @IsOptional()
+  @IsArray()
+  primaryCrops?: string[];
+
+  @IsOptional()
+  @IsArray()
+  preferredMarkets?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  fpoMember?: boolean;
+
+  @IsOptional()
+  @IsString()
+  fpoName?: string;
+
+  @IsOptional()
+  landSizeAcres?: number;
+
+  @IsOptional()
+  experienceYears?: number;
+
+  @IsOptional()
+  @IsString()
+  preferredLanguage?: string;
+}
+
 class PreferenceDto {
   @IsOptional()
   @IsString()
@@ -194,4 +249,4 @@ export class ToggleUserRoleDto {
   role!: UserRole;
 }
 
-export { PreferenceDto, UsersNameResponseDto, UserDto, NotificationDeletePreferenceDTO, UpdatePenaltyAndIncentive, BlockUnblockBody, ExpertReviewLevelDto, UpdateUserDto, VerifyUserBody };
+export { PreferenceDto, UsersNameResponseDto, UserDto, NotificationDeletePreferenceDTO, UpdatePenaltyAndIncentive, BlockUnblockBody, ExpertReviewLevelDto, UpdateUserDto, VerifyUserBody, FarmerProfilePatchDto };

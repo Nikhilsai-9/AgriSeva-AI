@@ -2,22 +2,27 @@
  * LotController — REST endpoints for farmer lots.
  *
  * Endpoints (all under /api):
- *   GET    /lots                — list (farmer-scoped when farmer header present)
+ *   GET    /lots                — list (scoped to authenticated farmer)
  *   GET    /lots/:id            — single lot (ownership-checked)
  *   POST   /lots                — create lot
  *   PATCH  /lots/:id            — partial update
  *   DELETE /lots/:id            — soft delete (status -> 'expired')
  *   POST   /lots/:id/sell       — manual mark-as-sold cascade
  *
- * Ownership: every mutation must match the x-demo-farmer-id header.
- * This is the smallest possible authorization given the demo scope; a
- * real auth layer should swap this for the authenticated principal id.
+ * Authentication: every endpoint requires a valid Firebase ID token in
+ * the `Authorization: Bearer <token>` header. The principal id (the
+ * authenticated user's Mongo `_id`) is the source of truth for
+ * ownership checks — no client-supplied `x-demo-farmer-id` header is
+ * trusted. Mutations that affect the farmer's lots also fire a
+ * `NotificationService.saveTheNotifications(...)` so the bell icon is
+ * driven by real backend events instead of synthetic derivations.
  */
 
 import 'reflect-metadata';
 import {inject, injectable} from 'inversify';
 import {
   JsonController,
+  Authorized,
   Get,
   Post,
   Patch,
@@ -25,7 +30,7 @@ import {
   Param,
   Body,
   QueryParams,
-  HeaderParam,
+  CurrentUser,
   HttpCode,
   NotFoundError,
   ForbiddenError,
@@ -36,6 +41,8 @@ import {LotRepository} from '../repositories/LotRepository.js';
 import {OfferRepository} from '../repositories/OfferRepository.js';
 import {PaymentRepository} from '../repositories/PaymentRepository.js';
 import {SeedLoader} from '../services/SeedLoader.js';
+import {NotificationService} from '#root/modules/notification/services/NotificationService.js';
+import type {IUser} from '#root/shared/interfaces/models.js';
 import type {LotRecord, LotStatus, PaymentRecordDoc, QualityGrade} from '../types.js';
 import {
   LotListQuery,
@@ -45,14 +52,13 @@ import {
   MarkLotSoldBody,
 } from '../validators/TransactionValidators.js';
 
-const DEMO_HEADER = 'x-demo-farmer-id';
-
-function resolveFarmerId(header?: string): string {
-  return header && header.trim() ? header.trim() : 'demo-farmer-uid';
-}
-
 function randomId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+/** Resolve the authenticated farmer id from the IUser principal. */
+function farmerIdOf(user: IUser): string {
+  return user._id!.toString();
 }
 
 @OpenAPI({tags: ['transaction']})
@@ -68,16 +74,19 @@ export class LotController {
     private readonly payments: PaymentRepository,
     @inject(GLOBAL_TYPES.TransactionSeedLoader)
     private readonly seed: SeedLoader,
+    @inject(GLOBAL_TYPES.NotificationService)
+    private readonly notifications: NotificationService,
   ) {}
 
+  @Authorized()
   @Get('/')
   @HttpCode(200)
   async list(
+    @CurrentUser() user: IUser,
     @QueryParams() query: LotListQuery,
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
   ): Promise<{success: boolean; lots: LotRecord[]; isDemo: boolean; total: number}> {
     await this.seed.ensureSeeded();
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const filter: Record<string, unknown> = {farmerId};
     if (query.status) filter.status = query.status;
     if (query.crop) filter.crop = {$regex: query.crop, $options: 'i'};
@@ -90,14 +99,15 @@ export class LotController {
     };
   }
 
+  @Authorized()
   @Get('/:id')
   @HttpCode(200)
   async byId(
     @Param('id') id: string,
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
+    @CurrentUser() user: IUser,
   ): Promise<{success: boolean; lot: LotRecord}> {
     await this.seed.ensureSeeded();
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const lot = await this.lots.findById(id);
     if (!lot) {
       throw new NotFoundError(`Lot ${id} not found`);
@@ -108,14 +118,15 @@ export class LotController {
     return {success: true, lot};
   }
 
+  @Authorized()
   @Post('/')
   @HttpCode(201)
   async create(
+    @CurrentUser() user: IUser,
     @Body() body: CreateLotBody,
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
   ): Promise<{success: boolean; lot: LotRecord}> {
     await this.seed.ensureSeeded();
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const now = new Date().toISOString();
     const record: LotRecord = {
       id: randomId('lot'),
@@ -138,17 +149,29 @@ export class LotController {
       updatedAt: now,
     };
     await this.lots.insert(record);
+    // Fire-and-forget notification. Failures here MUST NOT block the
+    // create response.
+    void this.notifications
+      .saveTheNotifications(
+        `Lot "${record.crop}" (${record.quantityKg}kg) is now active.`,
+        'New Lot Listed',
+        record.id,
+        farmerId,
+        'lot_created',
+      )
+      .catch((err) => console.error('[LotController.create] notif failed', err));
     return {success: true, lot: record};
   }
 
+  @Authorized()
   @Patch('/:id')
   @HttpCode(200)
   async update(
     @Param('id') id: string,
     @Body() body: UpdateLotBody,
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
+    @CurrentUser() user: IUser,
   ): Promise<{success: boolean; lot: LotRecord}> {
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const existing = await this.lots.findById(id);
     if (!existing) {
       throw new NotFoundError(`Lot ${id} not found`);
@@ -177,16 +200,29 @@ export class LotController {
     if (!updated) {
       throw new NotFoundError(`Lot ${id} not found`);
     }
+    // Status changed -> notify the owner. (Field edits are silent.)
+    if (body.status !== undefined && body.status !== existing.status) {
+      void this.notifications
+        .saveTheNotifications(
+          `Lot "${updated.crop}" status: ${existing.status} -> ${updated.status}.`,
+          'Lot Status Updated',
+          updated.id,
+          farmerId,
+          'lot_status_changed',
+        )
+        .catch((err) => console.error('[LotController.update] notif failed', err));
+    }
     return {success: true, lot: updated};
   }
 
+  @Authorized()
   @Delete('/:id')
   @HttpCode(200)
   async remove(
     @Param('id') id: string,
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
+    @CurrentUser() user: IUser,
   ): Promise<{success: boolean; lot: LotRecord}> {
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const existing = await this.lots.findById(id);
     if (!existing) {
       throw new NotFoundError(`Lot ${id} not found`);
@@ -204,14 +240,15 @@ export class LotController {
     return {success: true, lot: updated};
   }
 
+  @Authorized()
   @Post('/:id/sell')
   @HttpCode(200)
   async markSold(
     @Param('id') id: string,
     @Body() body: MarkLotSoldBody,
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
+    @CurrentUser() user: IUser,
   ): Promise<{success: boolean; lot: LotRecord; rejectedSiblings: number; payment?: PaymentRecordDoc}> {
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const lot = await this.lots.findById(id);
     if (!lot) {
       throw new NotFoundError(`Lot ${id} not found`);
@@ -228,6 +265,15 @@ export class LotController {
       throw new NotFoundError(`Lot ${id} not found`);
     }
     const rejectedSiblings = await this.offers.rejectSiblings(id, body.winningOfferId ?? '__none__');
+    void this.notifications
+      .saveTheNotifications(
+        `Lot "${updatedLot.crop}" has been marked sold. ${rejectedSiblings ?? 0} other offer(s) rejected.`,
+        'Lot Sold',
+        updatedLot.id,
+        farmerId,
+        'lot_status_changed',
+      )
+      .catch((err) => console.error('[LotController.markSold] notif failed', err));
     let payment: PaymentRecordDoc | undefined;
     if (body.winningOfferId) {
       const winningOffer = await this.offers.findById(body.winningOfferId);

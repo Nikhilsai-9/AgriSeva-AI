@@ -4,19 +4,25 @@
  * These are TRANSACTION RECORDS ONLY. We do not integrate a real
  * payment gateway. The `reference` field is treated as a free-text
  * transaction number so any real reference can be persisted later.
+ *
+ * Authentication: every endpoint requires a valid Firebase ID token.
+ * The authenticated principal's Mongo `_id` is the source of truth
+ * for ownership checks — no client-supplied `x-demo-farmer-id` header
+ * is trusted. Mutations also fire `NotificationService` events.
  */
 
 import 'reflect-metadata';
 import {inject, injectable} from 'inversify';
 import {
   JsonController,
+  Authorized,
   Get,
   Post,
   Patch,
   Param,
   Body,
   QueryParams,
-  HeaderParam,
+  CurrentUser,
   HttpCode,
   NotFoundError,
   BadRequestError,
@@ -27,6 +33,8 @@ import {GLOBAL_TYPES} from '#root/types.js';
 import {PaymentRepository} from '../repositories/PaymentRepository.js';
 import {LotRepository} from '../repositories/LotRepository.js';
 import {SeedLoader} from '../services/SeedLoader.js';
+import {NotificationService} from '#root/modules/notification/services/NotificationService.js';
+import type {IUser} from '#root/shared/interfaces/models.js';
 import type {PaymentRecordDoc, PaymentStatus, PaymentTimelineEvent} from '../types.js';
 import {
   PaymentListQuery,
@@ -35,14 +43,12 @@ import {
   UpdatePaymentBody,
 } from '../validators/TransactionValidators.js';
 
-const DEMO_HEADER = 'x-demo-farmer-id';
-
-function resolveFarmerId(header?: string): string {
-  return header && header.trim() ? header.trim() : 'demo-farmer-uid';
-}
-
 function randomId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function farmerIdOf(user: IUser): string {
+  return user._id!.toString();
 }
 
 @OpenAPI({tags: ['transaction']})
@@ -56,13 +62,16 @@ export class PaymentController {
     private readonly lots: LotRepository,
     @inject(GLOBAL_TYPES.TransactionSeedLoader)
     private readonly seed: SeedLoader,
+    @inject(GLOBAL_TYPES.NotificationService)
+    private readonly notifications: NotificationService,
   ) {}
 
+  @Authorized()
   @Get('/')
   @HttpCode(200)
   async list(
+    @CurrentUser() user: IUser,
     @QueryParams() query: PaymentListQuery,
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
   ): Promise<{
     success: boolean;
     payments: PaymentRecordDoc[];
@@ -70,7 +79,7 @@ export class PaymentController {
     total: number;
   }> {
     await this.seed.ensureSeeded();
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const filter: Record<string, unknown> = {farmerId};
     if (query.status) filter.status = query.status;
     if (query.lotId) filter.lotId = query.lotId;
@@ -83,14 +92,15 @@ export class PaymentController {
     };
   }
 
+  @Authorized()
   @Get('/:id')
   @HttpCode(200)
   async byId(
     @Param('id') id: string,
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
+    @CurrentUser() user: IUser,
   ): Promise<{success: boolean; payment: PaymentRecordDoc}> {
     await this.seed.ensureSeeded();
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const payment = await this.payments.findById(id);
     if (!payment) {
       throw new NotFoundError(`Payment ${id} not found`);
@@ -101,13 +111,14 @@ export class PaymentController {
     return {success: true, payment};
   }
 
+  @Authorized()
   @Post('/')
   @HttpCode(201)
   async create(
+    @CurrentUser() user: IUser,
     @Body() body: CreatePaymentBody,
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
   ): Promise<{success: boolean; payment: PaymentRecordDoc}> {
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const lot = await this.lots.findByIdForFarmer(body.lotId, farmerId);
     if (!lot) {
       const exists = await this.lots.findById(body.lotId);
@@ -146,17 +157,27 @@ export class PaymentController {
       completedAt: status === 'completed' || status === 'paid' ? now : null,
     };
     await this.payments.insert(record);
+    void this.notifications
+      .saveTheNotifications(
+        `Payment ${record.reference} (Rs ${record.amount}) for ${record.crop} created.`,
+        'Payment Created',
+        record.id,
+        farmerId,
+        'payment_created',
+      )
+      .catch((err) => console.error('[PaymentController.create] notif failed', err));
     return {success: true, payment: record};
   }
 
+  @Authorized()
   @Patch('/:id')
   @HttpCode(200)
   async update(
     @Param('id') id: string,
     @Body() body: UpdatePaymentBody,
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
+    @CurrentUser() user: IUser,
   ): Promise<{success: boolean; payment: PaymentRecordDoc}> {
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const existing = await this.payments.findById(id);
     if (!existing) {
       throw new NotFoundError(`Payment ${id} not found`);
@@ -178,6 +199,17 @@ export class PaymentController {
     );
     if (!updated) {
       throw new BadRequestError('Failed to update payment record');
+    }
+    if (nextStatus !== existing.status) {
+      void this.notifications
+        .saveTheNotifications(
+          `Payment ${updated.reference} status: ${existing.status} -> ${updated.status}.`,
+          'Payment Updated',
+          updated.id,
+          farmerId,
+          'payment_status_changed',
+        )
+        .catch((err) => console.error('[PaymentController.update] notif failed', err));
     }
     return {success: true, payment: updated};
   }

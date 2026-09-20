@@ -27,6 +27,7 @@ import {
   DEMO_TODAY_INSIGHT,
 } from "../mocks/market-prices.mock";
 import { env } from "@/config/env";
+import { apiFetch } from "@/hooks/api/api-fetch";
 
 import type {
   Buyer,
@@ -156,6 +157,11 @@ export const useFarmerProfile = () =>
   useQuery<FarmerProfile>({
     queryKey: ["farmer", "profile"],
     queryFn: async () => {
+      // Try the real backend first (Firebase-authenticated). Fall back to
+      // the demo profile when the backend is offline so the UI keeps
+      // working in dev / no-network scenarios.
+      const remote = await fetchMyProfile();
+      if (remote) return remote;
       await delay(120);
       return DEMO_FARMER_PROFILE;
     },
@@ -163,35 +169,89 @@ export const useFarmerProfile = () =>
   });
 
 export interface FarmerProfilePatch {
+  // `name` lives on `IUser` (not in the farmerProfile sub-doc). We keep
+  // it here for backwards-compat with the existing ProfilePage form,
+  // but it is silently ignored by the backend endpoint (callers should
+  // split it into firstName/lastName via a separate IUser update).
   name?: string;
   phone?: string;
   state?: string;
   district?: string;
   village?: string;
-  /** Optional override; persisted into `primaryCrops[0]` when present. */
+  preferredLanguage?: string;
+  /** Shortcut: persisted into `primaryCrops` as a new first entry. */
   primaryCrop?: string;
+  /** Direct array — for callers that already have the full list. */
+  primaryCrops?: string[];
+  preferredMarkets?: string[];
+  fpoMember?: boolean;
+  fpoName?: string;
+  landSizeAcres?: number;
+  experienceYears?: number;
 }
 
 export const useUpdateFarmerProfile = () => {
   const qc = useQueryClient();
   return useMutation<FarmerProfile, Error, FarmerProfilePatch>({
     mutationFn: async (patch) => {
+      // Translate shortcut fields.
+      const backendPatch: Partial<FarmerProfile> = {
+        ...patch,
+      };
+      if (patch.primaryCrop !== undefined) {
+        const current =
+          qc.getQueryData<FarmerProfile>(["farmer", "profile"]) ??
+          DEMO_FARMER_PROFILE;
+        const merged = [
+          patch.primaryCrop,
+          ...current.primaryCrops.filter((c) => c !== patch.primaryCrop),
+        ];
+        backendPatch.primaryCrops = merged;
+        delete (backendPatch as Record<string, unknown>).primaryCrop;
+      }
+      // `name` is not in the farmerProfile DTO — drop it before sending.
+      delete (backendPatch as Record<string, unknown>).name;
+
+      // Try the real backend. If it fails (network/401/etc), fall back
+      // to a local cache mutation so the UI still feels responsive.
+      const remote = await patchMyProfile(backendPatch);
+      if (remote) return remote;
       await delay(180);
-      // The profile lives in mock land today; in a real backend this would
-      // be a PATCH/PUT. We mutate the cached query data so callers see the
-      // update immediately.
       const current =
         qc.getQueryData<FarmerProfile>(["farmer", "profile"]) ??
         DEMO_FARMER_PROFILE;
       const next: FarmerProfile = {
         ...current,
-        ...(patch.name !== undefined ? { name: patch.name } : {}),
         ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
         ...(patch.state !== undefined ? { state: patch.state } : {}),
         ...(patch.district !== undefined ? { district: patch.district } : {}),
         ...(patch.village !== undefined ? { village: patch.village } : {}),
+        ...(patch.preferredLanguage !== undefined
+          ? { preferredLanguage: patch.preferredLanguage }
+          : {}),
+        ...(patch.primaryCrops !== undefined
+          ? { primaryCrops: patch.primaryCrops }
+          : {}),
+        ...(patch.preferredMarkets !== undefined
+          ? { preferredMarkets: patch.preferredMarkets }
+          : {}),
+        ...(patch.fpoMember !== undefined ? { fpoMember: patch.fpoMember } : {}),
+        ...(patch.fpoName !== undefined ? { fpoName: patch.fpoName } : {}),
+        ...(patch.landSizeAcres !== undefined
+          ? { landSizeAcres: patch.landSizeAcres }
+          : {}),
+        ...(patch.experienceYears !== undefined
+          ? { experienceYears: patch.experienceYears }
+          : {}),
         ...(patch.primaryCrop !== undefined
-          ? { primaryCrops: [patch.primaryCrop, ...current.primaryCrops.filter((c) => c !== patch.primaryCrop)] }
+          ? {
+              primaryCrops: [
+                patch.primaryCrop,
+                ...current.primaryCrops.filter(
+                  (c) => c !== patch.primaryCrop,
+                ),
+              ],
+            }
           : {}),
       };
       qc.setQueryData(["farmer", "profile"], next);
@@ -1183,6 +1243,176 @@ export const useUpdateGrievance = () => {
 const delay = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+// ──────────────────────────────────────────────────────────────────────
+// Real-backend adapter helpers.
+// These wrap `apiFetch` (Firebase-token aware) and project the
+// canonical Mongo / routing-controllers shapes onto the frontend
+// `FarmerProfile` / `NotificationItem` types. The dashboard keeps
+// working when the backend is offline because every helper returns
+// `null` / a sensible fallback rather than throwing.
+// ──────────────────────────────────────────────────────────────────────
+
+/** Backend `IUser` shape (subset we care about for the profile). */
+interface BackendUser {
+  _id?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  mobile?: string;
+  avatar?: string;
+  role?: string;
+  farmerProfile?: {
+    phone?: string;
+    state?: string;
+    district?: string;
+    village?: string;
+    primaryCrops?: string[];
+    preferredMarkets?: string[];
+    fpoMember?: boolean;
+    fpoName?: string;
+    landSizeAcres?: number;
+    experienceYears?: number;
+    preferredLanguage?: string;
+    joinedAt?: string;
+    verificationStatus?: 'verified' | 'pending' | 'unverified';
+    isDemo?: boolean;
+  };
+}
+
+const buildApiUrl = (path: string): string => {
+  const base = (env.apiBaseUrl() ?? '').replace(/\/$/, "");
+  return `${base}${path.startsWith("/") ? path : "/" + path}`;
+};
+
+/** Project an `IUser` from the backend onto the UI's `FarmerProfile`. */
+function userToProfile(user: BackendUser): FarmerProfile {
+  const fp = user.farmerProfile ?? {};
+  const name = [user.firstName ?? "", user.lastName ?? ""]
+    .join(" ")
+    .trim();
+  return {
+    uid: user._id ?? "",
+    name: name || (user.email ?? "Farmer"),
+    email: user.email ?? "",
+    phone: fp.phone ?? user.mobile ?? "",
+    state: fp.state ?? "",
+    district: fp.district ?? "",
+    village: fp.village ?? "",
+    preferredLanguage: fp.preferredLanguage ?? "en-IN",
+    primaryCrops: fp.primaryCrops ?? [],
+    preferredMarkets: fp.preferredMarkets ?? [],
+    fpoName: fp.fpoName ?? "",
+    fpoMember: fp.fpoMember ?? false,
+    landSizeAcres: fp.landSizeAcres ?? 0,
+    joinedAt: fp.joinedAt ?? new Date().toISOString(),
+    verificationStatus: fp.verificationStatus ?? "unverified",
+    isDemo: fp.isDemo ?? false,
+  };
+}
+
+/** Backend `INotification` shape returned by `/api/notifications`. */
+interface BackendNotification {
+  _id?: string;
+  enitity_id?: string;
+  title?: string;
+  message?: string;
+  type?: string;
+  is_read?: boolean;
+  createdAt?: string;
+}
+
+/** Project a backend notification onto the UI's `NotificationItem`. */
+function notificationToItem(n: BackendNotification): NotificationItem {
+  // Map backend type strings to UI "kind" buckets.
+  const t = (n.type ?? "").toLowerCase();
+  const kind: NotificationItem["kind"] = t.startsWith("offer")
+    ? "offer"
+    : t.startsWith("payment")
+      ? "payment"
+      : t.startsWith("grievance")
+        ? "grievance"
+        : t.startsWith("lot")
+          ? "lot"
+          : "system";
+  const id = n._id ?? n.enitity_id ?? cryptoLikeId();
+  const href = kind === "offer" || kind === "lot"
+    ? `/farmer/notifications`
+    : `/farmer/notifications`;
+  return {
+    id,
+    kind,
+    title: n.title ?? (kind === "system" ? "Notification" : kind),
+    body: n.message ?? "",
+    href,
+    read: Boolean(n.is_read),
+    createdAt: n.createdAt ?? new Date().toISOString(),
+  };
+}
+
+function cryptoLikeId(): string {
+  return "n-" + Math.random().toString(36).slice(2, 10);
+}
+
+async function fetchMyNotifications(): Promise<NotificationItem[]> {
+  try {
+    const res = await apiFetch<{
+      success: boolean;
+      notifications: BackendNotification[];
+    }>(buildApiUrl("/api/notifications?page=1&limit=25"));
+    const items = (res?.notifications ?? []).map(notificationToItem);
+    return items.filter((i) => i.id);
+  } catch (err) {
+    console.warn("[data.ts] notifications fetch failed", err);
+    return [];
+  }
+}
+
+async function fetchMyProfile(): Promise<FarmerProfile | null> {
+  try {
+    const res = await apiFetch<BackendUser>(buildApiUrl("/api/users/me"));
+    if (!res || !res._id) return null;
+    return userToProfile(res);
+  } catch (err) {
+    console.warn("[data.ts] profile fetch failed", err);
+    return null;
+  }
+}
+
+async function patchMyProfile(
+  patch: Partial<FarmerProfile>,
+): Promise<FarmerProfile | null> {
+  try {
+    // Translate the UI patch shape to the backend DTO.
+    const body: Record<string, unknown> = {};
+    if (patch.phone !== undefined) body.phone = patch.phone;
+    if (patch.state !== undefined) body.state = patch.state;
+    if (patch.district !== undefined) body.district = patch.district;
+    if (patch.village !== undefined) body.village = patch.village;
+    if (patch.preferredLanguage !== undefined)
+      body.preferredLanguage = patch.preferredLanguage;
+    if (patch.primaryCrops !== undefined) body.primaryCrops = patch.primaryCrops;
+    if (patch.preferredMarkets !== undefined)
+      body.preferredMarkets = patch.preferredMarkets;
+    if (patch.fpoMember !== undefined) body.fpoMember = patch.fpoMember;
+    if (patch.fpoName !== undefined) body.fpoName = patch.fpoName;
+    if (patch.landSizeAcres !== undefined)
+      body.landSizeAcres = patch.landSizeAcres;
+    if (patch.experienceYears !== undefined)
+      body.experienceYears = patch.experienceYears;
+
+    const res = await apiFetch<BackendUser>(buildApiUrl("/api/users/me/farmer-profile"), {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body),
+    });
+    if (!res || !res._id) return null;
+    return userToProfile(res);
+  } catch (err) {
+    console.warn("[data.ts] profile patch failed", err);
+    return null;
+  }
+}
+
 // Logistics selection (persisted in localStorage for cross-page continuity).
 export const useSelectedLogistics = () => {
   const [selectedId, setSelectedIdState] = useState<string | null>(
@@ -1206,9 +1436,14 @@ export const useSelectedLogistics = () => {
   return { selectedId, setSelectedId };
 };
 
-// Notifications feed. Synthesises fresh items from current data
-// (pending offers, pending payments, open grievances) on top of any
-// persisted notifications, so the bell reflects live state.
+// Notifications feed.
+//
+// Pulls real notifications from `GET /api/notifications` (these are
+// persisted by the backend NotificationService whenever a transaction
+// event fires). The synthetic derivations from the in-memory store are
+// kept as a fallback when the backend returns an empty list, so the
+// bell still shows pending offers/payments/grievances that haven't yet
+// been picked up by a refetch.
 export const useNotifications = () => {
   const store = useFarmerDashboardStore();
   const qc = useQueryClient();
@@ -1221,56 +1456,62 @@ export const useNotifications = () => {
       store.storageBookings.length,
     ],
     queryFn: async () => {
-      await delay(40);
+      const remote = await fetchMyNotifications();
+      // Synthetic fallback — only used if backend has no notifications.
+      // (Real backend writes notifications on lot_created, offer_*,
+      // payment_*, grievance_*, storage_*, logistics_*, so the synthetic
+      // derivations should rarely fire once the bell is in steady state.)
       const synthetic: NotificationItem[] = [];
-      const pendingOffers = store.offers.filter(
-        (o) => o.status === "pending",
-      );
-      for (const o of pendingOffers) {
-        synthetic.push({
-          id: "syn-offer-" + o.id,
-          kind: "offer",
-          title: "New offer from " + o.buyerName,
-          body: "Rs " + o.pricePerKg + "/kg - " + o.quantityKg + "kg",
-          href: `/farmer/lots/${o.lotId}`,
-          read: false,
-          createdAt: o.createdAt,
-        });
-      }
-      const cachedPayments = qc.getQueryData<PaymentRecord[]>([
-        "farmer",
-        "payments",
-      ]);
-      const pendingPayments = (cachedPayments ?? []).filter(
-        (p) => p.status === "pending",
-      );
-      for (const p of pendingPayments) {
-        synthetic.push({
-          id: "syn-pay-" + p.id,
-          kind: "payment",
-          title: "Payment pending",
-          body: "Rs " + p.amount + " from " + p.buyerName,
-          href: `/farmer/payments`,
-          read: false,
-          createdAt: p.createdAt,
-        });
-      }
-      const openGrievances = store.grievances.filter(
-        (g) => g.status === "open" || g.status === "in_review",
-      );
-      for (const g of openGrievances) {
-        synthetic.push({
-          id: "syn-gv-" + g.id,
-          kind: "grievance",
-          title: "Grievance " + g.status.replace("_", " "),
-          body: g.subject,
-          href: `/farmer/grievances`,
-          read: false,
-          createdAt: g.createdAt,
-        });
+      if (remote.length === 0) {
+        const pendingOffers = store.offers.filter(
+          (o) => o.status === "pending",
+        );
+        for (const o of pendingOffers) {
+          synthetic.push({
+            id: "syn-offer-" + o.id,
+            kind: "offer",
+            title: "New offer from " + o.buyerName,
+            body: "Rs " + o.pricePerKg + "/kg - " + o.quantityKg + "kg",
+            href: `/farmer/lots/${o.lotId}`,
+            read: false,
+            createdAt: o.createdAt,
+          });
+        }
+        const cachedPayments = qc.getQueryData<PaymentRecord[]>([
+          "farmer",
+          "payments",
+        ]);
+        const pendingPayments = (cachedPayments ?? []).filter(
+          (p) => p.status === "pending",
+        );
+        for (const p of pendingPayments) {
+          synthetic.push({
+            id: "syn-pay-" + p.id,
+            kind: "payment",
+            title: "Payment pending",
+            body: "Rs " + p.amount + " from " + p.buyerName,
+            href: `/farmer/payments`,
+            read: false,
+            createdAt: p.createdAt,
+          });
+        }
+        const openGrievances = store.grievances.filter(
+          (g) => g.status === "open" || g.status === "in_review",
+        );
+        for (const g of openGrievances) {
+          synthetic.push({
+            id: "syn-gv-" + g.id,
+            kind: "grievance",
+            title: "Grievance " + g.status.replace("_", " "),
+            body: g.subject,
+            href: `/farmer/grievances`,
+            read: false,
+            createdAt: g.createdAt,
+          });
+        }
       }
       const persisted = store.notifications;
-      return [...synthetic, ...persisted].slice(0, 25);
+      return [...remote, ...synthetic, ...persisted].slice(0, 25);
     },
     initialData: [],
     refetchInterval: 30_000,
@@ -1278,13 +1519,34 @@ export const useNotifications = () => {
   });
 };
 
+export const useMarkNotificationRead = () => {
+  const qc = useQueryClient();
+  return async (id: string) => {
+    // Best-effort PATCH — never throw to the caller.
+    try {
+      await apiFetch(buildApiUrl(`/api/notifications/${id}`), {
+        method: "PATCH",
+      });
+    } catch (err) {
+      console.warn(`[data.ts] markNotificationRead ${id} failed`, err);
+    }
+    qc.invalidateQueries({ queryKey: ["farmer", "notifications"] });
+  };
+};
+
 export const useMarkAllNotificationsRead = () => {
   const markAll = useFarmerDashboardStore(
     (s) => s.markAllNotificationsRead,
   );
   const qc = useQueryClient();
-  return () => {
+  return async () => {
+    // Local mirror first so the UI is instant.
     markAll();
+    try {
+      await apiFetch(buildApiUrl("/api/notifications"), {method: "PATCH"});
+    } catch (err) {
+      console.warn("[data.ts] markAllNotificationsRead failed", err);
+    }
     qc.invalidateQueries({ queryKey: ["farmer", "notifications"] });
   };
 };

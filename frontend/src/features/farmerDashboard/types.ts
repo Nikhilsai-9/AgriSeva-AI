@@ -311,6 +311,8 @@ export interface FarmerProfile {
   fpoName: string;
   fpoMember: boolean;
   landSizeAcres: number;
+  /** Years of farming experience (UI-facing; persisted in farmerProfile). */
+  experienceYears?: number;
   joinedAt: string;
   verificationStatus: VerificationStatus;
   isDemo: boolean;

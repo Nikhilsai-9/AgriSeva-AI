@@ -20,6 +20,7 @@ import {
   PreferenceDto,
   UsersNameResponseDto,
   ExpertReviewLevelDto,
+  FarmerProfilePatchDto,
 } from '#root/modules/user/validators/UserValidators.js';
 import {INotificationRepository} from '#root/shared/database/interfaces/INotificationRepository.js';
 import {IQuestionSubmissionRepository} from '#root/shared/database/interfaces/IQuestionSubmissionRepository.js';
@@ -1189,6 +1190,75 @@ export class UserService extends BaseService {
         email: user.email ?? '',
       }))
       .filter((user) => user._id);
+  }
+
+  /**
+   * Patch the authenticated user's `farmerProfile` sub-document.
+   *
+   * - Body fields are merged into the existing sub-document (deep merge
+   *   for arrays: append-new + de-dup so we never lose earlier entries).
+   * - `undefined` fields in the patch are skipped (no overwrite with
+   *   undefined). Only fields the caller actually sends are touched.
+   * - `joinedAt` and `verificationStatus` are server-controlled; the
+   *   patch cannot change them.
+   *
+   * Returns the updated IUser (with the fresh farmerProfile merged in).
+   */
+  async updateFarmerProfile(
+    userId: string,
+    patch: Partial<FarmerProfilePatchDto>,
+  ): Promise<IUser> {
+    return this._withTransaction(async (session: ClientSession) => {
+      const existing = await this.userRepo.findById(userId, session);
+      if (!existing) {
+        throw new NotFoundError(`User ${userId} not found`);
+      }
+      const currentProfile = (existing.farmerProfile ?? {}) as NonNullable<
+        IUser['farmerProfile']
+      >;
+      const merged: NonNullable<IUser['farmerProfile']> = {
+        ...currentProfile,
+      };
+      // Scalar fields — copy only when present.
+      if (patch.phone !== undefined) merged.phone = patch.phone;
+      if (patch.state !== undefined) merged.state = patch.state;
+      if (patch.district !== undefined) merged.district = patch.district;
+      if (patch.village !== undefined) merged.village = patch.village;
+      if (patch.fpoMember !== undefined) merged.fpoMember = patch.fpoMember;
+      if (patch.fpoName !== undefined) merged.fpoName = patch.fpoName;
+      if (patch.landSizeAcres !== undefined) merged.landSizeAcres = patch.landSizeAcres;
+      if (patch.experienceYears !== undefined) merged.experienceYears = patch.experienceYears;
+      if (patch.preferredLanguage !== undefined) merged.preferredLanguage = patch.preferredLanguage;
+      // Array fields — append-and-dedup so we don't lose existing entries.
+      if (patch.primaryCrops !== undefined) {
+        merged.primaryCrops = Array.from(
+          new Set([...(currentProfile.primaryCrops ?? []), ...patch.primaryCrops]),
+        );
+      }
+      if (patch.preferredMarkets !== undefined) {
+        merged.preferredMarkets = Array.from(
+          new Set([...(currentProfile.preferredMarkets ?? []), ...patch.preferredMarkets]),
+        );
+      }
+      // Preserve server-controlled lifecycle fields.
+      if (!merged.joinedAt) {
+        merged.joinedAt = new Date().toISOString();
+      }
+      if (!merged.verificationStatus) {
+        merged.verificationStatus = 'unverified';
+      }
+      merged.isDemo = false;
+
+      const updated = await this.userRepo.edit(
+        userId,
+        {farmerProfile: merged},
+        session,
+      );
+      if (!updated) {
+        throw new InternalServerError('Failed to persist farmer profile update');
+      }
+      return {...updated, farmerProfile: merged};
+    });
   }
 
 }

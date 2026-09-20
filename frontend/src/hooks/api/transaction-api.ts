@@ -4,20 +4,15 @@
  * Wraps the existing `apiFetch` (Firebase auth aware) so the farmer
  * dashboard hooks can talk to the real MongoDB-backed endpoints.
  *
+ * The backend identifies the farmer from the Firebase ID token carried
+ * by `apiFetch` — there is no client-supplied farmer header any more.
+ *
  * Returns `null` / `[]` on network failure so callers can transparently
  * fall back to in-memory mocks if the backend is offline.
  */
 
 import { apiFetch } from './api-fetch';
 import { env } from '@/config/env';
-
-const FARMER_HEADER = 'x-demo-farmer-id';
-const FARMER_ID = 'demo-farmer-uid';
-
-const buildHeaders = (extra?: HeadersInit): HeadersInit => ({
-  ...(extra ?? {}),
-  [FARMER_HEADER]: FARMER_ID,
-});
 
 const buildUrl = (path: string): string => {
   const base = (env.apiBaseUrl() ?? '').replace(/\/$/, '');
@@ -26,10 +21,7 @@ const buildUrl = (path: string): string => {
 
 async function safeFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
   try {
-    const res = await apiFetch<T>(buildUrl(path), {
-      ...init,
-      headers: buildHeaders(init?.headers),
-    });
+    const res = await apiFetch<T>(buildUrl(path), init);
     return res ?? null;
   } catch (err) {
     console.warn(`[transaction-api] ${path} failed`, err);

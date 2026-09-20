@@ -2,21 +2,24 @@
  * StorageController — REST endpoints for storage options and bookings.
  *
  * Endpoints (all under /api):
- *   GET    /storage/options           — list all storage options (seeded)
- *   GET    /storage/bookings          — list bookings for current farmer
- *   POST   /storage/bookings          — create a booking reservation
+ *   GET    /storage/options           — list all storage options (PUBLIC — seeded)
+ *   GET    /storage/bookings          — list bookings for authenticated farmer
+ *   POST   /storage/bookings          — create a booking reservation (auth required)
  *
- * Demo data only — no live warehouse capacity tracking.
+ * Authentication: `/options` is a public read of static seeded data;
+ * `/bookings*` require a valid Firebase ID token. The authenticated
+ * principal's Mongo `_id` is the source of truth for ownership checks.
  */
 
 import 'reflect-metadata';
 import {inject, injectable} from 'inversify';
 import {
   JsonController,
+  Authorized,
   Get,
   Post,
   Body,
-  HeaderParam,
+  CurrentUser,
   HttpCode,
   NotFoundError,
   BadRequestError,
@@ -27,17 +30,17 @@ import {GLOBAL_TYPES} from '#root/types.js';
 import {StorageRepository} from '../repositories/StorageRepository.js';
 import {LotRepository} from '../repositories/LotRepository.js';
 import {SeedLoader} from '../services/SeedLoader.js';
+import {NotificationService} from '#root/modules/notification/services/NotificationService.js';
+import type {IUser} from '#root/shared/interfaces/models.js';
 import type {StorageBookingRecord} from '../types.js';
 import {StorageBookingBody} from '../validators/TransactionValidators.js';
 
-const DEMO_HEADER = 'x-demo-farmer-id';
-
-function resolveFarmerId(header?: string): string {
-  return header && header.trim() ? header.trim() : 'demo-farmer-uid';
-}
-
 function randomId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function farmerIdOf(user: IUser): string {
+  return user._id!.toString();
 }
 
 @OpenAPI({tags: ['transaction']})
@@ -51,8 +54,11 @@ export class StorageController {
     private readonly lots: LotRepository,
     @inject(GLOBAL_TYPES.TransactionSeedLoader)
     private readonly seed: SeedLoader,
+    @inject(GLOBAL_TYPES.NotificationService)
+    private readonly notifications: NotificationService,
   ) {}
 
+  // ── Public: storage options are seeded static data ─────────────────
   @Get('/options')
   @HttpCode(200)
   async listOptions(): Promise<{
@@ -69,28 +75,31 @@ export class StorageController {
     };
   }
 
+  // ── Authenticated ───────────────────────────────────────────────────
+  @Authorized()
   @Get('/bookings')
   @HttpCode(200)
   async listBookings(
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
+    @CurrentUser() user: IUser,
   ): Promise<{
     success: boolean;
     bookings: StorageBookingRecord[];
     total: number;
   }> {
     await this.seed.ensureSeeded();
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const bookings = await this.storage.findBookingsByFarmer(farmerId);
     return {success: true, bookings, total: bookings.length};
   }
 
+  @Authorized()
   @Post('/bookings')
   @HttpCode(201)
   async createBooking(
+    @CurrentUser() user: IUser,
     @Body() body: StorageBookingBody,
-    @HeaderParam(DEMO_HEADER) farmerHeader?: string,
   ): Promise<{success: boolean; booking: StorageBookingRecord}> {
-    const farmerId = resolveFarmerId(farmerHeader);
+    const farmerId = farmerIdOf(user);
     const option = await this.storage.findOptionById(body.storageId);
     if (!option) {
       throw new NotFoundError(`Storage option ${body.storageId} not found`);
@@ -137,6 +146,15 @@ export class StorageController {
       updatedAt: now,
     };
     await this.storage.insertBooking(record);
+    void this.notifications
+      .saveTheNotifications(
+        `Storage booked: ${record.storageName} (${record.reservedKg}kg for ${record.durationDays} days).`,
+        'Storage Reserved',
+        record.id,
+        farmerId,
+        'storage_booked',
+      )
+      .catch((err) => console.error('[StorageController.createBooking] notif failed', err));
     return {success: true, booking: record};
   }
 }

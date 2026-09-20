@@ -39,7 +39,8 @@ import {
   UpdateUserDto,
   ToggleUserRoleDto,
   VerifyUserBody,
-  VerificationRequestDto
+  VerificationRequestDto,
+  FarmerProfilePatchDto,
 } from '#root/modules/user/validators/UserValidators.js';
 import { IAuditTrailsService } from '#root/modules/auditTrails/interfaces/IAuditTrailsService.js';
 import { AUDIT_TRAILS_TYPES } from '#root/modules/auditTrails/types.js';
@@ -101,6 +102,24 @@ export class UserController {
       throw new NotFoundError('User not found');
     }
     return user;
+  }
+
+  /**
+   * PATCH /api/users/me/farmer-profile
+   *
+   * Persists the authenticated user's farmer profile fields. The body
+   * is a partial patch (every field optional). Server-controlled fields
+   * (`joinedAt`, `verificationStatus`) cannot be modified from here.
+   */
+  @Patch('/me/farmer-profile')
+  @HttpCode(200)
+  @Authorized()
+  async updateMyFarmerProfile(
+    @CurrentUser() currentUser: IUser,
+    @Body() patch: FarmerProfilePatchDto,
+  ): Promise<IUser> {
+    const userId = currentUser._id.toString();
+    return this.userService.updateFarmerProfile(userId, patch);
   }
 
 

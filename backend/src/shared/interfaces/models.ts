@@ -33,6 +33,41 @@ export interface IKVKCoveredItem {
   name?: string;
 }
 
+/**
+ * Farmer-specific profile fields. Lives as an optional sub-document on
+ * `IUser` so the same `users` collection can carry role-specific data
+ * (experts, moderators, admins all stay clean of agricultural attributes).
+ *
+ * Populated when a user with role === 'user' edits their farmer
+ * dashboard profile via `PATCH /api/users/me/farmer-profile`. Stays
+ * `null`/absent for non-farmer roles.
+ *
+ * `isDemo` is reserved for records that were synthesised from a pre-
+ * defined demo dataset. Real sign-ups leave it unset (or false).
+ */
+export interface IFarmerProfile {
+  // ── Contact ────────────────────────────────────────────────────────
+  phone?: string;
+  // ── Location ───────────────────────────────────────────────────────
+  state?: string;
+  district?: string;
+  village?: string;
+  // ── Agricultural ───────────────────────────────────────────────────
+  primaryCrops?: string[];
+  preferredMarkets?: string[];
+  fpoMember?: boolean;
+  fpoName?: string;
+  landSizeAcres?: number;
+  experienceYears?: number;
+  // ── Preferences ────────────────────────────────────────────────────
+  preferredLanguage?: string;
+  // ── Lifecycle ──────────────────────────────────────────────────────
+  joinedAt?: string; // ISO 8601
+  verificationStatus?: 'verified' | 'pending' | 'unverified';
+  // ── Demo ───────────────────────────────────────────────────────────
+  isDemo?: boolean;
+}
+
 export interface IUser {
   _id?: string | ObjectId;
   firebaseUID: string;
@@ -78,6 +113,13 @@ export interface IUser {
   /** Questions assigned to this user for feedback (auditor/moderator only).
    *  Contains question IDs that need feedback review. */
   feedbacksAssigned?: (string | ObjectId)[] | null;
+  /**
+   * Farmer-specific profile fields. Populated when a user with
+   * `role === 'user'` edits their farmer dashboard profile via
+   * `PATCH /api/users/me/farmer-profile`. Stays `null`/absent for
+   * moderators, experts, admins, and any non-farmer account.
+   */
+  farmerProfile?: IFarmerProfile | null;
 }
 
 export interface IUserRoleHistory {
@@ -453,7 +495,22 @@ export type INotificationType =
   | 'delayed_question'
   | 'moderator_approval'
   | 'allocation_removal'
-  | 'coordinator_message';
+  | 'coordinator_message'
+  // ── Farmer transaction events ───────────────────────────────────────
+  // Fired by transaction controllers when an authenticated farmer's
+  // lots/offers/payments/grievances change state.
+  | 'lot_created'
+  | 'lot_status_changed'
+  | 'offer_received'
+  | 'offer_accepted'
+  | 'offer_rejected'
+  | 'offer_countered'
+  | 'payment_created'
+  | 'payment_status_changed'
+  | 'grievance_created'
+  | 'grievance_status_changed'
+  | 'storage_booked'
+  | 'logistics_booked';
 export interface INotification {
   _id?: string | ObjectId;
   userId: string | ObjectId;

@@ -2,18 +2,21 @@
  * BuyerController — REST endpoints for buyer directory.
  *
  * Endpoints (all under /api):
- *   GET  /buyers                  — list with optional filters
- *   GET  /buyers/:id              — single buyer
- *   PATCH /buyers/:id/verify      — admin-style verification status update
+ *   GET   /buyers                 — list with optional filters (auth required)
+ *   GET   /buyers/:id             — single buyer (auth required)
+ *   PATCH /buyers/:id/verify      — admin-only verification status update
  *
  * Important: this directory is demo data. The verification status field
- * tracks DEMO flag values, NOT real KYC results.
+ * tracks DEMO flag values, NOT real KYC results. Verification mutation
+ * is gated to admin/moderator roles; listing is open to any authenticated
+ * user (the frontend farmer dashboard depends on it for buyer discovery).
  */
 
 import 'reflect-metadata';
 import {inject, injectable} from 'inversify';
 import {
   JsonController,
+  Authorized,
   Get,
   Patch,
   Param,
@@ -41,6 +44,9 @@ export class BuyerController {
     private readonly seed: SeedLoader,
   ) {}
 
+  // List + read: any authenticated user (farmer dashboard depends on
+  // this for buyer discovery).
+  @Authorized()
   @Get('/')
   @HttpCode(200)
   async list(@QueryParams() query: BuyerListQuery): Promise<{
@@ -64,6 +70,7 @@ export class BuyerController {
     };
   }
 
+  @Authorized()
   @Get('/:id')
   @HttpCode(200)
   async byId(@Param('id') id: string): Promise<{success: boolean; buyer: BuyerRecord}> {
@@ -75,6 +82,10 @@ export class BuyerController {
     return {success: true, buyer};
   }
 
+  // Verification mutation: admin/moderator only. Without role gating
+  // any authenticated user could mark a buyer "verified" and the field
+  // is rendered as a trust signal in the UI.
+  @Authorized(['admin', 'moderator'])
   @Patch('/:id/verify')
   @HttpCode(200)
   async updateVerification(
