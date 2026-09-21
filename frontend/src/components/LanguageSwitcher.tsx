@@ -33,8 +33,9 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       <button
         type="button"
         onClick={openLanguageSelector}
-        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer backdrop-blur-sm ${variantStyles} ${className}`}
+        className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer backdrop-blur-sm shrink-0 select-none ${variantStyles} ${className}`}
         title="Change language"
+        aria-label={`Change language, current: ${currentLanguage?.nativeName || "Language"}`}
       >
         <Globe
           className={`w-3.5 h-3.5 flex-shrink-0 ${
@@ -42,7 +43,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
           }`}
         />
         <span
-          className={`tracking-wide ${
+          className={`tracking-wide truncate max-w-[85px] xs:max-w-[110px] sm:max-w-none ${
             isLight ? "font-semibold text-[#16241c]" : "font-semibold text-white"
           }`}
         >
