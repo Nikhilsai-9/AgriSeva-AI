@@ -384,6 +384,7 @@ export const gu: Partial<TranslationDictionary> = {
   },
   "sidebar": {
     "dashboard": "ડેશબોર્ડ",
+    "farmerDashboard": "Farmer Dashboard",
     "questions": "પ્રશ્નો",
     "allQuestions": "બધા પ્રશ્નો",
     "userManagement": "વપરાશકર્તા વ્યવસ્થાપન",
@@ -396,7 +397,8 @@ export const gu: Partial<TranslationDictionary> = {
     "chatbotAnalytics": "ચેટબોટ એનાલિટિક્સ",
     "dataProcessing": "ડેટા પ્રોસેસિંગ",
     "history": "ઇતિહાસ",
-    "whatsappHistory": "WhatsApp ઇતિહાસ"
+    "whatsappHistory": "WhatsApp ઇતિહાસ",
+    "menu": "Menu"
   },
   "userProfile": {
     "coordinatorProfile": "સંયોજક પ્રોફાઇલ",

@@ -10,6 +10,7 @@ import {
   Menu,
   MessageSquare,
   Phone,
+  Sprout,
   TrendingUp,
   Upload,
   Users,
@@ -86,6 +87,9 @@ export const MobileSidebar = ({
       navigate({ to: "/chatbot" });
     } else if (value === "whatsapp_history") {
       navigate({ to: "/whatsapp-history" });
+    } else if (value === "farmer") {
+      // Farmer Dashboard lives at its own route.
+      navigate({ to: "/farmer" });
     } else {
       setTab(value);
       setActiveTab(value);
@@ -111,6 +115,11 @@ export const MobileSidebar = ({
 
     ...(user && user.role === "expert"
       ? [{ id: "expertPerformance", label: t("sidebar.dashboard", "Dashboard"), icon: BarChart3 }]
+      : []),
+
+    // ── Farmer Dashboard ── position #2 (all roles, excludes call_agent)
+    ...(user && user.role !== "call_agent"
+      ? [{ id: "farmer", label: t("sidebar.farmerDashboard", "Farmer Dashboard"), icon: Sprout }]
       : []),
 
     ...(user && user.role === "expert"

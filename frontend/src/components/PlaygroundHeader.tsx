@@ -1,6 +1,6 @@
-﻿import { UserProfileActions } from "@/components/atoms/user-profile-actions";
+import { UserProfileActions } from "@/components/atoms/user-profile-actions";
 import { ThemeToggleCompact } from "./atoms/ThemeToggle";
-import { BellIcon } from "lucide-react";
+import { BellIcon, Sprout } from "lucide-react";
 import { MobileSidebar } from "./mobile-sidebar";
 import { HoverCard } from "./atoms/hover-card";
 import { NotificationModal } from "./NotificationModal";
@@ -67,6 +67,21 @@ export function PlaygroundHeader({
               >
                 <HoverCard openDelay={150}>
                   <span>{t("dashboard.tabsDashboard", "Dashboard")}</span>
+                </HoverCard>
+              </TabsTrigger>
+            )}
+
+            {/* ── Farmer Dashboard ── position #2 in main nav (all non-call-agent roles) */}
+            {user && user.role !== "call_agent" && (
+              <TabsTrigger
+                value="farmer_dashboard"
+                className="px-2 md:px-3 py-1.5 rounded-lg font-medium text-sm md:text-base transition-all duration-150 flex-shrink-0 flex items-center gap-1.5"
+              >
+                <HoverCard openDelay={150}>
+                  <span className="flex items-center gap-1.5">
+                    <Sprout className="h-4 w-4 text-emerald-600" />
+                    {t("sidebar.farmerDashboard", "Farmer Dashboard")}
+                  </span>
                 </HoverCard>
               </TabsTrigger>
             )}

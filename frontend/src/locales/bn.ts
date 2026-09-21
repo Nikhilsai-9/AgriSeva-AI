@@ -384,6 +384,7 @@ export const bn: Partial<TranslationDictionary> = {
   },
   "sidebar": {
     "dashboard": "ড্যাশবোর্ড",
+    "farmerDashboard": "কৃষক ড্যাশবোর্ড",
     "questions": "প্রশ্নাবলী",
     "allQuestions": "সমস্ত প্রশ্ন",
     "userManagement": "ব্যবহারকারী ব্যবস্থাপনা",
@@ -396,7 +397,8 @@ export const bn: Partial<TranslationDictionary> = {
     "chatbotAnalytics": "চ্যাটবট বিশ্লেষণ",
     "dataProcessing": "ডেটা প্রসেসিং",
     "history": "ইতিহাস",
-    "whatsappHistory": "WhatsApp ইতিহাস"
+    "whatsappHistory": "WhatsApp ইতিহাস",
+    "menu": "মেনু"
   },
   "userProfile": {
     "coordinatorProfile": "সমন্বয়কারী প্রোফাইল",

@@ -384,6 +384,7 @@ export const brx: Partial<TranslationDictionary> = {
   },
   "sidebar": {
     "dashboard": "डेशबोर्ड",
+    "farmerDashboard": "Farmer Dashboard",
     "questions": "सोंलुफोर",
     "allQuestions": "गासै सोंलुफोर",
     "userManagement": "बाहायग्रा सामलायनाय",
@@ -396,7 +397,8 @@ export const brx: Partial<TranslationDictionary> = {
     "chatbotAnalytics": "चेटबट बिजिरनाय",
     "dataProcessing": "डाटा साजायनाय",
     "history": "जारिमिन",
-    "whatsappHistory": "WhatsApp जारिमिन"
+    "whatsappHistory": "WhatsApp जारिमिन",
+    "menu": "Menu"
   },
   "userProfile": {
     "coordinatorProfile": "सोमोन्दो लाखिग्रा प्रफाइल",

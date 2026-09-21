@@ -1,4 +1,4 @@
-﻿import {
+import {
   Tabs,
   TabsContent,
 } from "@/components/atoms/tabs";
@@ -219,6 +219,12 @@ export const PlaygroundPage = () => {
     // ChatBot Analytics is now its own route rather than an in-page tab.
     if (value === "chatbotanalytics") {
       navigate({ to: "/chatbot" });
+      return;
+    }
+
+    // Farmer Dashboard is its own route (/farmer/*).
+    if (value === "farmer_dashboard") {
+      navigate({ to: "/farmer" });
       return;
     }
 

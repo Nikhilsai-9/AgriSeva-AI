@@ -384,6 +384,7 @@ export const sat: Partial<TranslationDictionary> = {
   },
   "sidebar": {
     "dashboard": "ᱰᱮᱥᱵᱳᱨᱰ",
+    "farmerDashboard": "Farmer Dashboard",
     "questions": "ᱠᱩᱠᱞᱤ ᱠᱚ",
     "allQuestions": "ᱡᱚᱛᱚ ᱠᱩᱠᱞᱤ",
     "userManagement": "ᱵᱮᱵᱷᱟᱨᱤᱭᱟᱹ ᱵᱮᱵᱚᱥᱛᱷᱟ",
@@ -396,7 +397,8 @@ export const sat: Partial<TranslationDictionary> = {
     "chatbotAnalytics": "ᱪᱮᱴᱵᱚᱴ ᱮᱱᱟᱞᱤᱴᱤᱠᱥ",
     "dataProcessing": "ᱰᱮᱴᱟ ᱯᱨᱚᱥᱮᱥᱤᱝ",
     "history": "ᱱᱟᱜᱟᱢ",
-    "whatsappHistory": "WhatsApp ᱱᱟᱜᱟᱢ"
+    "whatsappHistory": "WhatsApp ᱱᱟᱜᱟᱢ",
+    "menu": "Menu"
   },
   "userProfile": {
     "coordinatorProfile": "ᱥᱟᱹᱜᱟᱹᱭᱤᱭᱟᱹ ᱯᱨᱳᱯᱷᱟᱭᱤᱞ",

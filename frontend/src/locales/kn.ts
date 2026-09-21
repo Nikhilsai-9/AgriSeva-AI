@@ -385,6 +385,7 @@ export const kn: Partial<TranslationDictionary> = {
   },
   "sidebar": {
     "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "farmerDashboard": "ರೈತ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
     "questions": "ಪ್ರಶ್ನೆಗಳು",
     "allQuestions": "ಎಲ್ಲಾ ಪ್ರಶ್ನೆಗಳು",
     "userManagement": "ಬಳಕೆದಾರರ ನಿರ್ವಹಣೆ",
@@ -397,7 +398,8 @@ export const kn: Partial<TranslationDictionary> = {
     "chatbotAnalytics": "ಚಾಟ್‌ಬಾಟ್ ವಿಶ್ಲೇಷಣೆ",
     "dataProcessing": "ಡೇಟಾ ಸಂಸ್ಕರಣೆ",
     "history": "ಇತಿಹಾಸ",
-    "whatsappHistory": "WhatsApp ಇತಿಹಾಸ"
+    "whatsappHistory": "WhatsApp ಇತಿಹಾಸ",
+    "menu": "ಮೆನು"
   },
   "userProfile": {
     "coordinatorProfile": "ಸಂಯೋಜಕರ ಪ್ರೊಫೈಲ್",

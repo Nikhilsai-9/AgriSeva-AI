@@ -384,6 +384,7 @@ export const mni: Partial<TranslationDictionary> = {
   },
   "sidebar": {
     "dashboard": "ꯗꯦꯁꯕꯣꯔꯗ",
+    "farmerDashboard": "Farmer Dashboard",
     "questions": "ꯋꯥꯍꯪꯁꯤꯡ",
     "allQuestions": "ꯋꯥꯍꯪ ꯄꯨꯝꯅꯃꯛ",
     "userManagement": "ꯁꯤꯖꯤꯟꯅꯔꯤꯕꯁꯤꯡꯒꯤ ꯃꯦꯅꯦꯖꯃꯦꯟꯇ",
@@ -396,7 +397,8 @@ export const mni: Partial<TranslationDictionary> = {
     "chatbotAnalytics": "ꯆꯦꯠꯕꯣꯠ ꯑꯦꯅꯥꯂꯥꯏꯇꯤꯛꯁ",
     "dataProcessing": "ꯗꯥꯇꯥ ꯊꯕꯛ ꯇꯧꯕꯥ",
     "history": "ꯄꯨꯋꯥꯔꯤ",
-    "whatsappHistory": "WhatsApp ꯄꯨꯋꯥꯔꯤ"
+    "whatsappHistory": "WhatsApp ꯄꯨꯋꯥꯔꯤ",
+    "menu": "Menu"
   },
   "userProfile": {
     "coordinatorProfile": "ꯀꯣꯑꯣꯔꯗꯤꯅꯦꯇꯔ ꯄ꯭ꯔꯣꯐꯥꯏꯜ",

@@ -407,6 +407,7 @@ export const en = {
   },
   sidebar: {
     dashboard: "Dashboard",
+    farmerDashboard: "Farmer Dashboard",
     questions: "Questions",
     allQuestions: "All Questions",
     userManagement: "User Management",
@@ -420,6 +421,7 @@ export const en = {
     dataProcessing: "Data Processing",
     history: "History",
     whatsappHistory: "WhatsApp History",
+    menu: "Menu",
   },
   userProfile: {
     coordinatorProfile: "Coordinator Profile",
