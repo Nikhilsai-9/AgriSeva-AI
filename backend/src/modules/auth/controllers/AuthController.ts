@@ -34,6 +34,7 @@ import {
 import { AUTH_TYPES } from '#auth/types.js';
 import { OpenAPI, ResponseSchema } from 'routing-controllers-openapi';
 import { appConfig } from '#root/config/app.js';
+import { requiresAdminVerification } from '#root/shared/constants/roles.js';
 
 @OpenAPI({
   tags: ['Authentication'],
@@ -279,7 +280,7 @@ export class AuthController {
         userInfo.displayName || ''
       );
 
-      if (user.isVerified === false) {
+      if (requiresAdminVerification(user)) {
         throw new HttpError(
           401,
           'Your account is pending admin verification. Please contact an administrator.'
@@ -332,7 +333,7 @@ export class AuthController {
         decodedEmail.name || ''
       );
 
-      if (user.isVerified === false) {
+      if (requiresAdminVerification(user)) {
         throw new HttpError(
           401,
           'Your account is pending admin verification. Please contact an administrator.'

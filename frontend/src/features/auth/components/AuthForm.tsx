@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useAuthStore } from "@/stores/auth-store";
 import { loginWithEmail } from "@/lib/firebase";
@@ -176,12 +176,14 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
     try {
       const result = await loginWithGoogle();
       if (result) {
-        let appUser: any = null;
         try {
           const syncRes = await authService.loginWithGoogle(result);
-          appUser = syncRes?.data?.user;
-        } catch (backendSyncErr) {
+          appUser = syncRes?.user;
+        } catch (backendSyncErr: any) {
           console.warn("Backend Google sync notice:", backendSyncErr);
+          if (backendSyncErr?.message?.includes("pending admin verification")) {
+            throw backendSyncErr;
+          }
         }
         if (isCoordinatorRole(appUser?.role)) {
           navigate({

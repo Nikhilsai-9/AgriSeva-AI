@@ -9,27 +9,7 @@ export class AuthService {
   async loginWithGoogle(firebaseLoginRes: ExtendedUserCredential) {
     try {
       const idToken = await firebaseLoginRes.user.getIdToken();
-
-      const backendUrl = `${this._baseUrl}/signup/google/`;
-      const res = await fetch(backendUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: firebaseLoginRes.user.email,
-          firstName: firebaseLoginRes._tokenResponse?.firstName,
-          lastName: firebaseLoginRes._tokenResponse?.lastName,
-        }),
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(
-          `Login failed: ${res.status} ${res.statusText} - ${errorText}`
-        );
-      }
+      return await this.accountSync(idToken);
     } catch (error) {
       console.error("Login with google failed!", error);
       throw error;
@@ -82,10 +62,21 @@ export class AuthService {
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(
-          `Sync failed: ${res.status} ${res.statusText} - ${errorText}`
-        );
+        let errorMessage = `Sync failed: ${res.status} ${res.statusText}`;
+        let errorData: any = null;
+        try {
+          errorData = await res.json();
+          if (errorData?.message) {
+            errorMessage = errorData.message;
+          }
+        } catch {
+          const errorText = await res.text().catch(() => "");
+          if (errorText) errorMessage = errorText;
+        }
+        const error: any = new Error(errorMessage);
+        error.status = res.status;
+        error.data = errorData;
+        throw error;
       }
 
       return res.json();

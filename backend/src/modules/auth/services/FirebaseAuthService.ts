@@ -156,39 +156,8 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
     // Decode the token to get the Firebase UID
     const decodedToken = await this.auth.verifyIdToken(token);
     const firebaseUID = decodedToken.uid;
-    const user: Partial<IUser> = {
-      firebaseUID: firebaseUID,
-      email: body.email,
-      firstName: body.firstName,
-      lastName: body.lastName,
-      role: 'user',
-    };
-
-    let createdUserId: string;
-
-    await this._withTransaction(async session => {
-      const newUser = new User(user);
-      createdUserId = await this.userRepository.create(newUser, session);
-      if (!createdUserId) {
-        throw new InternalServerError('Failed to create the user');
-      }
-
-      // Notify admins
-      const admins = await this.userRepository.findAdmins(session);
-      const notificationMessage = `A new user ${body.firstName} ${body.lastName || ''} (${body.email}) created and needs to be verified`;
-      const notificationTitle = 'New User Created';
-
-      for (const admin of admins) {
-        await this.notificationService.saveTheNotifications(
-          notificationMessage,
-          notificationTitle,
-          createdUserId,
-          admin._id.toString(),
-          'user_verification',
-          session
-        );
-      }
-    });
+    const fullName = `${body.firstName} ${body.lastName || ''}`.trim();
+    return await this.syncUserWithDb(firebaseUID, body.email, fullName);
   }
 
   async adminCreateReviewUser(body: AdminCreateReviewUserBody): Promise<IUser> {
@@ -355,38 +324,34 @@ export class FirebaseAuthService extends BaseService implements IAuthService {
       }
     }
 
+    if (user && user.role === 'user' && user.isVerified === false) {
+      // Normal users/farmers do not require admin verification.
+      // Self-heal records that were saved with isVerified: false under previous defaults.
+      await this.userRepository.edit(user._id.toString(), { isVerified: true });
+      user = await this.userRepository.findByFirebaseUID(firebaseUID);
+    }
+
     if (!user) {
       console.log(`User ${firebaseUID} not found in DB, creating...`);
-      const names = displayName.split(' ');
+      const names = displayName.trim().split(/\s+/);
       const newUser: Partial<IUser> = {
         firebaseUID: firebaseUID,
         email: email,
         firstName: names[0] || email.split('@')[0],
         lastName: names.slice(1).join(' ') || '',
         role: 'user',
-        isVerified: false,
+        isVerified: true,
+        status: 'active',
       };
 
       await this._withTransaction(async (session) => {
-        const userObj = new User(newUser as IUser); // Assuming User class takes Partial<IUser>
+        // Concurrency check inside transaction to prevent duplicate create race condition
+        const existingInTx = await this.userRepository.findByFirebaseUID(firebaseUID, session);
+        if (existingInTx) return;
+
+        const userObj = new User(newUser as IUser);
         const createdId = await this.userRepository.create(userObj, session);
         if (!createdId) throw new InternalServerError('Failed to create user in database');
-
-        // Notify admins
-        const admins = await this.userRepository.findAdmins(session);
-        const notificationMessage = `A new user ${newUser.firstName} ${newUser.lastName || ''} (${newUser.email}) created and needs to be verified`;
-        const notificationTitle = 'New User Created';
-
-        for (const adminUser of admins) {
-          await this.notificationService.saveTheNotifications(
-            notificationMessage,
-            notificationTitle,
-            createdId,
-            adminUser._id.toString(),
-            'user_verification',
-            session
-          );
-        }
       });
 
       user = await this.userRepository.findByFirebaseUID(firebaseUID);

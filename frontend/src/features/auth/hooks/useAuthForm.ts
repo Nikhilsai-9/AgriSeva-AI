@@ -150,8 +150,12 @@ export const useAuthForm = (
       if (isCoordinatorRole(result?.appUser?.role)) {
         navigate({
           to: "/user/$userId",
-          params: { userId: result?.appUser?._id || result!.user.uid },
+          params: { userId: result?.appUser?._id || result!.user.uid } as any,
         });
+      } else if (result?.appUser?.role === "pae_expert") {
+        navigate({ to: "/pae-expert" });
+      } else if (result?.appUser?.role === "farmer") {
+        navigate({ to: "/farmer" });
       } else {
         navigate({ to: "/home" });
       }
