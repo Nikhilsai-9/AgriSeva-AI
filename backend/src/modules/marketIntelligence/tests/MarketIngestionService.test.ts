@@ -15,6 +15,7 @@
 import {describe, it, expect, beforeEach, vi} from 'vitest';
 import {MarketIngestionService} from '../services/MarketIngestionService.js';
 import {MarketNormaliser} from '../services/MarketNormaliser.js';
+import {decorateAgmarknetAggregate} from '../services/MarketIngestionService.js';
 import type {MarketPriceRecord} from '../types.js';
 
 // ─── Mocks for injected deps ──────────────────────────────────────────
@@ -712,6 +713,152 @@ describe('MarketIngestionService — commodity aliases', () => {
       updated: 0,
       errors: [],
     });
+
+// ─── 7. PHASE 1 §P1.2: NO FABRICATION ────────────────────────────────
+
+describe('MarketIngestionService — PHASE 1 §P1.2 (no fabrication in decorateAgmarknetAggregate)', () => {
+  const TARGET = {state: 'Gujarat', commodity: 'Tomato'};
+
+  function pullRecords(out: unknown): any[] {
+    if (Array.isArray(out)) return out;
+    const o = out as any;
+    if (o && Array.isArray(o.records)) return o.records;
+    if (o?.data && typeof o.data === 'object' && Array.isArray(o.data.records)) {
+      return o.data.records;
+    }
+    if (Array.isArray(o?.data)) return o.data;
+    return [];
+  }
+
+  it('does NOT fabricate a mandi name when upstream omits mkt_name', () => {
+    const payload = {
+      records: [
+        {
+          cmdt_name: 'Tomato',
+          as_on_price: 1500,
+          as_on_arrival: 100,
+          cmdt_grp_name: 'Vegetables',
+          reported_date: '2026-04-15',
+        },
+      ],
+    };
+    const out = pullRecords(
+      decorateAgmarknetAggregate(payload, TARGET, '2026-04-15'),
+    );
+    expect(out).toHaveLength(0);
+  });
+
+  it('does NOT fabricate a mandi name when upstream supplies one — preserved verbatim', () => {
+    const payload = {
+      records: [
+        {
+          cmdt_name: 'Tomato',
+          mkt_name: 'Ahmedabad APMC',
+          state_name: 'Gujarat',
+          as_on_price: 1500,
+          as_on_arrival: 100,
+          cmdt_grp_name: 'Vegetables',
+          reported_date: '2026-04-15',
+        },
+      ],
+    };
+    const out = pullRecords(
+      decorateAgmarknetAggregate(payload, TARGET, '2026-04-15'),
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0].mkt_name).toBe('Ahmedabad APMC');
+    expect(out[0].mkt_name).not.toMatch(/state aggregate/);
+  });
+
+  it('does NOT back-fill min_price / max_price from modal_price', () => {
+    const payload = {
+      records: [
+        {
+          cmdt_name: 'Tomato',
+          mkt_name: 'Ahmedabad APMC',
+          state_name: 'Gujarat',
+          modal_price: 1500,
+          reported_date: '2026-04-15',
+        },
+      ],
+    };
+    const out = pullRecords(
+      decorateAgmarknetAggregate(payload, TARGET, '2026-04-15'),
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0].min_price).toBeUndefined();
+    expect(out[0].max_price).toBeUndefined();
+    expect(String(out[0].modal_price)).toBe('1500');
+  });
+
+  it('PRESERVES min_price / max_price when upstream actually supplies them', () => {
+    const payload = {
+      records: [
+        {
+          cmdt_name: 'Tomato',
+          mkt_name: 'Ahmedabad APMC',
+          state_name: 'Gujarat',
+          min_price: 1400,
+          max_price: 1600,
+          modal_price: 1500,
+          reported_date: '2026-04-15',
+        },
+      ],
+    };
+    const out = pullRecords(
+      decorateAgmarknetAggregate(payload, TARGET, '2026-04-15'),
+    );
+    expect(out).toHaveLength(1);
+    expect(String(out[0].min_price)).toBe('1400');
+    expect(String(out[0].max_price)).toBe('1600');
+    expect(String(out[0].modal_price)).toBe('1500');
+  });
+
+  it('tags every decorated row with isAggregate: true', () => {
+    const payload = {
+      records: [
+        {
+          cmdt_name: 'Tomato',
+          mkt_name: 'Ahmedabad APMC',
+          state_name: 'Gujarat',
+          as_on_price: 1500,
+          reported_date: '2026-04-15',
+        },
+        {
+          cmdt_name: 'Onion',
+          mkt_name: 'Surat APMC',
+          state_name: 'Gujarat',
+          as_on_price: 2200,
+          reported_date: '2026-04-15',
+        },
+      ],
+    };
+    const out = pullRecords(
+      decorateAgmarknetAggregate(payload, TARGET, '2026-04-15'),
+    );
+    expect(out).toHaveLength(2);
+    for (const row of out) {
+      expect(row.isAggregate).toBe(true);
+    }
+  });
+
+  it('does NOT fall back to a synthetic "India" state label', () => {
+    const payload = {
+      records: [
+        {
+          cmdt_name: 'Tomato',
+          mkt_name: 'Ahmedabad APMC',
+          as_on_price: 1500,
+          reported_date: '2026-04-15',
+        },
+      ],
+    };
+    const out = pullRecords(
+      decorateAgmarknetAggregate(payload, {commodity: 'Tomato'}, '2026-04-15'),
+    );
+    expect(out).toHaveLength(0);
+  });
+});
 
     const svc = buildService();
     const result = await svc.ingest({commodity: 'Tomato'});

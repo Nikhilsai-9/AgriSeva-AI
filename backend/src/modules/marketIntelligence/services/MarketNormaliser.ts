@@ -111,6 +111,12 @@ export class MarketNormaliser {
     arrivalDate: string;
     reportedAt?: string;
     arrivalQty?: number;
+    /**
+     * Provenance flag — true when this record was produced from an
+     * Agmarknet dashboard/aggregate response and we cannot guarantee
+     * it maps to a single mandi. See PHASE_1_CHECKLIST.md §P1.2.
+     */
+    isAggregate?: boolean;
   }): MarketPriceRecord | null {
     const arrivalDate = toIsoDate(input.arrivalDate) ?? todayIso();
     const commodity = cleanString(input.commodity);
@@ -151,6 +157,7 @@ export class MarketNormaliser {
       changePct: null,
       trendPct: null,
       fetchStatus: 'live',
+      isAggregate: input.isAggregate === true ? true : undefined,
     };
   }
 
@@ -180,6 +187,13 @@ export class MarketNormaliser {
         toIsoDate(fallbackDate) ??
         todayIso();
 
+      // The `decorateAgmarknetAggregate` helper in MarketIngestionService
+      // sets `isAggregate: true` on rows it produces from a state-level
+      // dashboard response. We preserve that provenance tag here so the
+      // downstream pipeline can distinguish per-mandi rows from
+      // state-aggregate roll-ups. PHASE_1_CHECKLIST.md §P1.2.
+      const isAggregate = (raw as any)?.isAggregate === true;
+
       const record = this.buildRecord({
         source: 'agmarknet',
         sourceSystem: 'Agmarknet',
@@ -201,6 +215,7 @@ export class MarketNormaliser {
         arrivalQty: toFiniteNumber(
           raw.arrival_qty ?? raw.arrival_quantity ?? raw.arrival,
         ),
+        isAggregate,
       });
       if (record) out.push(record);
     }

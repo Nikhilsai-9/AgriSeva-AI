@@ -29,15 +29,31 @@ import type {
   MarketPriceRecord,
   MarketSourceId,
 } from '../types.js';
+import {
+  MARKET_WATCHLIST_TARGETS,
+  WATCHLIST_TOTAL,
+} from '../config/marketWatchlist.config.js';
 
-/** Default high-demand watchlist used by the 6-hourly cron. */
-export const DEFAULT_WATCHLIST: MarketIngestionTarget[] = [
-  {commodity: 'Tomato', limit: 50},
-  {commodity: 'Onion', limit: 50},
-  {commodity: 'Rice', limit: 50},
-  {commodity: 'Wheat', limit: 50},
-  {commodity: 'Maize', limit: 50},
-];
+/**
+ * Default high-demand watchlist used by the 6-hourly cron.
+ *
+ * PHASE 1 §P1.3 — this constant is now an alias for the full
+ * tiered watchlist defined in `config/marketWatchlist.config.ts`.
+ * The old hardcoded 5-commodity list silently caused 13 commodities
+ * the farmer UI advertises to never get a fresh record. We now
+ * cover all 18 commodities in `COMMODITIES` (FE), tiered by price
+ * volatility.
+ *
+ * Kept exported as `DEFAULT_WATCHLIST` for backward compatibility
+ * with the existing cron + any external callers.
+ */
+export const DEFAULT_WATCHLIST: MarketIngestionTarget[] =
+  MARKET_WATCHLIST_TARGETS;
+
+/** Sanity-check at module load: log how many commodities we cover. */
+console.log(
+  `[marketIntelligence] Watchlist loaded: ${WATCHLIST_TOTAL} commodities (HIGH/MEDIUM/LOW tiers — see config/marketWatchlist.config.ts).`,
+);
 
 @injectable()
 export class MarketIngestionService {
@@ -350,18 +366,32 @@ export class MarketIngestionService {
 // ─── helper: decorate aggregate Agmarknet records ────────────────────
 
 /**
- * The Agmarknet MCP server only exposes aggregate per-commodity
- * records (`cmdt_name, as_on_price, as_on_arrival, cmdt_grp_name,
- * reported_date`). The normaliser expects per-mandi fields
- * (commodity/market/state + min/max/modal). This function injects
- * the missing fields into a decorated array-shaped payload so the
- * existing normaliser can persist real records.
+ * Decorate an Agmarknet dashboard/aggregate payload so that the
+ * existing per-mandi normaliser can persist *something* useful.
  *
- * The injected `market` is a synthetic state-aggregate label
- * (e.g. "Gujarat (state aggregate)"). We document this honestly
- * via `sourceUrl` / `sourceSystem` so consumers can detect it.
+ * PHASE 1 — Data Fidelity Rule (PHASE_1_CHECKLIST.md §P1.2):
+ *   We MUST NOT fabricate data. Specifically:
+ *     • Never invent a mandi name. If the upstream did not return
+ *       `mkt_name`, the record is dropped (we cannot pretend it
+ *       represents a real mandi).
+ *     • Never back-fill min_price / max_price from modal_price.
+ *       Aggregate rows legitimately have only one price point per
+ *       (commodity, state, day); the others are simply absent.
+ *     • Never invent a state the upstream did not supply. We MAY
+ *       fill state from the `target.state` filter (because that
+ *       filter is what bounded the request), but we MUST NOT
+ *       fall back to a label like "India".
+ *
+ * What we DO add: an `isAggregate: true` provenance tag so that
+ * downstream consumers can distinguish a real per-mandi price from
+ * a state-level roll-up. We also set a stable `sourceUrl` so the
+ * record is traceable, and a default arrival date / arrival qty
+ * when the upstream genuinely did not provide them.
+ *
+ * Exported for direct unit testing — see
+ * `tests/MarketIngestionService.test.ts` §P1.2 fabrication tests.
  */
-function decorateAgmarknetAggregate(
+export function decorateAgmarknetAggregate(
   payload: unknown,
   target: {state?: string; commodity?: string},
   fallbackDate: string,
@@ -380,39 +410,56 @@ function decorateAgmarknetAggregate(
   const records = extract(payload);
   if (!records.length) return payload;
 
-  const stateName = (target.state || '').trim() || 'India';
-  const marketLabel = `${stateName} (state aggregate)`;
+  const stateFilter = (target.state || '').trim();
 
-  const decorated = records.map((raw: any) => {
-    const out = { ...(raw || {}) };
-    // Identity fields the normaliser reads first.
-    if (!out.cmdt_name && !out.commodity) out.cmdt_name = target.commodity;
-    if (!out.state_name && !out.state) out.state_name = stateName;
-    if (!out.mkt_name && !out.market) out.mkt_name = marketLabel;
-    if (!out.variety && !out.variety_name && out.cmdt_grp_name)
+  const decorated: any[] = [];
+  for (const raw of records) {
+    if (!raw || typeof raw !== 'object') continue;
+    const out: any = {...raw};
+
+    // Commodity identity: only fill from the request filter when the
+    // upstream truly did not supply it.
+    if (!out.cmdt_name && !out.commodity) {
+      if (target.commodity) out.cmdt_name = target.commodity;
+      else continue; // cannot identify — drop
+    }
+
+    // State identity: only fill from the request filter. We NEVER
+    // fall back to "India" or any other label.
+    if (!out.state_name && !out.state) {
+      if (stateFilter) out.state_name = stateFilter;
+      else continue; // cannot identify — drop
+    }
+
+    // Mandi identity: NEVER invent. If the upstream did not return a
+    // mandi name, the row is dropped because persisting a synthetic
+    // mandi label would lie to the farmer about which mandi the price
+    // came from.
+    if (!out.mkt_name && !out.market) continue;
+
+    // Variety — accept either spell from upstream, but do NOT fall
+    // back to the commodity group (that's a category, not a variety).
+    if (!out.variety && !out.variety_name && typeof out.cmdt_grp_name === 'string') {
       out.variety = out.cmdt_grp_name;
+    }
 
-    // Price mapping. Aggregate has one price point per commodity per
-    // state per day ("as_on_price"). We use it as modalPrice for the
-    // state as a whole; minPrice and maxPrice are only set when the
-    // upstream provides a range (rare in the aggregate shape).
+    // Price mapping. Preserve whatever upstream supplies. Aggregate
+    // rows typically ship only `as_on_price` (a single point). We use
+    // it as modalPrice and EXPLICITLY DO NOT back-fill min_price /
+    // max_price from it. Absence means absence.
     const modalRaw = out.modal_price ?? out.modalPrice ?? out.as_on_price;
     if (modalRaw !== undefined) {
       out.modal_price = String(modalRaw);
-      if (out.min_price === undefined && out.minPrice === undefined) {
-        out.min_price = String(modalRaw);
-      }
-      if (out.max_price === undefined && out.maxPrice === undefined) {
-        out.max_price = String(modalRaw);
-      }
+      // Intentionally NOT setting min_price / max_price here.
     }
 
-    // Arrival date.
+    // Arrival date — accept any of the upstream spellings, fall back
+    // to reported_date, then to the caller's fallbackDate.
     if (!out.arrival_date && !out.date && !out.price_date) {
       out.arrival_date = out.reported_date ?? fallbackDate;
     }
 
-    // Arrival qty — accept both string and number forms.
+    // Arrival qty — accept both string and number forms from upstream.
     if (
       out.arrival_qty === undefined &&
       out.arrival_quantity === undefined &&
@@ -422,12 +469,23 @@ function decorateAgmarknetAggregate(
       if (q !== undefined) out.arrival_qty = String(q);
     }
 
-    // Source URL for traceability.
-    if (!out.sourceUrl) out.sourceUrl = 'agmarknet://marketwise_price_arrival';
-    return out;
-  });
+    // Provenance: tag this row so consumers can distinguish per-mandi
+    // from state-level aggregate. Combined with the dropped rows above,
+    // this is the contract that backs our "no fabrication" claim.
+    out.isAggregate = true;
 
-  // Re-wrap into the same envelope shape we received.
+    // Stable source URL for traceability of aggregate rows.
+    if (!out.sourceUrl) {
+      out.sourceUrl = 'agmarknet://marketwise_price_arrival';
+    }
+
+    decorated.push(out);
+  }
+
+  // Re-wrap into the same envelope shape we received. If the input was
+  // an array we return a fresh array; otherwise we preserve the
+  // original envelope and replace its `records` (and any nested
+  // `data.records`).
   if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
     const o: any = payload;
     const wrapped: any = {...o, records: decorated};

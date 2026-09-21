@@ -64,6 +64,17 @@ export interface MarketPriceRecord {
   /** Provenance / fetch context. */
   fetchStatus: MarketPriceStatus;
   fetchError?: string;
+
+  /**
+   * TRUE when this record was synthesised from an Agmarknet dashboard
+   * *aggregate* response (e.g. `get_dashboard_data` for a state without
+   * per-mandi granularity). Aggregate rows MUST NOT be confused with
+   * per-mandi rows in dashboards: they represent a state-level roll-up,
+   * not a specific mandi. Consumers can suppress aggregates, surface
+   * them with a badge, or downgrade their confidence — but they must
+   * not silently render them as if they were a real mandi price.
+   */
+  isAggregate?: boolean;
 }
 
 export interface MarketIngestionTarget {
