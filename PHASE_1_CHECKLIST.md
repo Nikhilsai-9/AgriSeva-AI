@@ -80,9 +80,15 @@
 ### P3.9 — Add reliability chip + freshness hint 🔴
 - [x] Backend already has `MarketReliabilityService` and `GET /market-prices/reliability`
 - [x] `MarketPricesPage` already has stale/fresh logic (line 35, 88-94)
-- [ ] Add `useReliability()` hook in `frontend/src/features/farmerDashboard/hooks/data.ts`
-- [ ] Render reliability chip in `FarmerHomePage` next to today insight
-- [ ] When reliability score < 60, show soft warning banner in `MarketPricesPage`
+- [x] `useMarketReliability(source?)` already exists in `hooks/data.ts:593`
+- [x] New component: `components/MarketReliabilityChip.tsx`
+  - Band helpers: `bandForScore`, `bandLabel`, `bandClass`, `BandIcon`
+    - A — Excellent (80+) emerald · B — Good (60–79) sky · C — Fair (40–59) amber · D — Limited (0–39) rose
+  - `<ReliabilityChip source="…" />` — inline badge, renders `null` when data missing (never fabricates)
+  - `<ReliabilityFooter />` — per-source strip for `MarketPricesPage` + `MarketComparisonPage`
+  - `<LowReliabilityBanner threshold={60} />` — soft warning when weakest source drops below threshold
+- [x] Wired into `MarketPricesPage` (banner + footer), `FarmerHomePage` (banner + chip), `MarketComparisonPage` (banner + footer)
+- [ ] Optional follow-up: run vitest unit on `bandForScore` / `bandLabel` — pure functions, easy to add when Jest is introduced (PHASE 36)
 
 ---
 
@@ -111,3 +117,4 @@
 |--------|-------|---------|
 | `63b02b85d` | P1.2 + P1.3 | Fabrication fix + tiered watchlist (16 new tests, 51 total) |
 | `a4e8af3e8` | P2.4 + P2.7 | Server-side 5-factor scoring + kill hardcoded "Demo Mandi" (18 new tests, 82 total) |
+| (next)  | P3.9  | Reliability UI surface: chip/footer/banner + `isAggregate` provenance badge |

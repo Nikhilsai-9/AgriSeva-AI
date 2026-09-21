@@ -28,6 +28,10 @@ import {
   FarmerPageContainer,
   FarmerSectionTitle,
 } from "@/features/farmerDashboard/FarmerLayout";
+import {
+  LowReliabilityBanner,
+  ReliabilityFooter,
+} from "./MarketReliabilityChip";
 import { cn } from "@/lib/utils";
 
 const EMPTY_PRICE: MarketPrice[] = [];
@@ -144,6 +148,9 @@ export function MarketPricesPage() {
       >
         {t("farmer.prices.title", "Market Prices")}
       </FarmerSectionTitle>
+
+      {/* PHASE 1 §P3.9 — soft warning when live sources are degraded */}
+      <LowReliabilityBanner />
 
       <FarmerCard className="p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-3 text-emerald-900 font-semibold text-sm">
@@ -282,6 +289,19 @@ export function MarketPricesPage() {
                   <p className="text-xs text-emerald-900/60 truncate flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
                     {p.market}, {p.state}
+                    {/* PHASE 1 §P1.2 — surface state-aggregate provenance */}
+                    {p.isAggregate ? (
+                      <span
+                        data-testid="aggregate-badge"
+                        className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+                        title={t(
+                          "farmer.prices.aggregateHint",
+                          "State-level roll-up, not a specific mandi",
+                        )}
+                      >
+                        {t("farmer.prices.aggregate", "state avg")}
+                      </span>
+                    ) : null}
                   </p>
                 </div>
                 <span
@@ -359,6 +379,9 @@ export function MarketPricesPage() {
           ))}
         </div>
       )}
+
+      {/* PHASE 1 §P3.9 — per-source reliability strip */}
+      <ReliabilityFooter className="pt-3" />
     </FarmerPageContainer>
   );
 }

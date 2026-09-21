@@ -351,6 +351,19 @@ export function LotDetailPage({ lotId }: { lotId: string }) {
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-emerald-900 truncate">
                       {c.price.market}
+                      {/* PHASE 1 §P1.2 — surface state-aggregate provenance */}
+                      {c.price.isAggregate ? (
+                        <span
+                          data-testid="aggregate-badge-lot-detail"
+                          className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider align-middle"
+                          title={t(
+                            "farmer.lotDetail.aggregateHint",
+                            "State-level roll-up, not a specific mandi",
+                          )}
+                        >
+                          {t("farmer.lotDetail.aggregate", "state avg")}
+                        </span>
+                      ) : null}
                     </p>
                     <p className="text-xs text-emerald-900/60 truncate">
                       {c.price.distanceKm ?? 0} km • {c.price.source}

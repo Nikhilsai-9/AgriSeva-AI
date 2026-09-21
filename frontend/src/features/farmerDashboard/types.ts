@@ -64,6 +64,12 @@ export interface MarketPrice {
   commodityGroup?: string;
   /** Quantity arrived in the source's native unit (quintals or tonnes). */
   arrivalQty?: number;
+  /**
+   * PHASE 1 §P1.2 — true when this row is a state-level roll-up
+   * (no real mandi name). UI surfaces a `(state aggregate)` hint.
+   * Absent for genuine per-mandi rows.
+   */
+  isAggregate?: boolean;
 }
 
 export interface MarketPriceResponse {

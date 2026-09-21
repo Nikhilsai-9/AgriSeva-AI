@@ -298,6 +298,13 @@ export interface BackendMarketPricesResponse {
     trendPct?: number | null;
     /** Distance from the requesting village/mandi (UI-only, when known). */
     distanceKm?: number | null;
+    /**
+     * PHASE 1 §P1.2 — provenance flag. True when the row is a state-level
+     * roll-up (no real mandi name on the upstream dashboard response).
+     * UI surfaces a `(state aggregate)` hint so it's never confused with a
+     * real per-mandi price. Absent for genuine per-mandi rows.
+     */
+    isAggregate?: boolean;
   }>;
   total: number;
 }
@@ -354,6 +361,7 @@ const toUiMarketPrice = (
   commodityGroup: r.commodityGroup,
   arrivalQty: r.arrivalQty,
   distanceKm: r.distanceKm ?? undefined,
+  isAggregate: r.isAggregate,
 });
 
 const buildResponseFromBackend = (

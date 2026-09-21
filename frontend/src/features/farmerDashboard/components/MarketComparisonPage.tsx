@@ -31,6 +31,7 @@ import {
   FarmerPageContainer,
   FarmerSectionTitle,
 } from "@/features/farmerDashboard/FarmerLayout";
+import { ReliabilityFooter, LowReliabilityBanner } from "./MarketReliabilityChip";
 import { cn } from "@/lib/utils";
 
 export function MarketComparisonPage() {
@@ -99,6 +100,10 @@ export function MarketComparisonPage() {
         <ArrowLeft className="h-4 w-4" />
         {t("farmer.common.back", "Back")}
       </Link>
+
+      {/* PHASE 1 §P3.9 — soft warning if any active source is degraded */}
+      <LowReliabilityBanner />
+
       <FarmerSectionTitle
         hint={t("farmer.recommend.hint", "Compare all mandis for your active lot side by side.")}
         action={
@@ -165,6 +170,19 @@ export function MarketComparisonPage() {
                       <p className="text-sm font-bold text-emerald-900 truncate">
                         <span className="text-xs text-emerald-900/50 mr-2">{t("farmer.recommend.rankBadge", "#{rank}", { rank: String(idx + 1) })}</span>
                         {c.price.market}
+                        {/* PHASE 1 §P1.2 — surface state-aggregate provenance */}
+                        {c.price.isAggregate ? (
+                          <span
+                            data-testid="aggregate-badge-compare"
+                            className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider align-middle"
+                            title={t(
+                              "farmer.recommend.aggregateHint",
+                              "State-level roll-up, not a specific mandi",
+                            )}
+                          >
+                            {t("farmer.recommend.aggregate", "state avg")}
+                          </span>
+                        ) : null}
                       </p>
                       <p className="text-xs text-emerald-900/70 truncate">
                         {c.price.district}, {c.price.state} - {c.price.distanceKm ?? 0} km - {sourceLabel(c.price)}
@@ -224,6 +242,9 @@ export function MarketComparisonPage() {
           })}
         </div>
       )}
+
+      {/* PHASE 1 §P3.9 — per-source reliability strip */}
+      <ReliabilityFooter className="pt-3" />
     </FarmerPageContainer>
   );
 }

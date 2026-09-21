@@ -38,6 +38,7 @@ import {
   FarmerPageContainer,
   FarmerSectionTitle,
 } from "@/features/farmerDashboard/FarmerLayout";
+import { ReliabilityChip, LowReliabilityBanner } from "./MarketReliabilityChip";
 import { cn } from "@/lib/utils";
 
 const QUICK_ACTIONS = [
@@ -148,6 +149,9 @@ export function FarmerHomePage() {
           </Link>
         </div>
       </FarmerCard>
+
+      {/* PHASE 1 §P3.9 — soft warning if any active source is degraded */}
+      <LowReliabilityBanner />
 
       {/* Best market recommendation card — market intelligence */}
       <FarmerCard className="p-5 sm:p-6 bg-gradient-to-br from-emerald-50 via-white to-sky-50">
@@ -314,27 +318,31 @@ export function FarmerHomePage() {
             "Aggregated from connected mandi sources (demo data)."
           )}
           action={
-            <span
-              data-testid="home-insight-source-badge"
-              className={cn(
-                "text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                (insight as any)?.isDemo || !insight
-                  ? "bg-amber-100 text-amber-800"
+            <div className="flex items-center gap-2">
+              <span
+                data-testid="home-insight-source-badge"
+                className={cn(
+                  "text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                  (insight as any)?.isDemo || !insight
+                    ? "bg-amber-100 text-amber-800"
+                    : (insight as any)?.source === "agmarknet"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : (insight as any)?.source === "enam"
+                    ? "bg-sky-100 text-sky-800"
+                    : "bg-amber-100 text-amber-800",
+                )}
+              >
+                {(insight as any)?.isDemo || !insight
+                  ? "DEMO"
                   : (insight as any)?.source === "agmarknet"
-                  ? "bg-emerald-100 text-emerald-800"
+                  ? "AGMARKNET"
                   : (insight as any)?.source === "enam"
-                  ? "bg-sky-100 text-sky-800"
-                  : "bg-amber-100 text-amber-800",
-              )}
-            >
-              {(insight as any)?.isDemo || !insight
-                ? "DEMO"
-                : (insight as any)?.source === "agmarknet"
-                ? "AGMARKNET"
-                : (insight as any)?.source === "enam"
-                ? "eNAM"
-                : "LIVE"}
-            </span>
+                  ? "eNAM"
+                  : "LIVE"}
+              </span>
+              {/* PHASE 1 §P3.9 — show reliability for the active insight source */}
+              <ReliabilityChip source={(insight as any)?.source ?? "agmarknet"} />
+            </div>
           }
         >
           {t("farmer.home.todaysInsight", "Today's Market Insight")}
