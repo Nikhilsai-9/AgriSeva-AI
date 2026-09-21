@@ -81,9 +81,56 @@ export const RELIABILITY_TIERS = {
 
 // ──────────────────────────────────────────────────────────────────────────
 // Source labels (for the "Source" chip on every market-price surface)
+//
+// PHASE 1 §P2.7 — `MARKET_SOURCE_LABEL` and `MANDI_SOURCE_LABEL` were
+// hardcoded fallbacks that the previous `sourceLabel(price)` always
+// returned, hiding the true provenance of every mandi price. They are
+// kept here ONLY for backward compatibility — please call
+// `sourceLabel(price)` (in `./recommendation`) or
+// `getSourceLabel(source, isDemo)` instead so the UI never silently
+// mislabels real data as "Demo".
 // ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * @deprecated Since PHASE 1 §P2.7. Call `sourceLabel(price)` from
+ * `./recommendation` so each record is labelled by its actual
+ * `price.source`. This constant remains ONLY as a fallback when
+ * `price.source` is the empty string (legacy demo fixtures).
+ */
 export const MARKET_SOURCE_LABEL = "Demo";
+
+/**
+ * @deprecated Since PHASE 1 §P2.7. No longer returned by `sourceLabel`
+ * under any branch — kept ONLY so external code that imported the
+ * constant name keeps compiling. Will be removed in PHASE 2.
+ */
 export const MANDI_SOURCE_LABEL = "Demo Mandi";
+
+/**
+ * PHASE 1 §P2.7 — canonical label resolver for a price record.
+ *
+ * @param source    The record's `price.source` (lowercase string id).
+ * @param isDemo    Optional override flag — when `true`, the function
+ *                  returns `MARKET_SOURCE_LABEL` ("Demo") regardless of
+ *                  `source` so older UI paths that branch on `isDemo`
+ *                  still get an honest label.
+ */
+export function getSourceLabel(source: string | undefined, isDemo?: boolean): string {
+  if (isDemo === true) return MARKET_SOURCE_LABEL;
+  const s = (source ?? "").toLowerCase();
+  switch (s) {
+    case "agmarknet":
+    case "mcp-agmarknet":
+      return "Agmarknet (data.gov.in)";
+    case "enam":
+    case "mcp-enam":
+      return "eNAM";
+    case "":
+      return MARKET_SOURCE_LABEL;
+    default:
+      return `Source: ${source ?? "unknown"}`;
+  }
+}
 
 // ──────────────────────────────────────────────────────────────────────────
 // Currency symbol used by the dashboard

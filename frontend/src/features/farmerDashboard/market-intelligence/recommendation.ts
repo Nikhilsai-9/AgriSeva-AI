@@ -20,7 +20,7 @@
 import {
   RECOMMENDATION_WEIGHTS,
   MAX_DISTANCE_KM,
-  MANDI_SOURCE_LABEL,
+  MARKET_SOURCE_LABEL,
 } from "./constants";
 import {
   computeRealisableValue,
@@ -251,15 +251,38 @@ export function recommendBestMarketForLot({
 }
 
 /**
- * Helper: a human-readable "Source" chip label.
- * Today every UI surface shows `MANDI_SOURCE_LABEL` ("Demo") because
- * the data is demo; once the MCP server is wired up this will switch
- * to `price.source` (e.g. "data.gov.in").
+ * PHASE 1 §P2.7 — kill the hardcoded "Demo Mandi" / "Demo" label.
+ *
+ * The previous implementation always returned `MANDI_SOURCE_LABEL`
+ * ("Demo Mandi") regardless of the actual `price.source`. That was a
+ * lie: every record arriving from the live backend has an honest
+ * `source` value (`agmarknet`, `enam`, `mcp-agmarknet`, etc.) that we
+ * should surface so the UI can be truthful about provenance.
+ *
+ * Branches:
+ *   • `price` undefined → explicit "Unknown source" (no record at all).
+ *   • `price.source` ∈ {agmarknet, enam, mcp-agmarknet, mcp-enam}
+ *                       → human-friendly upstream label.
+ *   • anything else    → MARKET_SOURCE_LABEL ("Demo") as a visible
+ *                        fallback so we never silently call real data
+ *                        "Demo", but we DO flag unknown sources
+ *                        explicitly so they get investigated.
  */
 export function sourceLabel(price: MarketPrice | undefined): string {
-  // Today every mandi price in the demo is sourced from `MANDI_SOURCE_LABEL`.
-  // Once the MCP server is wired up, this can branch on a per-price flag
-  // (e.g. `price.sourceOverride`) to show "data.gov.in" etc.
-  void price;
-  return MANDI_SOURCE_LABEL;
+  if (!price) return "Unknown source";
+  const s = (price.source ?? "").toLowerCase();
+  switch (s) {
+    case "agmarknet":
+    case "mcp-agmarknet":
+      return "Agmarknet (data.gov.in)";
+    case "enam":
+    case "mcp-enam":
+      return "eNAM";
+    case "":
+      return MARKET_SOURCE_LABEL; // legacy demo records
+    default:
+      // Unknown source — never silently fall back to "Demo Mandi".
+      // Show the source id so the inconsistency is visible.
+      return `Source: ${price.source}`;
+  }
 }

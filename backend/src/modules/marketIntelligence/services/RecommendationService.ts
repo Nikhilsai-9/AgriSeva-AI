@@ -2,26 +2,34 @@
  * RecommendationService — server-side thin wrapper that runs the
  * existing frontend recommendation engine server-side.
  *
- * Reuses the pure scoring logic implemented in
- * `frontend/src/features/farmerDashboard/market-intelligence/recommendation.ts`
- * via a shared util that ships with the module.
+ * PHASE 1 §P2.4 — this service used to sort by `modalPrice` alone
+ * (single-factor). It now uses the shared 5-factor scoring defined
+ * in `./scoring.ts` and flags the recommendation as `isDegraded`
+ * because the server endpoint does not receive a `FarmerLot` /
+ * `Buyer[]` / `Grievance[]` (FE-only domain objects).
  *
- * For now the frontend engines stay client-side (small, pure, and
- * already battle-tested). The server endpoint exists so the backend
- * can compute recommendations when desired without forcing the
- * frontend to ship its weights in production.
+ * The frontend engines (`recommendBestMarketForLot`,
+ * `use-market-match.ts`) remain in place for per-lot decisions on
+ * `FarmerHomePage`, `MarketComparisonPage`, etc. — they need
+ * FE-only data that the server has no way of knowing.
  *
- * If `buyers`/`grievances` are not provided the engine DEGRADES to a
- * price-only comparison (still useful) and explicitly flags this in
- * the response so the UI can label the recommendation accordingly.
+ * PHASE 1 §P2.4 STOP-condition: do not RETIRE the FE engine. The
+ * server-side scoring is a SUPERSET for the comparison endpoint
+ * only; the FE engine continues to power lot-specific
+ * recommendations.
  */
 
 import {inject, injectable} from 'inversify';
 import {GLOBAL_TYPES} from '#root/types.js';
 import {MarketPriceRepository} from '../repositories/MarketPriceRepository.js';
 import {MarketHistoryService} from './MarketHistoryService.js';
+import {
+  scoreRows,
+  isDegradedMode,
+} from './scoring.js';
 import type {MarketComparisonRow, MarketPriceRecord} from '../types.js';
 
+/** A scored server recommendation — superset of the old shape. */
 export interface ServerRecommendation {
   market: string;
   state: string;
@@ -32,7 +40,18 @@ export interface ServerRecommendation {
   arrivalDate: string;
   source: MarketPriceRecord['source'];
   sourceSystem: string;
-  reason: string;
+  /** Top-4 reasons ordered by raw contribution to the score. */
+  reasons: string[];
+  /** 0..100 weighted score (1 decimal). */
+  score: number;
+  /** Sub-scores for each factor (0..100). */
+  breakdown: {
+    netValue: number;
+    distance: number;
+    demand: number;
+    paymentReliability: number;
+    qualityMatch: number;
+  };
 }
 
 @injectable()
@@ -47,6 +66,10 @@ export class RecommendationService {
   /**
    * Build a price-based comparison row set + a server-side "best of N"
    * recommendation. Pure; no I/O beyond the price repo.
+   *
+   * PHASE 1 §P2.4: the recommendation now uses 5-factor scoring
+   * (see `./scoring.ts`) and the response includes `isDegraded: true`
+   * because no `FarmerLot`/`Buyer[]`/`Grievance[]` is supplied.
    */
   public async compare(input: {
     commodity: string;
@@ -56,6 +79,7 @@ export class RecommendationService {
     rows: MarketComparisonRow[];
     recommendation: ServerRecommendation | null;
     isDemo: boolean;
+    isDegraded: boolean;
     fetchedAt: string;
   }> {
     const limit = Math.max(1, Math.min(input.limit ?? 25, 100));
@@ -94,33 +118,32 @@ export class RecommendationService {
         sourceSystem: r.sourceSystem,
       }));
 
-    const recommendation =
-      rows.length === 0
-        ? null
-        : rows
-            .filter(r => typeof r.modalPrice === 'number')
-            .sort((a, b) => (b.modalPrice ?? 0) - (a.modalPrice ?? 0))[0];
+    // 5-factor scoring (PHASE 1 §P2.4).
+    const scored = scoreRows(rows);
+    const top = scored[0];
 
     return {
       rows,
-      recommendation: recommendation
+      recommendation: top
         ? {
-            market: recommendation.market,
-            state: recommendation.state,
-            district: recommendation.district,
-            commodity: recommendation.commodity,
-            modalPrice: recommendation.modalPrice,
-            unit: recommendation.unit,
-            arrivalDate: recommendation.arrivalDate,
-            source: recommendation.source,
-            sourceSystem: recommendation.sourceSystem,
-            reason: recommendation.modalPrice
-              ? `Highest modal price in the latest comparison set.`
-              : 'No modal price available to rank.',
+            market: top.row.market,
+            state: top.row.state,
+            district: top.row.district,
+            commodity: top.row.commodity,
+            modalPrice: top.row.modalPrice,
+            unit: top.row.unit,
+            arrivalDate: top.row.arrivalDate,
+            source: top.row.source,
+            sourceSystem: top.row.sourceSystem,
+            reasons: top.reasons,
+            score: top.score,
+            breakdown: top.breakdown,
           }
         : null,
       isDemo: rows.length === 0,
+      isDegraded: isDegradedMode(),
       fetchedAt: new Date().toISOString(),
     };
   }
 }
+

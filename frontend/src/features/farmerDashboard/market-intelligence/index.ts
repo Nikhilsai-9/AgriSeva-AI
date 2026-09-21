@@ -15,6 +15,7 @@ export {
   RELIABILITY_TIERS,
   MARKET_SOURCE_LABEL,
   MANDI_SOURCE_LABEL,
+  getSourceLabel,
   RUPEE_SYMBOL,
 } from "./constants";
 

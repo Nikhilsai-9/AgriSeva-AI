@@ -47,6 +47,7 @@ export class MarketComparisonController {
     return {
       success: true,
       isDemo: r.isDemo,
+      isDegraded: r.isDegraded,
       fetchedAt: r.fetchedAt,
       commodity: query.commodity,
       rows: r.rows,
