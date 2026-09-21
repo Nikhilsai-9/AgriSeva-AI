@@ -1,4 +1,4 @@
-﻿import {
+import {
   Truck, MapPin, Calendar, Package, ShieldCheck, Check,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
@@ -38,7 +38,7 @@ export function LogisticsPage() {
     <FarmerPageContainer className="space-y-5">
       <FarmerSectionTitle
         hint={t("farmer.logistics.hint", "Transport options from aggregators and FPO partners. Demo dataset.")}
-        action={<span className="text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Demo</span>}
+        action={<span className="text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{t("farmer.common.sourceDemo", "Demo")}</span>}
       >
         {t("farmer.logistics.title", "Logistics & Transport")}
       </FarmerSectionTitle>

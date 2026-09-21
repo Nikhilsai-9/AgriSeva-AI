@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Warehouse,
   Snowflake,
@@ -83,7 +83,7 @@ export function StoragePage() {
     <FarmerPageContainer className="space-y-5">
       <FarmerSectionTitle
         hint={t("farmer.storage.hint", "Cold storage and warehousing facilities near your farm. Demo dataset.")}
-        action={<span className="text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Demo</span>}
+        action={<span className="text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{t("farmer.common.sourceDemo", "Demo")}</span>}
       >
         {t("farmer.storage.title", "Storage Facilities")}
       </FarmerSectionTitle>

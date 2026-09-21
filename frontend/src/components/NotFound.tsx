@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Home,
   Tractor,
@@ -8,8 +8,10 @@ import {
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { PageMeta } from "@/components/PageMeta";
+import { useTranslation } from "@/locales";
 
 export const NotFound = () => {
+  const { t } = useTranslation();
   const [_timestamp, setTimestamp] = useState(new Date().toISOString());
 
   useEffect(() => {
@@ -23,8 +25,8 @@ export const NotFound = () => {
   return (
     <div className="min-h-screen bg-background dark:bg-slate-950 flex flex-col items-center justify-center p-4 sm:p-6 text-center overflow-hidden transition-colors duration-500 relative font-sans">
       <PageMeta
-        title="Page not found"
-        description="The page you requested could not be found on AgriSeva-AI. Return to the landing page or visit your Farmer Dashboard."
+        title={t("common.notFoundTitle", "Page not found")}
+        description={t("common.notFoundDesc", "The page you requested could not be found on AgriSeva-AI. Return to the landing page or visit your Farmer Dashboard.")}
         noindex
       />
 
@@ -54,7 +56,7 @@ export const NotFound = () => {
         <div className="absolute top-1/2 -right-2 sm:-right-10 flex items-center gap-2 text-destructive animate-pulse bg-background/80 px-2 py-1 border border-destructive/20 rounded-sm">
           <ShieldAlert size={16} aria-hidden="true" />
           <span className="text-[10px] font-black uppercase tracking-widest">
-            Signal Lost
+            {t("common.signalLost", "Signal Lost")}
           </span>
         </div>
       </div>
@@ -67,7 +69,7 @@ export const NotFound = () => {
           </h1>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <h2 className="text-2xl sm:text-5xl font-black text-foreground tracking-tight">
-              AREA UNSURVEYED
+              {t("common.notFoundHeader", "AREA UNSURVEYED")}
             </h2>
             <div className="h-1 w-32 sm:w-48 bg-primary mt-2 flex justify-between">
               <div className="w-2 h-full bg-background" />
@@ -78,10 +80,10 @@ export const NotFound = () => {
 
         <div className="max-w-lg mx-auto p-4 border border-primary/10 bg-primary/5 rounded-sm backdrop-blur-sm">
           <p className="text-xs sm:text-sm text-muted-foreground font-mono leading-relaxed uppercase tracking-tight">
-            The page you are looking for could not be found on AgriSeva-AI.
+            {t("common.notFoundDesc", "The page you are looking for could not be found on AgriSeva-AI.")}
           </p>
           <p className="text-xs sm:text-sm text-muted-foreground font-mono leading-relaxed uppercase tracking-tight mt-2 opacity-70">
-            The link may be outdated or you may have followed a broken URL.
+            {t("common.notFoundHint", "The link may be outdated or you may have followed a broken URL.")}
           </p>
         </div>
       </div>
@@ -93,7 +95,7 @@ export const NotFound = () => {
           className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-primary text-primary-foreground font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] transition-all hover:opacity-90 active:scale-[0.98] border border-primary/20 rounded-sm shadow-lg"
         >
           <Home size={18} aria-hidden="true" />
-          Back to home
+          {t("common.backToHome", "Back to home")}
         </Link>
 
         <Link
@@ -101,7 +103,7 @@ export const NotFound = () => {
           className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-emerald-700 text-white font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] transition-all hover:bg-emerald-800 active:scale-[0.98] border border-emerald-800/30 rounded-sm shadow-lg"
         >
           <Sprout size={18} aria-hidden="true" />
-          Farmer Dashboard
+          {t("nav.farmerDashboard", "Farmer Dashboard")}
         </Link>
 
         <button
@@ -110,7 +112,7 @@ export const NotFound = () => {
           className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-slate-900 text-white font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] transition-all hover:bg-slate-800 active:scale-[0.98] border border-white/10 rounded-sm shadow-lg"
         >
           <Compass size={18} className="animate-spin-slow" aria-hidden="true" />
-          Go back
+          {t("common.goBack", "Go back")}
         </button>
       </div>
 

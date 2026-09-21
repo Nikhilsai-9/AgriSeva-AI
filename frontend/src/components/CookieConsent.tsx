@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Cookie, Settings2, ShieldCheck, BarChart3 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "@/locales";
 
 /**
  * GDPR / India DPDP-style consent banner for the AgriSeva-AI frontend.
@@ -62,6 +63,7 @@ async function applyAnalyticsConsent(state: Exclude<ConsentState, "unknown">) {
   }
 }
 export function CookieConsent() {
+  const { t } = useTranslation();
   const [state, setState] = useState<ConsentState>("unknown");
   const [expanded, setExpanded] = useState(false);
 
@@ -100,18 +102,15 @@ export function CookieConsent() {
             id="cookie-consent-title"
             className="text-sm font-bold text-emerald-900 inline-flex items-center gap-1.5"
           >
-            <Cookie size={14} aria-hidden="true" /> Cookies on AgriSeva-AI
+            <Cookie size={14} aria-hidden="true" /> {t("common.cookiesTitle", "Cookies on AgriSeva-AI")}
           </h2>
           <p
             id="cookie-consent-desc"
             className="mt-1 text-xs text-emerald-900/80 leading-relaxed"
           >
-            We use a strictly-necessary cookie to keep you signed in. With your
-            permission we will also enable Firebase Analytics to help us
-            understand usage patterns. You can change your choice at any time
-            from the{" "}
+            {t("common.cookiesDesc", "We use a strictly-necessary cookie to keep you signed in. With your permission we will also enable Firebase Analytics to help us understand usage patterns. You can change your choice at any time from the ")}
             <Link to="/privacy" className="font-semibold underline underline-offset-2 hover:text-emerald-700">
-              Privacy Policy
+              {t("common.privacyPolicy", "Privacy Policy")}
             </Link>
             .
           </p>
@@ -120,7 +119,7 @@ export function CookieConsent() {
             <ul className="mt-3 grid gap-2 sm:grid-cols-2 text-xs text-emerald-900/85">
               <li className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-2.5">
                 <p className="font-bold inline-flex items-center gap-1">
-                  <ShieldCheck size={12} aria-hidden="true" /> Strictly necessary
+                  <ShieldCheck size={12} aria-hidden="true" /> {t("common.strictlyNecessary", "Strictly necessary")}
                 </p>
                 <p className="text-emerald-900/70 mt-0.5">
                   Firebase Auth session. Cannot be disabled.
@@ -128,7 +127,7 @@ export function CookieConsent() {
               </li>
               <li className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-2.5">
                 <p className="font-bold inline-flex items-center gap-1">
-                  <BarChart3 size={12} aria-hidden="true" /> Analytics
+                  <BarChart3 size={12} aria-hidden="true" /> {t("common.analytics", "Analytics")}
                 </p>
                 <p className="text-emerald-900/70 mt-0.5">
                   Firebase Analytics (_ga, _gid). Used only with consent.
@@ -142,7 +141,7 @@ export function CookieConsent() {
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
           className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50"
-          aria-label={expanded ? "Hide cookie details" : "Show cookie details"}
+          aria-label={expanded ? t("common.hideDetails", "Hide cookie details") : t("common.showDetails", "Show cookie details")}
         >
           <Settings2 size={16} aria-hidden="true" />
         </button>
@@ -154,14 +153,14 @@ export function CookieConsent() {
           onClick={reject}
           className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold text-emerald-900 border border-emerald-200 hover:bg-emerald-50 transition-colors"
         >
-          Reject analytics
+          {t("common.rejectAnalytics", "Reject analytics")}
         </button>
         <button
           type="button"
           onClick={accept}
           className="flex-1 px-4 py-2 rounded-lg text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 transition-colors shadow"
         >
-          Accept analytics
+          {t("common.acceptAnalytics", "Accept analytics")}
         </button>
       </div>
     </div>

@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { AgriSevaBrand } from "@/components/AgriSevaBrand";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "@/locales";
 
 /**
  * Shared shell + sidebar used by Privacy and Terms pages so the two
@@ -65,6 +67,7 @@ function ScrollSpy({ sections }: { sections: LegalSection[] }) {
 }
 
 export function LegalPage(props: LegalPageProps) {
+  const { t } = useTranslation();
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.location.hash) {
@@ -83,12 +86,15 @@ export function LegalPage(props: LegalPageProps) {
           <Link to="/" aria-label="AgriSeva-AI home" className="block">
             <AgriSevaBrand size="sm" showSlogan={false} />
           </Link>
-          <Link
-            to="/"
-            className="text-sm font-semibold text-emerald-800 hover:text-emerald-600 inline-flex items-center gap-1"
-          >
-            <Globe size={14} /> Back to site
-          </Link>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher variant="outline" />
+            <Link
+              to="/"
+              className="text-sm font-semibold text-emerald-800 hover:text-emerald-600 inline-flex items-center gap-1"
+            >
+              <Globe size={14} /> {t("common.backToHome", "Back to site")}
+            </Link>
+          </div>
         </div>
       </header>
 

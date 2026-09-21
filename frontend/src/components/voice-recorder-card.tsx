@@ -38,6 +38,7 @@ import {
 import { Skeleton } from "./atoms/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./atoms/tooltip";
 import { useSendAudioChunk } from "@/hooks/api/context/useSendAudioChunk";
+import { useTranslation } from "@/locales";
 
 export interface GeneratedQuestion {
   id: string;
@@ -85,6 +86,7 @@ const supportedLanguages: {
 ];
 
 export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
+  const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState(``);
   const [isListening, setIsListening] = useState(false);
@@ -310,7 +312,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                   <div className="p-2 rounded-lg bg-primary/10">
                     <Volume2 className="h-4 w-4 text-primary" />
                   </div>
-                  Voice Recorder
+                  {t("common.voiceRecorder", "Voice Recorder")}
                 </CardTitle>
                 <Select
                   value={language}
@@ -322,7 +324,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                   <SelectTrigger className="w-full md:w-[160px] h-9">
                     <Speech className="w-4 h-4" />
                     <span className="hidden md:block text-sm">
-                      <SelectValue placeholder="Language" />
+                      <SelectValue placeholder={t("common.selectLanguage", "Language")} />
                     </span>
                   </SelectTrigger>
                   <SelectContent>
@@ -346,7 +348,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                     "h-12 w-12 rounded-full flex-shrink-0 self-center sm:self-auto",
                     isRecording && "animate-pulse"
                   )}
-                  title="Toggle recording"
+                  title={t("common.toggleRecording", "Toggle recording")}
                 >
                   {isRecording ? (
                     <MicOff className="h-5 w-5" />
@@ -398,10 +400,10 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Transcript</Label>
+                  <Label className="text-sm font-medium">{t("common.transcript", "Transcript")}</Label>
                   {transcript.length > 0 && (
                     <span className="text-xs text-muted-foreground">
-                      {transcript.length} chars
+                      {transcript.length} {t("common.chars", "chars")}
                     </span>
                   )}
                 </div>
@@ -410,7 +412,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                   <div className="h-full w-full overflow-y-auto rounded-md border bg-background/50 p-3 text-sm whitespace-pre-wrap break-words">
                     {!transcript ? (
                       <span className="text-muted-foreground">
-                        Your speech will appear here...
+                        {t("common.speechPlaceholder", "Your speech will appear here...")}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">
@@ -418,7 +420,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                         {isLoadingRemainingTranscript && (
                           <span className="flex items-center gap-1">
                             <Loader2 className="w-4 h-4 animate-spin" />{" "}
-                            Loading...
+                            {t("common.loading", "Loading...")}
                           </span>
                         )}
                       </span>
@@ -436,18 +438,18 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                     className="flex items-center gap-1"
                   >
                     <RotateCcw className="h-4 w-4" />
-                    <span>Clear</span>
+                    <span>{t("common.clear", "Clear")}</span>
                   </Button>
 
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={!transcript.trim() || isPending || isRecording}
-                      size="sm"
-                      className="flex items-center gap-1 shadow-sm"
-                    >
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!transcript.trim() || isPending || isRecording}
+                    size="sm"
+                    className="flex items-center gap-1 shadow-sm"
+                  >
                     <Send className="h-3 w-3" />
                     <span className="text-xs">
-                      {isPending ? "Sending..." : "Submit"}
+                      {isPending ? t("common.sending", "Sending...") : t("common.submit", "Submit")}
                     </span>
                   </Button>
                 </div>
@@ -464,11 +466,11 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                       <div className="p-2 rounded-lg bg-primary/10">
                         <HelpCircle className="h-5 w-5 text-primary" />
                       </div>
-                      Questions
+                      {t("common.questionsGenerated", "Questions")}
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    These are questions generated from your transcript
+                    {t("common.questionsGeneratedHint", "These are questions generated from your transcript")}
                   </TooltipContent>
                 </Tooltip>
                 <Badge variant="outline">{questions?.length} questions</Badge>

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "@/locales";
 
 interface AgriSevaBrandProps {
   className?: string;
@@ -13,6 +14,7 @@ export function AgriSevaBrand({
   showSlogan = true,
   align = "left",
 }: AgriSevaBrandProps) {
+  const { t } = useTranslation();
   const isCenter = align === "center";
 
   // Sizing configurations
@@ -131,7 +133,7 @@ export function AgriSevaBrand({
               fontFamily: "'Georgia', 'Cambria', serif",
             }}
           >
-            Every Farmer a King, with AI by their side.
+            {t("common.slogan", "Every Farmer a King, with AI by their side.")}
           </p>
         )}
       </div>

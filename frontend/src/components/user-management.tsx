@@ -30,8 +30,10 @@ import { GateKeeperAuditorDashboard } from "./GateKeeperAuditorDashboard";
 import { Dashboard } from "./dashboard";
 import { Button } from "./atoms/button";
 import { UserFiltersDialog } from "./UserFiltersDialog";
+import { useTranslation } from "@/locales";
 
 export const UserManagement = ({ currentUser }: { currentUser?: IUser }) => {
+  const { t } = useTranslation();
   const [selectExpertId, setSelectExpertId] = useState<string>("");
   const [rankPostion, setRankPosition] = useState<number>(0);
   const [search, setSearch] = useState("");
@@ -168,7 +170,7 @@ export const UserManagement = ({ currentUser }: { currentUser?: IUser }) => {
                         d="M17 8l4 4m0 0l-4 4m4-4H3"
                       />
                     </svg>
-                    <span className="leading-none">Exit</span>
+                    <span className="leading-none">{t("dashboard.exit", "Exit")}</span>
                   </Button>
                 </div>
                 <Dashboard />
@@ -209,7 +211,7 @@ export const UserManagement = ({ currentUser }: { currentUser?: IUser }) => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 
                 <Input
-                  placeholder="Search users..."
+                  placeholder={t("dashboard.searchUsers", "Search users...")}
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -239,7 +241,7 @@ export const UserManagement = ({ currentUser }: { currentUser?: IUser }) => {
                   }`}
                 >
                   {showSensitive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  {showSensitive ? "Hide Info" : "Show Info"}
+                  {showSensitive ? t("dashboard.hideInfo", "Hide Info") : t("dashboard.showInfo", "Show Info")}
                 </button>
               )}
 
@@ -255,7 +257,7 @@ export const UserManagement = ({ currentUser }: { currentUser?: IUser }) => {
                     : "bg-background text-muted-foreground border-input hover:text-foreground"
                 }`}
               >
-                Internal
+                {t("dashboard.internal", "Internal")}
               </button>
 
               {/* External Button */}
@@ -270,7 +272,7 @@ export const UserManagement = ({ currentUser }: { currentUser?: IUser }) => {
                     : "bg-background text-muted-foreground border-input hover:text-foreground"
                 }`}
               >
-                External
+                {t("dashboard.external", "External")}
               </button>
             </div>
 
