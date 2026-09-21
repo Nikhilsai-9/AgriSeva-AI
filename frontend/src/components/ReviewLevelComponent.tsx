@@ -57,6 +57,7 @@ import {
   Tooltip,
 } from "recharts";
 import { useRestartOnView } from "@/hooks/ui/useRestartView";
+import { useTranslation } from "@/locales";
 interface DateRange {
   startTime?: Date;
   endTime?: Date;
@@ -115,6 +116,7 @@ const defaultFilters: Filters = {
   userId: "all",
 };
 export const ReviewLevelComponent = () => {
+  const { t } = useTranslation();
   const { data: userNameReponse, isLoading } = useGetAllUsers();
   const { data: statesResponse = [] } = useGetStates();
   const stateOptions = statesResponse.map((s) => s.stateNameEnglish);
@@ -201,10 +203,10 @@ export const ReviewLevelComponent = () => {
     }
 
     if (parts.length === 0) {
-      return "Showing distribution of questions passed at each review level.";
+      return t("dashboard.reviewStageDesc", "Showing distribution of questions passed at each review level.");
     }
 
-    return `Showing distribution of questions passed at each review level.\nFiltered by • ${parts.join(" • ")}`;
+    return `${t("dashboard.reviewStageDesc", "Showing distribution of questions passed at each review level.")}\n${t("dashboard.activeFilters", "Filtered by")} • ${parts.join(" • ")}`;
   };
 
   return (
@@ -214,7 +216,7 @@ export const ReviewLevelComponent = () => {
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="relative">
-              <CardTitle className="mb-2">Review Stage Distribution</CardTitle>
+              <CardTitle className="mb-2">{t("dashboard.reviewStageTitle", "Review Stage Distribution")}</CardTitle>
               <CardDescription className="whitespace-pre-line">
                 {getDescription()}
               </CardDescription>
@@ -225,19 +227,19 @@ export const ReviewLevelComponent = () => {
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2 absolute right-20 ">
                   <Filter className="h-4 w-4 text-primary" />
-                  Preferences
+                  {t("dashboard.preferences", "Preferences")}
                 </Button>
               </DialogTrigger>
 
               <DialogContent className="sm:max-w-2xl max-w-[95vw] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Filter Options</DialogTitle>
+                  <DialogTitle>{t("dashboard.filterOptions", "Filter Options")}</DialogTitle>
                 </DialogHeader>
 
                 {/* Filter Body */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                   <FilterSelect
-                    label="States / Regions"
+                    label={t("dashboard.tableState", "States / Regions")}
                     value={draftFilters.state}
                     options={stateOptions}
                     onChange={(val) => updateDraft("state", val)}
@@ -250,14 +252,14 @@ export const ReviewLevelComponent = () => {
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold flex items-center gap-2">
                       <Sprout className="h-4 w-4 text-primary" />
-                      Crops
+                      {t("dashboard.tableCrop", "Crops")}
                     </Label>
                     <Select value={draftFilters.normalised_crop} onValueChange={(val) => updateDraft("normalised_crop", val)}>
                       <SelectTrigger className="hover:bg-accent/50 hover:text-accent-foreground transition-colors">
-                        <SelectValue placeholder="Select Crop" />
+                        <SelectValue placeholder={t("dashboard.selectCrop", "Select Crop")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Crops</SelectItem>
+                        <SelectItem value="all">{t("dashboard.allCrops", "All Crops")}</SelectItem>
                         {dbCrops.length > 0
                           ? dbCrops.map((crop) => (
                               <SelectItem key={crop._id || crop.name} value={crop.name}>
@@ -277,7 +279,7 @@ export const ReviewLevelComponent = () => {
                   </div>
 
                   <FilterSelect
-                    label="Domains"
+                    label={t("dashboard.byDomain", "Domains")}
                     value={draftFilters.domain}
                     options={DOMAINS}
                     onChange={(val) => updateDraft("domain", val)}
@@ -285,7 +287,7 @@ export const ReviewLevelComponent = () => {
                   />
 
                   <FilterSelect
-                    label="Status"
+                    label={t("dashboard.tableStatus", "Status")}
                     value={draftFilters.status}
                     options={STATUS}
                     onChange={(val) => updateDraft("status", val)}
@@ -300,7 +302,7 @@ export const ReviewLevelComponent = () => {
                   <div className="space-y-2 min-w-0">
                     <Label className="flex items-center gap-2 text-sm font-semibold">
                       <UserIcon className="h-4 w-4 text-primary" />
-                      User
+                      {t("dashboard.userRolesOverview", "User")}
                       <UITooltip>
                         <TooltipTrigger asChild>
                           <button
@@ -333,12 +335,12 @@ export const ReviewLevelComponent = () => {
                           <div className="flex items-center justify-center p-3">
                             <Loader2 className="h-4 w-4 animate-spin text-primary" />
                             <span className="ml-2 text-sm text-muted-foreground">
-                              Loading users...
+                              {t("common.loading", "Loading users...")}
                             </span>
                           </div>
                         ) : (
                           <>
-                            <SelectItem value="all">All Users</SelectItem>
+                            <SelectItem value="all">{t("dashboard.allUsersOption", "All Users")}</SelectItem>
                             {users?.map((u) => (
                               <SelectItem key={u._id} value={u._id}>
                                 {u.userName}
@@ -359,10 +361,10 @@ export const ReviewLevelComponent = () => {
 
                 <DialogFooter className="gap-2 mt-4">
                   <Button variant="outline" onClick={handleClearFilters}>
-                    Clear
+                    {t("common.clear", "Clear")}
                   </Button>
 
-                  <Button onClick={handleApplyFilters}>Apply Filters</Button>
+                  <Button onClick={handleApplyFilters}>{t("dashboard.applyFilters", "Apply Filters")}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -375,7 +377,7 @@ export const ReviewLevelComponent = () => {
               <Loader2 className="animate-spin w-6 h-6 mx-auto text-primary" />
             ) : !reviewLevel || reviewLevel.length === 0 ? (
               <div className="text-center py-10 text-muted-foreground">
-                No Details found
+                {t("dashboard.noDataFound", "No Details found")}
               </div>
             ) : (
               <BarChart
@@ -404,7 +406,7 @@ export const ReviewLevelComponent = () => {
                 <Bar
                   dataKey="completedTasks"
                   fill="var(--color-chart-1)"
-                  name="Completed Tasks"
+                  name={t("dashboard.completedTasks", "Completed Tasks")}
                 />
               </BarChart>
             )}

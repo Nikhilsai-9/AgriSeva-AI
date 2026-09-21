@@ -379,10 +379,10 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                       {isRecording ? (
                         <>
                           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                          Recording...
+                          {t("common.recording", "Recording...")}
                         </>
                       ) : (
-                        "Click microphone to start"
+                        t("common.clickMicToStart", "Click microphone to start")
                       )}
                     </div>
                   )}
@@ -392,7 +392,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                   {transcript && !isRecording && (
                     <div className="flex items-center gap-1 text-green-600">
                       <CheckCircle className="w-4 h-4" />
-                      <span className="text-xs font-medium">Done</span>
+                      <span className="text-xs font-medium">{t("common.done", "Done")}</span>
                     </div>
                   )}
                 </div>
@@ -473,7 +473,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                     {t("common.questionsGeneratedHint", "These are questions generated from your transcript")}
                   </TooltipContent>
                 </Tooltip>
-                <Badge variant="outline">{questions?.length} questions</Badge>
+                <Badge variant="outline">{questions?.length} {t("dashboard.questionsCount", "questions")}</Badge>
               </CardTitle>
             </CardHeader>
 
@@ -490,8 +490,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                     <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground">
                       <Lightbulb className="h-12 w-12 mb-4 opacity-50" />
                       <p className="text-sm">
-                        Start speaking to related questions based on your
-                        transcript
+                        {t("common.startSpeakingHint", "Start speaking to see related questions based on your transcript")}
                       </p>
                     </div>
                   ) : (
@@ -537,7 +536,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                                         d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                                       />
                                     </svg>
-                                    View Expert Answer
+                                    {t("common.viewExpertAnswer", "View Expert Answer")}
                                   </div>
                                 </AccordionTrigger>
                                 
@@ -559,7 +558,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                                           />
                                         </svg>
                                         <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                                         RefernceSource
+                                         {t("common.referenceSource", "Reference Source")}
                                         </span>
                                       </div>
 

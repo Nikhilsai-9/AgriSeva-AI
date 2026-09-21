@@ -160,7 +160,7 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
         <div className="grid w-full gap-3 lg:grid-cols-[minmax(160px,220px)_minmax(0,1fr)] 2xl:max-w-[520px]">
           <div className="flex min-w-0 flex-col gap-1">
             <label className="text-xs font-medium text-muted-foreground">
-              Select Date
+              {t("dashboard.selectDate", "Select Date")}
             </label>
             <input
               type="date"
@@ -172,7 +172,7 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
 
           <div className="flex min-w-0 flex-col gap-1">
             <label className="text-xs font-medium text-muted-foreground">
-              Active Time Window
+              {t("dashboard.activeTimeWindow", "Active Time Window")}
             </label>
             <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
               <input
@@ -253,7 +253,7 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
                   </Select>
                 )}
                 <Badge variant="outline" className="shrink-0 text-xs">
-                  {roleRows.length} roles
+                  {roleRows.length} {t("dashboard.rolesCount", "roles")}
                 </Badge>
               </div>
             </div>
@@ -273,7 +273,12 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
                             style={{ backgroundColor: item.fill }}
                           />
                           <span className="truncate text-sm font-medium text-foreground">
-                            {item.role}
+                            {item.role === "Experts" ? t("dashboard.experts", "Experts") :
+                             item.role === "Moderators" ? t("dashboard.moderators", "Moderators") :
+                             item.role === "Admins" ? t("dashboard.admins", "Admins") :
+                             item.role === "PAE Experts" ? t("dashboard.paeExperts", "PAE Experts") :
+                             item.role === "District Coordinators" ? t("dashboard.districtCoordinators", "District Coordinators") :
+                             item.role}
                           </span>
                         </div>
 
@@ -285,8 +290,8 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
                               className="border-dashed border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
                             >
                               {item.role === "Experts"
-                                ? "STF Experts"
-                                : "STF Moderators"}
+                                ? t("dashboard.activeExperts", "STF Experts")
+                                : t("dashboard.activeModerators", "STF Moderators")}
                               : {item.stfCount}
                             </Badge>
                           </div>
@@ -295,7 +300,7 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
 
                       <div className="shrink-0 text-right">
                         <div className="text-xs text-muted-foreground">
-                          Active
+                          {t("dashboard.activeStatus", "Active")}
                         </div>
                         <div className="text-lg font-semibold text-foreground">
                           <CountUp
@@ -317,7 +322,7 @@ export const ModeratorsOverview: React.FC<ModeratorsOverviewProps> = ({
 
       <CardFooter className="flex-col gap-2 text-sm">
         <div className="leading-none text-muted-foreground">
-          Showing active users by role, with STF badges for expert and moderator teams
+          {t("dashboard.overviewFooter", "Showing active users by role, with STF badges for expert and moderator teams")}
         </div>
       </CardFooter>
     </Card>

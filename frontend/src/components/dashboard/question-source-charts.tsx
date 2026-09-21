@@ -8,6 +8,7 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { MessageSquare } from "lucide-react";
 import CountUp from "react-countup";
+import { useTranslation } from "@/locales";
 
 interface QuestionSourceChartsProps {
   whatsappCount: number;
@@ -23,19 +24,20 @@ export const QuestionSourceCharts = ({
   whatsappCount,
   agrisevaCount,
 }: QuestionSourceChartsProps) => {
+  const { t } = useTranslation();
   const totalQuestions = whatsappCount + agrisevaCount;
 
   const data = [
-    { name: "WhatsApp", value: whatsappCount },
-    { name: "AgriSeva-AI", value: agrisevaCount },
+    { name: t("dashboard.sourceWhatsApp", "WhatsApp"), value: whatsappCount },
+    { name: t("dashboard.sourceAgriSeva", "AgriSeva-AI"), value: agrisevaCount },
   ];
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Question Sources</CardTitle>
+        <CardTitle className="text-base">{t("dashboard.questionSourcesTitle", "Question Sources")}</CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
-          Distribution of questions by source
+          {t("dashboard.questionSourcesDesc", "Distribution of questions by source")}
         </p>
       </CardHeader>
       <CardContent>

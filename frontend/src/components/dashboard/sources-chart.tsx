@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/atoms/select";
 import { useRestartOnView } from "@/hooks/ui/useRestartView";
+import { useTranslation } from "@/locales";
 export const description = "An interactive area chart";
 const chartConfig = {
   visitors: {
@@ -57,6 +58,7 @@ export const SourcesChart: React.FC<SourcesChartProps> = ({
   timeRange,
   setTimeRange,
 }) => {
+  const { t } = useTranslation();
   const {ref,key} = useRestartOnView()
 
 
@@ -64,10 +66,9 @@ export const SourcesChart: React.FC<SourcesChartProps> = ({
     <Card ref={ref} className="pt-0">
       <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
         <div className="grid flex-1 gap-1">
-          <CardTitle>Question Contribution Analysis</CardTitle>
+          <CardTitle>{t("dashboard.contributionAnalysisTitle", "Question Contribution Analysis")}</CardTitle>
           <CardDescription>
-            Interactive chart showing questions added by Arjasakha and
-            Moderators over time
+            {t("dashboard.contributionAnalysisDesc", "Interactive chart showing questions added by AgriSeva-AI and Moderators over time")}
           </CardDescription>
         </div>
 
@@ -76,17 +77,17 @@ export const SourcesChart: React.FC<SourcesChartProps> = ({
             className="hidden w-[160px] rounded-lg sm:ml-auto sm:flex"
             aria-label="Select a value"
           >
-            <SelectValue placeholder="Last 3 months" />
+            <SelectValue placeholder={t("dashboard.last90Days", "Last 3 months")} />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
             <SelectItem value="90d" className="rounded-lg">
-              Last 3 months
+              {t("dashboard.last90Days", "Last 3 months")}
             </SelectItem>
             <SelectItem value="30d" className="rounded-lg">
-              Last 30 days
+              {t("dashboard.last30Days", "Last 30 days")}
             </SelectItem>
             <SelectItem value="7d" className="rounded-lg">
-              Last 7 days
+              {t("dashboard.last7Days", "Last 7 days")}
             </SelectItem>
           </SelectContent>
         </Select>

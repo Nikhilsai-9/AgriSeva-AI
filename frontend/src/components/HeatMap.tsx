@@ -10,10 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./atoms/select";
-
+import { useTranslation } from "@/locales";
 
 export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
-
+  const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -36,7 +36,7 @@ export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
         <div className="flex items-center justify-center min-h-[450px]">
           <div className="flex flex-col items-center gap-3">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            <p className="text-sm text-muted-foreground">Loading heatmap data...</p>
+            <p className="text-sm text-muted-foreground">{t("dashboard.loadingHeatMap", "Loading heatmap data...")}</p>
           </div>
         </div>
       </div>
@@ -47,7 +47,7 @@ export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
     return (
       <div className="min-w-[80vw] border rounded-lg overflow-auto text-gray-900 dark:text-white">
         <div className="flex items-center justify-center min-h-[450px]">
-          <p className="text-sm text-muted-foreground">No reviewer performance data found.</p>
+          <p className="text-sm text-muted-foreground">{t("dashboard.noReviewerData", "No reviewer performance data found.")}</p>
         </div>
       </div>
     );
@@ -158,7 +158,7 @@ export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
             tickSize: 5,
             tickPadding: 5,
             tickRotation: 0,
-            legend: "Experts vs Turnaround Time",
+            legend: t("dashboard.heatMapTitle", "Experts vs Turnaround Time"),
             legendPosition: "start",
             legendOffset: -40, // move text UP so it's visible above ticks
           }}
@@ -166,7 +166,7 @@ export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
             tickSize: 5,
             tickPadding: 5,
             tickRotation: 0,
-            legend: "Turnaround Time (hrs)",
+            legend: t("dashboard.turnaroundTime", "Turnaround Time (hrs)"),
             legendPosition: "middle",
             legendOffset: 40,
           }}
@@ -174,7 +174,7 @@ export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
             tickSize: 15,
             tickPadding: 5,
             tickRotation: 0,
-            legend: "Experts",
+            legend: t("dashboard.experts", "Experts"),
             legendPosition: "middle",
             legendOffset: -190,
             format: (value) => truncate(value),
@@ -189,7 +189,7 @@ export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
               thickness: 12, // thickness of color bar
               tickSize: 3,
               tickSpacing: 4,
-              title: "Turnaround (hrs)",
+              title: t("dashboard.turnaroundTime", "Turnaround (hrs)"),
               titleAlign: "start",
               titleOffset: 6,
             },
@@ -198,7 +198,7 @@ export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
         />
       </div>
       <div>
-        <div className="md:hidden mt-10">Experts vs Turnaround Time</div>
+        <div className="md:hidden mt-10">{t("dashboard.heatMapTitle", "Experts vs Turnaround Time")}</div>
       </div>
       <div className="overflow-x-auto w-[80vw] mt-4 border rounded-lg md:hidden ">
         <table className="min-w-[90vw] border-collapse w-full text-sm">
@@ -206,14 +206,14 @@ export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
           <thead>
             <tr className="bg-gray-200 text-gray-800">
               <th className="p-3 text-left left-0 bg-gray-200 z-10">
-                Reviewer
+                {t("dashboard.reviewer", "Reviewer")}
               </th>
               {allBuckets.map((bucket, index) => (
                 <th
                   key={`${bucket}-${index}`}
                   className="px-4 py-2 whitespace-nowrap text-center"
                 >
-                  {bucket.replace("_", "–").replace("plus", "+")} hrs
+                  {bucket.replace("_", "–").replace("plus", "+")} {t("dashboard.hoursUnit", "hrs")}
                 </th>
               ))}
             </tr>
@@ -253,12 +253,12 @@ export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
       <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 dark:bg-background">
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-700 dark:text-gray-300">
-            Showing {startItem}-{endItem} of{" "}
-            {totalItems} experts
+            {t("dashboard.showingCount", "Showing")} {startItem}-{endItem} {t("dashboard.ofTotal", "of")}{" "}
+            {totalItems} {t("dashboard.experts", "experts")}
           </span>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              Rows per page:
+              {t("dashboard.rowsPerPage", "Rows per page:")}
             </span>
             <Select
               value={itemsPerPage.toString()}
@@ -288,7 +288,7 @@ export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
             disabled={currentPage === 1}
             className="px-3"
           >
-            Previous
+            {t("common.previous", "Previous")}
           </Button>
           
           {/* Page Numbers */}
@@ -342,7 +342,7 @@ export default function HeatMap({ heatMapDate }: { heatMapDate: DateRange }) {
             disabled={currentPage === totalPages}
             className="px-3"
           >
-            Next
+            {t("common.next", "Next")}
           </Button>
         </div>
       </div>

@@ -40,6 +40,7 @@ import { useRestartOnView } from "@/hooks/ui/useRestartView";
 import { Spinner } from "@/components/atoms/spinner";
 import { TimePicker } from "./time-picker";
 import { TopRightBadge } from "../NewBadge";
+import { useTranslation } from "@/locales";
 
 // Helper function to safely convert decimal hours to formatted "Xh Ym"
 // We convert entirely to minutes first to avoid floating point issues (e.g., "0h 60m")
@@ -126,6 +127,7 @@ export const GoldenDatasetOverview = ({
   customEndDateTime,
   setCustomEndDateTime,
 }: GoldenDatasetOverviewProps) => {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modSearch, setModSearch] = useState("");
 
@@ -180,10 +182,10 @@ export const GoldenDatasetOverview = ({
 
   const getChartLabel = () => {
     let baseLabel = "";
-    if (viewType === "year") baseLabel = "Monthly Overview - All 12 Months";
-    else if (viewType === "month") baseLabel = `${selectedMonth} - Weekly Breakdown`;
-    else if (viewType === "week") baseLabel = `${selectedMonth} ${selectedWeek} - Daily Breakdown`;
-    else if (viewType === "day") baseLabel = `${selectedMonth} ${selectedWeek} ${selectedDay} - Hourly Breakdown`;
+    if (viewType === "year") baseLabel = t("dashboard.yearOverview", "Monthly Overview - All 12 Months");
+    else if (viewType === "month") baseLabel = `${selectedMonth} - ${t("dashboard.weeklyBreakdown", "Weekly Breakdown")}`;
+    else if (viewType === "week") baseLabel = `${selectedMonth} ${selectedWeek} - ${t("dashboard.dailyBreakdown", "Daily Breakdown")}`;
+    else if (viewType === "day") baseLabel = `${selectedMonth} ${selectedWeek} ${selectedDay} - ${t("dashboard.hourlyBreakdown", "Hourly Breakdown")}`;
     
     if (customStartDateTime && customEndDateTime) {
       return `${baseLabel} (${customStartDateTime} - ${customEndDateTime})`;
@@ -220,13 +222,13 @@ export const GoldenDatasetOverview = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">
-                  Total Entries
+                  {t("dashboard.totalEntries", "Total Entries")}
                 </p>
                 <p className="text-3xl font-bold text-foreground">
                   <CountUp key={`totalEntries-${key}`} end={data?.todayApproved ?? 0} duration={2} preserveValue />
                   </p>
                 <p className="text-xs text-green-600 mt-2 font-medium">
-                  Total Questions Added in Golden DB  Today{" "}
+                  {t("dashboard.todayVerifiedTooltip", "Total Questions Added in Golden DB Today")}
                 </p>
               </div>
               <Database className="w-8 h-8 text-chart-1 opacity-60" />
@@ -239,13 +241,13 @@ export const GoldenDatasetOverview = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">
-                  Verified Entries
+                  {t("dashboard.totalVerified", "Verified Entries")}
                 </p>
                 <p className="text-3xl font-bold text-foreground">
                   <CountUp key={`verifiedEntries-${key}`} end={data?.verifiedEntries ?? 0} duration={2} preserveValue /> 
                 </p>
                 <p className="text-xs text-green-600 mt-2 font-medium">
-                  Total questions verified through review/approval process
+                  {t("dashboard.responseAdherenceDesc", "Total questions verified through review/approval process")}
                 </p>
               </div>
               <CheckCircle2 className="w-8 h-8 text-chart-2 opacity-60" />
@@ -258,7 +260,7 @@ export const GoldenDatasetOverview = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">
-                  Current Period
+                  {t("dashboard.todayApproved", "Today Approved")}
                 </p>
                     <p className="text-3xl font-bold text-foreground cursor-help">
                       <CountUp key={`currentPeriod-${key}`} end={data?.totalVerifiedByType ?? 0} duration={2} preserveValue /> 
@@ -405,7 +407,7 @@ export const GoldenDatasetOverview = ({
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <CardTitle className="mb-2">Golden Dataset Analytics</CardTitle>
+              <CardTitle className="mb-2">{t("dashboard.goldenDatasetTitle", "Golden Dataset Analytics")}</CardTitle>
               <CardDescription>{getChartLabel()}</CardDescription>
             </div>
 
@@ -418,7 +420,7 @@ export const GoldenDatasetOverview = ({
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 }`}
             >
-              Year
+              {t("dashboard.viewYear", "Year")}
             </button>
             <button
               onClick={() => setViewType("month")}
@@ -428,7 +430,7 @@ export const GoldenDatasetOverview = ({
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 }`}
             >
-              Month
+              {t("dashboard.viewMonth", "Month")}
             </button>
             <button
               onClick={() => setViewType("week")}
@@ -438,7 +440,7 @@ export const GoldenDatasetOverview = ({
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 }`}
             >
-              Week
+              {t("dashboard.viewWeek", "Week")}
             </button>
             <button
               onClick={() => setViewType("day")}
@@ -448,7 +450,7 @@ export const GoldenDatasetOverview = ({
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 }`}
             >
-              Day
+              {t("dashboard.viewDay", "Day")}
             </button>
           </div>
           </div>
@@ -456,7 +458,7 @@ export const GoldenDatasetOverview = ({
           <div className="flex flex-wrap gap-3 mt-4">
             <Select value={selectedYear} onValueChange={setSelectedYear}>
               <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="Select Year" />
+                <SelectValue placeholder={t("dashboard.selectYear", "Select Year")} />
               </SelectTrigger>
               <SelectContent>
                 {getLast10Years().map((year) => (
@@ -472,7 +474,7 @@ export const GoldenDatasetOverview = ({
                 <>
                   <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                     <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="Select Month" />
+                      <SelectValue placeholder={t("dashboard.selectMonth", "Select Month")} />
                     </SelectTrigger>
                     <SelectContent>
                       {monthNames.map((month) => (
@@ -488,7 +490,7 @@ export const GoldenDatasetOverview = ({
             {(viewType === "week" || viewType === "day") && (
               <Select value={selectedWeek} onValueChange={setSelectedWeek}>
                 <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Select Week" />
+                  <SelectValue placeholder={t("dashboard.selectWeek", "Select Week")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Week 1">Week 1</SelectItem>
@@ -503,7 +505,7 @@ export const GoldenDatasetOverview = ({
             {viewType === "day" && (
               <Select value={selectedDay} onValueChange={setSelectedDay}>
                 <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Select Day" />
+                  <SelectValue placeholder={t("dashboard.selectDay", "Select Day")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Mon">Mon</SelectItem>
@@ -523,12 +525,12 @@ export const GoldenDatasetOverview = ({
               <TimePicker
                 value={customStartDateTime || ""}
                 onChange={setCustomStartDateTime}
-                label="Start Time"
+                label={t("dashboard.startTime", "Start Time")}
               />
               <TimePicker
                 value={customEndDateTime || ""}
                 onChange={setCustomEndDateTime}
-                label="End Time"
+                label={t("dashboard.endTime", "End Time")}
               />
             </div>
           </div>
@@ -570,7 +572,7 @@ export const GoldenDatasetOverview = ({
                  <Bar
                   dataKey="entries"
                   fill="var(--color-chart-1)"
-                  name="Total Entries"
+                  name={t("dashboard.totalEntries", "Total Entries")}
                   isAnimationActive={true}
                   animationDuration={800}
                   animationBegin={0}
@@ -578,7 +580,7 @@ export const GoldenDatasetOverview = ({
                 <Bar
                   dataKey="verified"
                   fill="var(--color-chart-2)"
-                  name="Verified Entries"
+                  name={t("dashboard.totalVerified", "Verified Entries")}
                   isAnimationActive={true}
                   animationDuration={800}
                   animationBegin={200}
@@ -617,15 +619,15 @@ export const GoldenDatasetOverview = ({
                   type="monotone"
                   dataKey="entries"
                   stroke="var(--color-chart-1)"
+                  name={t("dashboard.totalEntries", "Total Entries")}
                   strokeWidth={2}
-                  name="Total Entries"
                 />
                 <Line
                   type="monotone"
                   dataKey="verified"
                   stroke="var(--color-chart-2)"
+                  name={t("dashboard.totalVerified", "Verified Entries")}
                   strokeWidth={2}
-                  name="Verified Entries"
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -43,6 +43,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../atoms/dialog";
+import { useTranslation } from "@/locales";
 import { Button } from "../atoms/button";
 import { MultiSelect } from "../atoms/MultiSelect";
 import {
@@ -263,6 +264,7 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
   analyticsCrop,
   setAnalyticsCrop,
 }) => {
+  const { t } = useTranslation();
 
   const { ref, key } = useRestartOnView();
 
@@ -378,9 +380,9 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
     <Card ref={ref}>
       <CardHeader className="flex flex-row items-center justify-between gap-4 mb-2">
         <div>
-          <CardTitle className="mb-2">Questions & Answers Analytics</CardTitle>
+          <CardTitle className="mb-2">{t("dashboard.questionsAnalyticsTitle", "Questions & Answers Analytics")}</CardTitle>
           <CardDescription>
-            Breakdown by crop, state, and domain
+            {t("dashboard.breakdownCropStateDomain", "Breakdown by crop, state, and domain")}
           </CardDescription>
         </div>
 
@@ -393,19 +395,19 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
             title="Download table as CSV"
           >
             <Download className="h-4 w-4 text-primary" />
-            Download
+            {t("common.download", "Download")}
           </Button>
 
           <Dialog open={openFilter} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
             <Button variant="outline" className="gap-2">
               <Filter className="h-4 w-4 text-primary" />
-              Preferences
+              {t("dashboard.preferences", "Preferences")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-xl max-w-[95vw] max-h-[90vh] overflow-y-auto min-h-[420px]">
             <DialogHeader>
-              <DialogTitle>Analytics Preferences</DialogTitle>
+              <DialogTitle>{t("dashboard.analyticsPreferences", "Analytics Preferences")}</DialogTitle>
             </DialogHeader>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
@@ -413,13 +415,13 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <Filter className="h-4 w-4 text-primary" />
-                    Status
+                    {t("dashboard.tableStatus", "Status")}
                   </Label>
                   <MultiSelect
                     items={STATUS_OPTIONS}
                     selected={draftFilters.status}
                     onChange={(val) => setDraftFilters((prev) => ({ ...prev, status: val }))}
-                    placeholder="All Statuses"
+                    placeholder={t("dashboard.allStatuses", "All Statuses")}
                   />
                 </div>
 
@@ -427,13 +429,13 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <Filter className="h-4 w-4 text-primary" />
-                    Crop
+                    {t("dashboard.tableCrop", "Crop")}
                   </Label>
                   <MultiSelect
                     items={CROP_OPTIONS}
                     selected={draftFilters.crop}
                     onChange={(val) => setDraftFilters((prev) => ({ ...prev, crop: val }))}
-                    placeholder="All Crops"
+                    placeholder={t("dashboard.allCrops", "All Crops")}
                   />
                 </div>
 
@@ -441,13 +443,13 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-primary" />
-                    State
+                    {t("dashboard.tableState", "State")}
                   </Label>
                   <MultiSelect
                     items={stateOptions}
                     selected={draftFilters.state}
                     onChange={(val) => setDraftFilters((prev) => ({ ...prev, state: val }))}
-                    placeholder="All States"
+                    placeholder={t("dashboard.allStates", "All States")}
                   />
                 </div>
 
@@ -455,13 +457,13 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <Filter className="h-4 w-4 text-primary" />
-                    Source
+                    {t("dashboard.tableSource", "Source")}
                   </Label>
                   <MultiSelect
                     items={sourceOptions}
                     selected={draftFilters.source}
                     onChange={(val) => setDraftFilters((prev) => ({ ...prev, source: val }))}
-                    placeholder="All Sources"
+                    placeholder={t("dashboard.allSources", "All Sources")}
                   />
                 </div>
 
@@ -469,7 +471,7 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4 text-primary" />
-                    Date Range
+                    {t("dashboard.dateRange", "Date Range")}
                   </Label>
 
                   <Button
@@ -490,7 +492,7 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
                         <span className="truncate text-xs">{format(draftFilters.dateRange.startTime, "MMM d, yy")} – pick end</span>
                       )
                     ) : (
-                      <span className="text-muted-foreground text-xs">Select date range</span>
+                      <span className="text-muted-foreground text-xs">{t("dashboard.selectDateRange", "Select date range")}</span>
                     )}
                   </Button>
 
@@ -519,10 +521,10 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
               </div>
             <DialogFooter className="gap-2 pt-2 border-t">
               <Button variant="outline" onClick={handleClearFilters}>
-                Clear
+                {t("common.clear", "Clear")}
               </Button>
               <Button onClick={handleApplyFilters}>
-                Apply Filters
+                {t("dashboard.applyFilters", "Apply Filters")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -532,16 +534,16 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
       <CardContent>
         <Tabs defaultValue="crop" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="crop">By Crop</TabsTrigger>
-            <TabsTrigger value="state">By State</TabsTrigger>
-            <TabsTrigger value="domain">By Domain</TabsTrigger>
+            <TabsTrigger value="crop">{t("dashboard.byCrop", "By Crop")}</TabsTrigger>
+            <TabsTrigger value="state">{t("dashboard.byState", "By State")}</TabsTrigger>
+            <TabsTrigger value="domain">{t("dashboard.byDomain", "By Domain")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="crop" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-4">
-                  Crop Distribution
+                  {t("dashboard.cropDistribution", "Crop Distribution")}
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart key={`crop-${key}`}>
@@ -578,7 +580,7 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
               </div>
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-foreground mb-4">
-                  Crop Breakdown
+                  {t("dashboard.cropBreakdown", "Crop Breakdown")}
                 </h3>
 
                 <ScrollArea className="h-72 rounded-md border p-1">
@@ -613,7 +615,7 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
 
           <TabsContent value="state" className="mt-6">
             <h3 className="text-sm font-semibold text-foreground mb-4">
-              Questions by State
+              {t("dashboard.stateDistribution", "Questions by State")}
             </h3>
             <ResponsiveContainer width="100%" height={350}>
               <BarChart key={`bar-${key}`} data={data.stateData}>
@@ -652,7 +654,7 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-4">
-                  Domain Distribution
+                  {t("dashboard.domainDistribution", "Domain Distribution")}
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart key={`domainDistribution-${key}`}>
@@ -682,7 +684,7 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
               </div>
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-foreground mb-4">
-                  Domain Breakdown
+                  {t("dashboard.domainBreakdown", "Domain Breakdown")}
                 </h3>
 
                 <ScrollArea className="h-72 rounded-md border p-1">
@@ -747,30 +749,30 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
           return (
             <div className="mt-8">
               <h3 className="text-sm font-semibold text-foreground mb-3">
-                Status Breakdown by State, Crop & Source
+                {t("dashboard.statusBreakdownTable", "Status Breakdown by State, Crop & Source")}
               </h3>
               <div className="rounded-lg border overflow-auto max-h-[480px]">
                 <Table>
                   <TableHeader className="sticky top-0 z-10">
                     <TableRow className="bg-muted/80 backdrop-blur-sm hover:bg-muted/80">
-                      <TableHead className="w-[160px] min-w-[160px] max-w-[160px] font-semibold sticky left-0 z-20 bg-muted/80 backdrop-blur-sm border-r border-border">State</TableHead>
-                      <TableHead className="w-[200px] min-w-[200px] max-w-[200px] font-semibold sticky left-[160px] z-20 bg-muted/80 backdrop-blur-sm border-r border-border">Crop</TableHead>
-                      <TableHead className="w-[150px] min-w-[150px] max-w-[150px] font-semibold sticky left-[360px] z-20 bg-muted/80 backdrop-blur-sm border-r border-border">Source</TableHead>
-                      <TableHead className="text-center min-w-[60px] text-emerald-600 dark:text-emerald-400 font-semibold">Open</TableHead>
-                      <TableHead className="text-center min-w-[80px] text-sky-600 dark:text-sky-400 font-semibold">In Review</TableHead>
-                      <TableHead className="text-center min-w-[60px] text-rose-600 dark:text-rose-400 font-semibold">Closed</TableHead>
-                      <TableHead className="text-center min-w-[70px] text-amber-600 dark:text-amber-400 font-semibold">Delayed</TableHead>
-                      <TableHead className="text-center min-w-[80px] text-violet-600 dark:text-violet-400 font-semibold">Re-routed</TableHead>
-                      <TableHead className="text-center min-w-[55px] text-slate-600 dark:text-slate-400 font-semibold">Hold</TableHead>
-                      <TableHead className="text-center min-w-[100px] text-indigo-600 dark:text-indigo-400 font-semibold">PAE Submitted</TableHead>
-                      <TableHead className="text-center min-w-[55px] text-gray-500 dark:text-gray-400 font-semibold">Draft</TableHead>
-                      <TableHead className="text-center min-w-[75px] text-orange-600 dark:text-orange-400 font-semibold">Duplicate</TableHead>
-                      <TableHead className="text-center min-w-[60px] font-bold">Total</TableHead>
+                      <TableHead className="w-[160px] min-w-[160px] max-w-[160px] font-semibold sticky left-0 z-20 bg-muted/80 backdrop-blur-sm border-r border-border">{t("dashboard.tableState", "State")}</TableHead>
+                      <TableHead className="w-[200px] min-w-[200px] max-w-[200px] font-semibold sticky left-[160px] z-20 bg-muted/80 backdrop-blur-sm border-r border-border">{t("dashboard.tableCrop", "Crop")}</TableHead>
+                      <TableHead className="w-[150px] min-w-[150px] max-w-[150px] font-semibold sticky left-[360px] z-20 bg-muted/80 backdrop-blur-sm border-r border-border">{t("dashboard.tableSource", "Source")}</TableHead>
+                      <TableHead className="text-center min-w-[60px] text-emerald-600 dark:text-emerald-400 font-semibold">{t("dashboard.statusOpen", "Open")}</TableHead>
+                      <TableHead className="text-center min-w-[80px] text-sky-600 dark:text-sky-400 font-semibold">{t("dashboard.statusInReview", "In Review")}</TableHead>
+                      <TableHead className="text-center min-w-[60px] text-rose-600 dark:text-rose-400 font-semibold">{t("dashboard.statusClosed", "Closed")}</TableHead>
+                      <TableHead className="text-center min-w-[70px] text-amber-600 dark:text-amber-400 font-semibold">{t("dashboard.statusDelayed", "Delayed")}</TableHead>
+                      <TableHead className="text-center min-w-[80px] text-violet-600 dark:text-violet-400 font-semibold">{t("dashboard.statusReRouted", "Re-routed")}</TableHead>
+                      <TableHead className="text-center min-w-[55px] text-slate-600 dark:text-slate-400 font-semibold">{t("dashboard.statusHold", "Hold")}</TableHead>
+                      <TableHead className="text-center min-w-[100px] text-indigo-600 dark:text-indigo-400 font-semibold">{t("dashboard.statusPaeSubmitted", "PAE Submitted")}</TableHead>
+                      <TableHead className="text-center min-w-[55px] text-gray-500 dark:text-gray-400 font-semibold">{t("dashboard.statusDraft", "Draft")}</TableHead>
+                      <TableHead className="text-center min-w-[75px] text-orange-600 dark:text-orange-400 font-semibold">{t("dashboard.statusDuplicate", "Duplicate")}</TableHead>
+                      <TableHead className="text-center min-w-[60px] font-bold">{t("dashboard.tableTotal", "Total")}</TableHead>
                       <TableHead className="text-center min-w-[110px] text-blue-600 dark:text-blue-400 font-semibold">
                         <UITooltipProvider>
                           <UITooltip>
                             <UITooltipTrigger asChild>
-                              <span className="cursor underline decoration-dotted underline-offset-2">Created At</span>
+                              <span className="cursor underline decoration-dotted underline-offset-2">{t("dashboard.tableCreatedAt", "Created At")}</span>
                             </UITooltipTrigger>
                             <UITooltipContent side="top" className="max-w-[220px] text-center">
                               The earliest question creation date in this group (State × Crop × Source)
@@ -782,7 +784,7 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
                         <UITooltipProvider>
                           <UITooltip>
                             <UITooltipTrigger asChild>
-                              <span className="cursor underline decoration-dotted underline-offset-2">Closed At</span>
+                              <span className="cursor underline decoration-dotted underline-offset-2">{t("dashboard.tableClosedAt", "Closed At")}</span>
                             </UITooltipTrigger>
                             <UITooltipContent side="top" className="max-w-[220px] text-center">
                               The most recent date a question in this group was closed
@@ -790,14 +792,14 @@ export const QuestionsAnalytics: React.FC<QuestionsAnalyticsProps> = ({
                           </UITooltip>
                         </UITooltipProvider>
                       </TableHead>
-                      <TableHead className="text-center min-w-[90px] text-teal-600 dark:text-teal-400 font-semibold">Completion %</TableHead>
+                      <TableHead className="text-center min-w-[90px] text-teal-600 dark:text-teal-400 font-semibold">{t("dashboard.tableCompletion", "Completion %")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {stateGroups.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={16} className="text-center text-muted-foreground py-10">
-                          No data available. Apply filters and try again.
+                          {t("dashboard.noDataFound", "No data available. Apply filters and try again.")}
                         </TableCell>
                       </TableRow>
                     ) : (

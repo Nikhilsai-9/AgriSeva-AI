@@ -460,7 +460,7 @@ export const Dashboard = () => {
             <div className="mb-6">
               <LoadingWrapper
                 loading={isContributionLoading}
-                text="Fetching sources chart..."
+                text={t("dashboard.fetchingSources", "Fetching sources chart...")}
               >
                 <SourcesChart
                   data={contributionData ?? []}
@@ -475,7 +475,7 @@ export const Dashboard = () => {
         <div className="mb-6">
           <LoadingWrapper
             loading={isStatusLoading}
-            text="Fetching status overview..."
+            text={t("dashboard.fetchingStatus", "Fetching status overview...")}
           >
             <StatusCharts
               data={statusData ?? { questions: [], answers: [] }}
@@ -487,7 +487,7 @@ export const Dashboard = () => {
         <div className="mb-6">
           <LoadingWrapper
             loading={isAnalyticsLoading || isAnalyticsFetching}
-            text="Fetching analytics data..."
+            text={t("dashboard.fetchingAnalytics", "Fetching analytics data...")}
           >
             <QuestionsAnalytics
               date={date}
@@ -514,7 +514,7 @@ export const Dashboard = () => {
         <div className="flex flex-col gap-5">
           <LoadingWrapper
             loading={isExpertLoading}
-            text="Fetching expert performance..."
+            text={t("dashboard.fetchingExperts", "Fetching expert performance...")}
           >
             <ExpertsPerformance data={expertData ?? []} />
           </LoadingWrapper>
@@ -522,7 +522,7 @@ export const Dashboard = () => {
             <Card className="border border-muted shadow-sm w-full lg:w-auto flex-1">
               <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                 <CardTitle className="text-xl font-semibold">
-                  Heat Map Of Experts
+                  {t("dashboard.heatMapTitle", "Heat Map Of Experts")}
                 </CardTitle>
 
                 <div className="min-w-[220px]">

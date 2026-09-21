@@ -8,6 +8,8 @@ import {
 import CountUp from "react-countup";
 import { TopRightBadge } from "../NewBadge";
 
+import { useTranslation } from "@/locales";
+
 interface ResponseAdherenceProps {
   totalWhatsapp: number;
   totalAgriSeva: number;
@@ -21,6 +23,7 @@ export const ResponseAdherence = ({
   answeredWithin120WhatsApp,
   answeredWithin120AgriSeva,
 }: ResponseAdherenceProps) => {
+  const { t } = useTranslation();
   // Calculate adherence percentages
   const whatsappAdherence = totalWhatsapp > 0 
     ? (answeredWithin120WhatsApp / totalWhatsapp) * 100 
@@ -33,9 +36,9 @@ export const ResponseAdherence = ({
   return (
     <Card className="relative">
       <CardHeader>
-        <CardTitle className="text-base">Response Adherence (%)</CardTitle>
+        <CardTitle className="text-base">{t("dashboard.responseAdherenceTitle", "Response Adherence (%)")}</CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
-          Percentage of questions answered within 2 hours
+          {t("dashboard.responseAdherenceDesc", "Percentage of questions answered within 2 hours")}
         </p>
         <TopRightBadge label="new" left={0} />
       </CardHeader>
@@ -45,7 +48,7 @@ export const ResponseAdherence = ({
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[var(--color-chart-1)]" />
-              <span className="text-sm font-medium">WhatsApp</span>
+              <span className="text-sm font-medium">{t("dashboard.sourceWhatsApp", "WhatsApp")}</span>
             </div>
             <div className="text-right">
               <span className="text-2xl font-bold">
@@ -57,7 +60,7 @@ export const ResponseAdherence = ({
                 />%
               </span>
               <p className="text-xs text-muted-foreground mt-1">
-                {answeredWithin120WhatsApp} of {totalWhatsapp} questions
+                {answeredWithin120WhatsApp} {t("dashboard.ofTotal", "of")} {totalWhatsapp} {t("dashboard.questionsCount", "questions")}
               </p>
             </div>
           </div>
@@ -66,7 +69,7 @@ export const ResponseAdherence = ({
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[var(--color-chart-2)]" />
-              <span className="text-sm font-medium">AgriSeva-AI</span>
+              <span className="text-sm font-medium">{t("dashboard.sourceAgriSeva", "AgriSeva-AI")}</span>
             </div>
             <div className="text-right">
               <span className="text-2xl font-bold">
@@ -78,7 +81,7 @@ export const ResponseAdherence = ({
                 />%
               </span>
               <p className="text-xs text-muted-foreground mt-1">
-                {answeredWithin120AgriSeva} of {totalAgriSeva} questions
+                {answeredWithin120AgriSeva} {t("dashboard.ofTotal", "of")} {totalAgriSeva} {t("dashboard.questionsCount", "questions")}
               </p>
             </div>
           </div>

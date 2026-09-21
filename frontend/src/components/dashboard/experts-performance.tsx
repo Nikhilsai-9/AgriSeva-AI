@@ -6,6 +6,7 @@ import {
   CardTitle,
 } from "@/components/atoms/card";
 import { useRestartOnView } from "@/hooks/ui/useRestartView";
+import { useTranslation } from "@/locales";
 
 import {
   BarChart,
@@ -26,14 +27,15 @@ export interface ExpertPerformance {
 }
 
 export const ExpertsPerformance = ({ data }: { data: ExpertPerformance[] }) => {
+  const { t } = useTranslation();
   const {ref,key} = useRestartOnView()
   return (
     <div className="space-y-6">
       <Card ref={ref}>
         <CardHeader>
-          <CardTitle>Experts Performance Metrics</CardTitle>
+          <CardTitle>{t("dashboard.expertPerformanceTitle", "Experts Performance Metrics")}</CardTitle>
           <CardDescription>
-            Reputation, incentive, and penalty scores comparison across experts
+            {t("dashboard.expertPerformanceDesc", "Reputation, incentive, and penalty scores comparison across experts")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -70,17 +72,17 @@ export const ExpertsPerformance = ({ data }: { data: ExpertPerformance[] }) => {
               />
               <Bar
                 dataKey="reputation"
-                name="Pending Workload"
+                name={t("dashboard.reputation", "Pending Workload")}
                 fill="hsl(45, 93%, 47%)"
               />
               <Bar 
                 dataKey="incentive" 
-                name="Incentive"
+                name={t("dashboard.incentive", "Incentive")}
                 fill="hsl(142, 76%, 36%)" 
               />
               <Bar 
                 dataKey="penalty" 
-                name="Penalty"
+                name={t("dashboard.penalty", "Penalty")}
                 fill="hsl(0, 84%, 60%)" 
               />
             </BarChart>
