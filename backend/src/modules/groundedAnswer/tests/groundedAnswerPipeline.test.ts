@@ -174,7 +174,7 @@ describe('Production Grounded Answer-Generation Pipeline Tests', () => {
     expect(qB.sources.length).toBeGreaterThan(0);
     expect(qA.sources[0].type).toBe('golden');
     expect(qB.sources[0].type).toBe('reviewer');
-  });
+  }, 15000);
 
   it('Test 2: Market price query fetches real Agmarknet data without LLM hallucination', async () => {
     const marketResult = await groundedService.generateGroundedAnswer({

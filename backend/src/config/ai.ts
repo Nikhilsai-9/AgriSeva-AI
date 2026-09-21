@@ -31,5 +31,7 @@ export const aiConfig = {
   agentSearchUrl: env('AGENT_SEARCH_URL') || 'http://localhost:6002',
   // Gemini Configuration
   geminiModel: env('GEMINI_MODEL') || 'gemini-3.5-flash-lite',
+  geminiFallbackModel: env('GEMINI_FALLBACK_MODEL') || 'gemini-3.6-flash',
   geminiApiKey: env('GEMINI_API_KEY') || '',
 };
+
