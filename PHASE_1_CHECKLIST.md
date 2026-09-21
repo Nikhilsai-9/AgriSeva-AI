@@ -117,4 +117,4 @@
 |--------|-------|---------|
 | `63b02b85d` | P1.2 + P1.3 | Fabrication fix + tiered watchlist (16 new tests, 51 total) |
 | `a4e8af3e8` | P2.4 + P2.7 | Server-side 5-factor scoring + kill hardcoded "Demo Mandi" (18 new tests, 82 total) |
-| (next)  | P3.9  | Reliability UI surface: chip/footer/banner + `isAggregate` provenance badge |
+| `eb02deab6` | P3.9 | Reliability UI surface (chip/footer/banner) + `isAggregate` provenance badge |
