@@ -45,7 +45,7 @@ export function BuyerDetailPage({ buyerId }: { buyerId: string }) {
   const primaryLot =
     lots?.find((l) => l.status === "active") ?? lots?.[0] ?? null;
   const matchScore = buyer
-    ? computeBuyerMatch(buyer, profile, primaryLot)
+    ? computeBuyerMatch(buyer, profile, primaryLot ?? undefined)
     : 0;
 
   // Market intelligence derived values.

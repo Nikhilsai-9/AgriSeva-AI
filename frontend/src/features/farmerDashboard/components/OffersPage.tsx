@@ -54,7 +54,7 @@ export function OffersPage() {
       return;
     }
     await counter.mutateAsync({
-      originalOfferId: counterOpenId,
+      offerId: counterOpenId,
       pricePerKg: price,
       message: counterMessage.trim() || undefined,
     });

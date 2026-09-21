@@ -7,8 +7,11 @@
  * The backend identifies the farmer from the Firebase ID token carried
  * by `apiFetch` — there is no client-supplied farmer header any more.
  *
- * Returns `null` / `[]` on network failure so callers can transparently
- * fall back to in-memory mocks if the backend is offline.
+ * `safeFetch` re-throws on transport / non-2xx failures so callers can
+ * distinguish a successful empty list (`[]`) from a hard error.
+ * Callers MUST NOT silently substitute demo data on error — that
+ * silently masks backend outages and was the root cause of the
+ * "empty remote → fall back to DEMO_*" bug fixed in Sept 2026.
  */
 
 import { apiFetch } from './api-fetch';
@@ -20,13 +23,10 @@ const buildUrl = (path: string): string => {
 };
 
 async function safeFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
-  try {
-    const res = await apiFetch<T>(buildUrl(path), init);
-    return res ?? null;
-  } catch (err) {
-    console.warn(`[transaction-api] ${path} failed`, err);
-    return null;
-  }
+  // Re-throw so callers can render an error state. `apiFetch` already
+  // throws with a useful message on non-2xx / network / timeout.
+  const res = await apiFetch<T>(buildUrl(path), init);
+  return res ?? null;
 }
 
 export interface BuyerResponse {

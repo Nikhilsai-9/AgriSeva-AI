@@ -1,26 +1,25 @@
 /**
  * Farmer Dashboard data hooks — Part 1 (store + core queries).
+ *
+ * All hooks are wired to the real MongoDB-backed backend. There is
+ * no silent fall-back to in-memory demo data on empty / failed
+ * responses — every query returns what the backend said, even if that
+ * is an empty list. The UI renders explicit empty states in that case.
+ *
+ * The only demo fixture still in active use is `market-prices.mock.ts`,
+ * which is consumed by `useMarketPrices` when the backend explicitly
+ * reports `isDemo: true` (i.e. the live Agmarknet / eNAM MCP sources
+ * are unreachable). See `MarketPricesPage` for the surfaced badge.
+ *
+ * The Zustand store below is initialized empty: every mutation goes
+ * through the backend, and the cache invalidation in `onSuccess`
+ * refetches the source of truth.
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { create } from "zustand";
 
-import {
-  DEMO_FARMER_UID,
-  DEMO_LOTS,
-  DEMO_OFFERS,
-  DEMO_GRIEVANCES,
-} from "../mocks/lots.mock";
-import {
-  DEMO_BUYERS,
-} from "../mocks/buyers.mock";
-import { DEMO_FARMER_PROFILE } from "../mocks/farmer-profile.mock";
-import {
-  DEMO_LOGISTICS_OPTIONS,
-  DEMO_STORAGE_OPTIONS,
-  DEMO_PAYMENTS,
-} from "../mocks/logistics.mock";
 import {
   buildDemoMarketPriceResponse,
   DEMO_MARKET_PRICES,
@@ -94,9 +93,12 @@ interface FarmerDashboardState {
 
 export const useFarmerDashboardStore = create<FarmerDashboardState>(
   (set) => ({
-    lots: [...DEMO_LOTS],
-    offers: [...DEMO_OFFERS],
-    grievances: [...DEMO_GRIEVANCES],
+    // Initialized empty: every collection is owned by the backend and
+    // is populated via React Query hooks (`useMyLots`, `useAllMyOffers`,
+    // `useGrievances`, `useStorageBookings`, `useNotifications`).
+    lots: [],
+    offers: [],
+    grievances: [],
     storageBookings: [],
     notifications: [],
     addLot: (lot) =>
@@ -157,13 +159,15 @@ export const useFarmerProfile = () =>
   useQuery<FarmerProfile>({
     queryKey: ["farmer", "profile"],
     queryFn: async () => {
-      // Try the real backend first (Firebase-authenticated). Fall back to
-      // the demo profile when the backend is offline so the UI keeps
-      // working in dev / no-network scenarios.
+      // Strict: backend is the single source of truth for profile data.
+      // On error, the query enters `isError` state and the UI shows a
+      // "Could not load profile" message instead of silently showing
+      // the demo farmer's profile.
       const remote = await fetchMyProfile();
-      if (remote) return remote;
-      await delay(120);
-      return DEMO_FARMER_PROFILE;
+      if (!remote) {
+        throw new Error("Profile not available");
+      }
+      return remote;
     },
     staleTime: 60_000,
   });
@@ -200,8 +204,10 @@ export const useUpdateFarmerProfile = () => {
       };
       if (patch.primaryCrop !== undefined) {
         const current =
-          qc.getQueryData<FarmerProfile>(["farmer", "profile"]) ??
-          DEMO_FARMER_PROFILE;
+          qc.getQueryData<FarmerProfile>(["farmer", "profile"]);
+        if (!current) {
+          throw new Error("Profile not loaded yet");
+        }
         const merged = [
           patch.primaryCrop,
           ...current.primaryCrops.filter((c) => c !== patch.primaryCrop),
@@ -209,55 +215,41 @@ export const useUpdateFarmerProfile = () => {
         backendPatch.primaryCrops = merged;
         delete (backendPatch as Record<string, unknown>).primaryCrop;
       }
-      // `name` is not in the farmerProfile DTO — drop it before sending.
-      delete (backendPatch as Record<string, unknown>).name;
 
-      // Try the real backend. If it fails (network/401/etc), fall back
-      // to a local cache mutation so the UI still feels responsive.
-      const remote = await patchMyProfile(backendPatch);
-      if (remote) return remote;
-      await delay(180);
-      const current =
-        qc.getQueryData<FarmerProfile>(["farmer", "profile"]) ??
-        DEMO_FARMER_PROFILE;
-      const next: FarmerProfile = {
-        ...current,
-        ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
-        ...(patch.state !== undefined ? { state: patch.state } : {}),
-        ...(patch.district !== undefined ? { district: patch.district } : {}),
-        ...(patch.village !== undefined ? { village: patch.village } : {}),
-        ...(patch.preferredLanguage !== undefined
-          ? { preferredLanguage: patch.preferredLanguage }
-          : {}),
-        ...(patch.primaryCrops !== undefined
-          ? { primaryCrops: patch.primaryCrops }
-          : {}),
-        ...(patch.preferredMarkets !== undefined
-          ? { preferredMarkets: patch.preferredMarkets }
-          : {}),
-        ...(patch.fpoMember !== undefined ? { fpoMember: patch.fpoMember } : {}),
-        ...(patch.fpoName !== undefined ? { fpoName: patch.fpoName } : {}),
-        ...(patch.landSizeAcres !== undefined
-          ? { landSizeAcres: patch.landSizeAcres }
-          : {}),
-        ...(patch.experienceYears !== undefined
-          ? { experienceYears: patch.experienceYears }
-          : {}),
-        ...(patch.primaryCrop !== undefined
-          ? {
-              primaryCrops: [
-                patch.primaryCrop,
-                ...current.primaryCrops.filter(
-                  (c) => c !== patch.primaryCrop,
-                ),
-              ],
-            }
-          : {}),
-      };
-      qc.setQueryData(["farmer", "profile"], next);
-      return next;
+      // `name` lives on the IUser document (not the farmerProfile
+      // sub-doc), so route it through `PUT /api/users` with
+      // `firstName` / `lastName`. The farmerProfile patch below
+      // intentionally does not include `name`.
+      const { name, ...farmerProfilePatch } =
+        backendPatch as FarmerProfilePatch;
+
+      let updatedProfile: FarmerProfile | null = null;
+
+      // 1) Patch the farmerProfile sub-doc (phone, location, crops, ...).
+      const profileRes = await patchMyProfile(farmerProfilePatch);
+      if (!profileRes) {
+        throw new Error("Could not save profile");
+      }
+      updatedProfile = profileRes;
+
+      // 2) If the name changed, also PATCH the IUser document via the
+      //    dedicated edit endpoint (UpdateUserDto: firstName / lastName).
+      const trimmedName = (name ?? "").trim();
+      if (trimmedName) {
+        const space = trimmedName.indexOf(" ");
+        const firstName =
+          space === -1 ? trimmedName : trimmedName.slice(0, space);
+        const lastName = space === -1 ? "" : trimmedName.slice(space + 1);
+        const userRes = await updateMyName(firstName, lastName);
+        if (userRes) {
+          updatedProfile = userRes;
+        }
+      }
+
+      return updatedProfile;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      qc.setQueryData(["farmer", "profile"], data);
       qc.invalidateQueries({ queryKey: ["farmer", "profile"] });
     },
   });
@@ -463,8 +455,11 @@ export const useAllMarketPrices = () =>
       }
       if (!res.ok) throw new Error(`market-prices HTTP ${res.status}`);
       const data: BackendMarketPricesResponse = await res.json();
-      // Empty response → fall back to demo (documented contract).
-      if (!data.prices.length) return DEMO_MARKET_PRICES;
+      // Only fall back to demo when the backend explicitly reports
+      // `isDemo: true` (e.g. Agmarknet / eNAM MCP unreachable). An
+      // empty `prices` array is left empty so the UI can render an
+      // honest "No market data for this filter" state.
+      if (data.isDemo) return DEMO_MARKET_PRICES;
       return data.prices.map(toUiMarketPrice);
     },
     staleTime: 60_000,
@@ -493,8 +488,10 @@ export const useTodayInsight = (params?: {
       }
       if (!res.ok) throw new Error(`market-insights HTTP ${res.status}`);
       const data: BackendTodayInsightResponse = await res.json();
-      // Backend explicitly says demo OR no insight: documented demo fallback.
-      if (data.isDemo || !data.insight) return DEMO_TODAY_INSIGHT;
+      // Only fall back to demo when the backend explicitly reports
+      // `isDemo: true`. A null `insight` is returned as null so the
+      // home page can render an honest "No insight yet for today".
+      if (data.isDemo) return DEMO_TODAY_INSIGHT;
       return data.insight;
     },
     staleTime: 60_000,
@@ -689,7 +686,6 @@ import {
 type OfferStatus = Offer["status"];
 type CreateLotPayload = Partial<FarmerLot> & Record<string, unknown>;
 type UpdateLotPayload = Record<string, unknown>;
-type MarkSoldPayload = Record<string, unknown>;
 type GrievanceCreatePayload = Record<string, unknown>;
 type StorageReservePayload = Record<string, unknown>;
 type LogisticsBookPayload = Record<string, unknown>;
@@ -735,23 +731,18 @@ export const useBuyers = (filters?: { state?: string; crop?: string }) =>
   useQuery<Buyer[]>({
     queryKey: ["farmer", "buyers", filters ?? {}],
     queryFn: async () => {
+      // Strict: backend is the source of truth. Empty result → empty UI;
+      // network failure → query enters isError and the page renders the
+      // error state instead of silently showing demo buyers.
       const remote = await fetchBuyers();
-      if (remote && remote.length > 0) {
-        let mapped = remote.map(mapRemoteBuyer);
-        if (filters?.state)
-          mapped = mapped.filter((b) => b.state === filters.state);
-        if (filters?.crop)
-          mapped = mapped.filter((b) =>
-            b.cropsInterested.includes(filters.crop!),
-          );
-        return mapped;
-      }
-      let result = [...DEMO_BUYERS];
-      if (filters?.state) result = result.filter((b) => b.state === filters.state);
+      let mapped = remote.map(mapRemoteBuyer);
+      if (filters?.state)
+        mapped = mapped.filter((b) => b.state === filters.state);
       if (filters?.crop)
-        result = result.filter((b) => b.cropsInterested.includes(filters.crop!));
-      await delay(140);
-      return result;
+        mapped = mapped.filter((b) =>
+          b.cropsInterested.includes(filters.crop!),
+        );
+      return mapped;
     },
     staleTime: 60_000,
   });
@@ -762,9 +753,8 @@ export const useBuyer = (id: string | undefined) =>
     queryFn: async () => {
       if (!id) return null;
       const remote = await fetchBuyer(id);
-      if (remote) return mapRemoteBuyer(remote);
-      await delay(120);
-      return DEMO_BUYERS.find((b) => b.id === id) ?? null;
+      if (!remote) return null;
+      return mapRemoteBuyer(remote);
     },
     enabled: Boolean(id),
     staleTime: 60_000,
@@ -772,67 +762,41 @@ export const useBuyer = (id: string | undefined) =>
 
 // --- Lots -------------------------------------------------------------------
 
-export const useMyLots = () => {
-  const storeLots = useFarmerDashboardStore((s) => s.lots);
-  return useQuery<FarmerLot[]>({
+export const useMyLots = () =>
+  useQuery<FarmerLot[]>({
     queryKey: ["farmer", "myLots"],
     queryFn: async () => {
+      // Strict: backend is the source of truth. Empty result → empty UI;
+      // network failure → query enters isError and the page renders the
+      // error state instead of silently showing demo lots.
       const remote = await fetchMyLots();
-      if (remote && remote.length > 0) return remote as FarmerLot[];
-      await delay(150);
-      return storeLots;
+      return remote as FarmerLot[];
     },
-    initialData: storeLots,
     staleTime: 30_000,
   });
-};
 
-export const useLot = (id: string | undefined) => {
-  const storeLots = useFarmerDashboardStore((s) => s.lots);
-  return useQuery<FarmerLot | null>({
+export const useLot = (id: string | undefined) =>
+  useQuery<FarmerLot | null>({
     queryKey: ["farmer", "lot", id],
     queryFn: async () => {
       if (!id) return null;
       const remote = await fetchLot(id);
-      if (remote) return remote as FarmerLot;
-      await delay(120);
-      return storeLots.find((l) => l.id === id) ?? null;
+      if (!remote) return null;
+      return remote as FarmerLot;
     },
     enabled: Boolean(id),
     staleTime: 30_000,
   });
-};
 
 export const useCreateLot = () => {
   const qc = useQueryClient();
-  const addLot = useFarmerDashboardStore((s) => s.addLot);
   return useMutation<FarmerLot, Error, CreateLotPayload>({
     mutationFn: async (input) => {
       const created = await createLotApi(input as Record<string, unknown>);
-      if (created) return created as FarmerLot;
-      await delay(180);
-      const id = "lot-" + Math.random().toString(36).slice(2, 9);
-      const now = new Date().toISOString();
-      const lot: FarmerLot = {
-        id,
-        farmerId: DEMO_FARMER_UID,
-        crop: (input.crop as string) ?? "Unknown",
-        variety: (input.variety as string) ?? "",
-        quantityKg: Number(input.quantityKg ?? 0),
-        qualityGrade: ((input.qualityGrade as FarmerLot["qualityGrade"]) ?? "B"),
-        qualityNotes: (input.qualityNotes as string) ?? "",
-        expectedPricePerKg: Number(input.expectedPricePerKg ?? 0),
-        state: (input.state as string) ?? "",
-        district: (input.district as string) ?? "",
-        village: (input.village as string) ?? "",
-        harvestDate: (input.harvestDate as string) ?? now.slice(0, 10),
-        images: Array.isArray(input.images) ? (input.images as string[]) : [],
-        status: "active",
-        createdAt: now,
-        isDemo: true,
-      };
-      addLot(lot);
-      return lot;
+      if (!created) {
+        throw new Error("Could not create lot");
+      }
+      return created as FarmerLot;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["farmer", "myLots"] });
@@ -842,36 +806,27 @@ export const useCreateLot = () => {
 
 // --- Offers -----------------------------------------------------------------
 
-export const useOffersForLot = (lotId: string | undefined) => {
-  const storeOffers = useFarmerDashboardStore((s) => s.offers);
-  return useQuery<Offer[]>({
+export const useOffersForLot = (lotId: string | undefined) =>
+  useQuery<Offer[]>({
     queryKey: ["farmer", "offers", "lot", lotId],
     queryFn: async () => {
       if (!lotId) return [];
       const remote = await fetchOffersForLot(lotId);
-      if (remote && remote.length > 0) return remote as Offer[];
-      await delay(120);
-      return storeOffers.filter((o) => o.lotId === lotId);
+      return remote as Offer[];
     },
     enabled: Boolean(lotId),
     staleTime: 30_000,
   });
-};
 
-export const useAllMyOffers = () => {
-  const storeOffers = useFarmerDashboardStore((s) => s.offers);
-  return useQuery<Offer[]>({
+export const useAllMyOffers = () =>
+  useQuery<Offer[]>({
     queryKey: ["farmer", "offers", "all"],
     queryFn: async () => {
       const remote = await fetchAllOffers();
-      if (remote && remote.length > 0) return remote as Offer[];
-      await delay(120);
-      return storeOffers;
+      return remote as Offer[];
     },
-    initialData: storeOffers,
     staleTime: 30_000,
   });
-};
 
 export const useUpdateOfferStatus = () => {
   const qc = useQueryClient();
@@ -879,27 +834,10 @@ export const useUpdateOfferStatus = () => {
   return useMutation<Offer, Error, { offerId: string; status: OfferStatus }>({
     mutationFn: async ({ offerId, status }) => {
       const updated = await updateOfferStatusApi(offerId, status);
-      if (updated) return updated as Offer;
-      await delay(160);
-      updateOffer(offerId, { status });
-      const fallback: Offer = {
-        id: offerId,
-        lotId: "",
-        buyerId: "",
-        buyerName: "Buyer",
-        verified: false,
-        pricePerKg: 0,
-        offeredPricePerKg: 0,
-        amount: 0,
-        totalAmount: 0,
-        quantityKg: 0,
-        validUntil: new Date(Date.now() + 7 * 86400_000).toISOString(),
-        status,
-        terms: "",
-        createdAt: new Date().toISOString(),
-        isDemo: true,
-      };
-      return fallback;
+      if (!updated) {
+        throw new Error("Could not update offer");
+      }
+      return updated as Offer;
     },
     onSuccess: (_data, vars) => {
       updateOffer(vars.offerId, { status: vars.status });
@@ -913,34 +851,17 @@ export const useUpdateOfferStatus = () => {
 export const useCounterOffer = () => {
   const qc = useQueryClient();
   const updateOffer = useFarmerDashboardStore((s) => s.updateOffer);
-  return useMutation<Offer, Error, { offerId: string; pricePerKg: number; terms?: string }>({
-    mutationFn: async ({ offerId, pricePerKg, terms }) => {
-      const counter = await counterOfferApi(offerId, pricePerKg, terms);
-      if (counter) return counter as Offer;
-      await delay(180);
-      updateOffer(offerId, {
-        status: "countered",
-        offeredPricePerKg: pricePerKg,
-        pricePerKg,
-      });
-      const fallback: Offer = {
-        id: offerId,
-        lotId: "",
-        buyerId: "",
-        buyerName: "Buyer",
-        verified: false,
-        pricePerKg,
-        offeredPricePerKg: pricePerKg,
-        amount: 0,
-        totalAmount: 0,
-        quantityKg: 0,
-        validUntil: new Date(Date.now() + 7 * 86400_000).toISOString(),
-        status: "countered",
-        terms: terms ?? "",
-        createdAt: new Date().toISOString(),
-        isDemo: true,
-      };
-      return fallback;
+  return useMutation<
+    Offer,
+    Error,
+    { offerId: string; pricePerKg: number; message?: string }
+  >({
+    mutationFn: async ({ offerId, pricePerKg, message }) => {
+      const counter = await counterOfferApi(offerId, pricePerKg, message);
+      if (!counter) {
+        throw new Error("Could not counter offer");
+      }
+      return counter as Offer;
     },
     onSuccess: (_data, vars) => {
       updateOffer(vars.offerId, {
@@ -961,11 +882,10 @@ export const useUpdateLot = () => {
   return useMutation<FarmerLot, Error, { id: string; patch: UpdateLotPayload }>({
     mutationFn: async ({ id, patch }) => {
       const updated = await updateLotApi(id, patch);
-      if (updated) return updated as FarmerLot;
-      await delay(160);
-      updateLot(id, patch as Partial<FarmerLot>);
-      const current = useFarmerDashboardStore.getState().lots.find((l) => l.id === id);
-      return current ?? ({ id, ...patch } as FarmerLot);
+      if (!updated) {
+        throw new Error("Could not update lot");
+      }
+      return updated as FarmerLot;
     },
     onSuccess: (_data, vars) => {
       updateLot(vars.id, vars.patch as Partial<FarmerLot>);
@@ -981,12 +901,18 @@ export const useDeleteLot = () => {
   return useMutation<boolean, Error, { id: string }>({
     mutationFn: async ({ id }) => {
       const ok = await deleteLotApi(id);
-      if (!ok) await delay(120);
-      removeLot(id);
+      if (!ok) {
+        throw new Error("Could not delete lot");
+      }
       return true;
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
+      // Optimistic store mirror so the card disappears instantly;
+      // the cache invalidation below then refetches the source of
+      // truth.
+      removeLot(vars.id);
       qc.invalidateQueries({ queryKey: ["farmer", "myLots"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "lot", vars.id] });
     },
   });
 };
@@ -994,19 +920,34 @@ export const useDeleteLot = () => {
 export const useMarkLotSold = () => {
   const qc = useQueryClient();
   const updateLot = useFarmerDashboardStore((s) => s.updateLot);
-  return useMutation<FarmerLot, Error, { id: string; payload: MarkSoldPayload }>({
-    mutationFn: async ({ id, payload }) => {
-      const updated = await markLotSoldApi(id, payload);
-      if (updated) return updated as FarmerLot;
-      await delay(180);
-      updateLot(id, { status: "sold", ...(payload as Partial<FarmerLot>) });
-      const current = useFarmerDashboardStore.getState().lots.find((l) => l.id === id);
-      return current ?? ({ id, ...payload } as FarmerLot);
+  return useMutation<
+    FarmerLot,
+    Error,
+    {
+      id: string;
+      finalPricePerKg: number;
+      buyerName?: string;
+      buyerId?: string;
+    }
+  >({
+    mutationFn: async ({ id, finalPricePerKg, buyerName, buyerId }) => {
+      const updated = await markLotSoldApi(id, {
+        finalPricePerKg,
+        buyerName,
+        buyerId,
+      });
+      if (!updated) {
+        throw new Error("Could not mark lot as sold");
+      }
+      return updated as FarmerLot;
     },
     onSuccess: (_data, vars) => {
-      updateLot(vars.id, { status: "sold", ...(vars.payload as Partial<FarmerLot>) });
+      // Optimistic local mirror — the cache invalidation below then
+      // refetches the source of truth with the real sold-state lot.
+      updateLot(vars.id, { status: "sold" });
       qc.invalidateQueries({ queryKey: ["farmer", "myLots"] });
       qc.invalidateQueries({ queryKey: ["farmer", "lot", vars.id] });
+      qc.invalidateQueries({ queryKey: ["farmer", "payments"] });
       qc.invalidateQueries({ queryKey: ["farmer", "notifications"] });
     },
   });
@@ -1019,11 +960,8 @@ export const useLogisticsOptions = () =>
     queryKey: ["farmer", "logistics", "options"],
     queryFn: async () => {
       const remote = await fetchLogisticsOptions();
-      if (remote && remote.length > 0) return remote as LogisticsOption[];
-      await delay(140);
-      return DEMO_LOGISTICS_OPTIONS;
+      return remote as LogisticsOption[];
     },
-    initialData: DEMO_LOGISTICS_OPTIONS,
     staleTime: 5 * 60_000,
   });
 
@@ -1032,18 +970,19 @@ export const useStorageOptions = () =>
     queryKey: ["farmer", "storage", "options"],
     queryFn: async () => {
       const remote = await fetchStorageOptions();
-      if (remote && remote.length > 0) return remote as StorageOption[];
-      await delay(140);
-      return DEMO_STORAGE_OPTIONS;
+      return remote as StorageOption[];
     },
-    initialData: DEMO_STORAGE_OPTIONS,
     staleTime: 5 * 60_000,
   });
 
 /**
- * UI-shaped storage list. Adapts the `StorageOption` mocks to the
+ * UI-shaped storage list. Adapts the backend `StorageOption` to the
  * shape expected by `StoragePage` (capacityKg / usedKg, name, location,
  * temperature, "warehouse" | "cold" type label).
+ *
+ * No silent demo fallback: empty / failed `useStorageOptions` result
+ * propagates as an empty list, and `StoragePage` renders its built-in
+ * empty state.
  */
 export const useStorage = () => {
   const { data: options } = useStorageOptions();
@@ -1052,10 +991,9 @@ export const useStorage = () => {
     queryFn: async () => {
       const remote = await fetchStorageOptions();
       const TONS_TO_KG = 1000;
-      const source =
-        remote && remote.length > 0
-          ? (remote as unknown as StorageOption[])
-          : (options ?? DEMO_STORAGE_OPTIONS);
+      const source = (remote && remote.length > 0
+        ? (remote as unknown as StorageOption[])
+        : (options ?? [])) as StorageOption[];
       return source.map<StorageView>((s) => ({
         id: s.id,
         name: s.facilityName,
@@ -1088,65 +1026,41 @@ export interface ReserveStorageInput {
 
 export const useReserveStorage = () => {
   const qc = useQueryClient();
-  const addStorageBooking = useFarmerDashboardStore((s) => s.addStorageBooking);
   return useMutation<StorageBooking, Error, ReserveStorageInput>({
     mutationFn: async (input) => {
       const remote = await reserveStorageApi(input as unknown as StorageReservePayload);
-      if (remote) return remote as StorageBooking;
-      await delay(180);
-      const now = new Date().toISOString();
-      const arrival = new Date(
-        Date.now() + input.durationDays * 24 * 60 * 60 * 1000,
-      )
-        .toISOString()
-        .slice(0, 10);
-      const booking: StorageBooking = {
-        id: "bk-" + Math.random().toString(36).slice(2, 9),
-        storageId: input.storageId,
-        storageName: input.storageName,
-        storageType: input.storageType,
-        reservedKg: input.reservedKg,
-        durationDays: input.durationDays,
-        expectedArrival: arrival,
-        lotId: input.lotId,
-        lotSummary: input.lotSummary,
-        status: "confirmed",
-        createdAt: now,
-        isDemo: true,
-      };
-      addStorageBooking(booking);
-      return booking;
+      if (!remote) {
+        throw new Error("Could not reserve storage");
+      }
+      return remote as StorageBooking;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["farmer", "storage"] });
       qc.invalidateQueries({ queryKey: ["farmer", "storageBookings"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "notifications"] });
     },
   });
 };
 
-export const useStorageBookings = () => {
-  const store = useFarmerDashboardStore();
-  return useQuery<StorageBooking[]>({
+export const useStorageBookings = () =>
+  useQuery<StorageBooking[]>({
     queryKey: ["farmer", "storageBookings"],
     queryFn: async () => {
       const remote = await fetchStorageBookings();
-      if (remote && remote.length > 0) return remote as StorageBooking[];
-      await delay(80);
-      return store.storageBookings;
+      return remote as StorageBooking[];
     },
-    initialData: store.storageBookings,
     staleTime: 30_000,
   });
-};
 
 export const useBookLogistics = () => {
   const qc = useQueryClient();
   return useMutation<unknown, Error, LogisticsBookPayload>({
     mutationFn: async (payload) => {
       const booking = await bookLogisticsApi(payload);
-      if (booking) return booking;
-      await delay(160);
-      return { id: "log-" + Math.random().toString(36).slice(2, 9), ...payload };
+      if (!booking) {
+        throw new Error("Could not book logistics");
+      }
+      return booking;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["farmer", "logistics"] });
@@ -1162,65 +1076,36 @@ export const usePayments = () =>
     queryKey: ["farmer", "payments"],
     queryFn: async () => {
       const remote = await fetchPayments();
-      if (remote && remote.length > 0) return remote as PaymentRecord[];
-      await delay(140);
-      return DEMO_PAYMENTS;
+      return remote as PaymentRecord[];
     },
-    initialData: DEMO_PAYMENTS,
     staleTime: 30_000,
   });
 
 // --- Grievances -------------------------------------------------------------
 
-export const useGrievances = () => {
-  const storeGrievances = useFarmerDashboardStore((s) => s.grievances);
-  return useQuery<Grievance[]>({
+export const useGrievances = () =>
+  useQuery<Grievance[]>({
     queryKey: ["farmer", "grievances"],
     queryFn: async () => {
       const remote = await fetchGrievances();
-      if (remote && remote.length > 0) return remote as Grievance[];
-      await delay(140);
-      return storeGrievances;
+      return remote as Grievance[];
     },
-    initialData: storeGrievances,
     staleTime: 30_000,
   });
-};
 
 export const useCreateGrievance = () => {
   const qc = useQueryClient();
-  const addGrievance = useFarmerDashboardStore((s) => s.addGrievance);
   return useMutation<Grievance, Error, GrievanceCreatePayload>({
     mutationFn: async (input) => {
       const created = await createGrievanceApi(input);
-      if (created) return created as Grievance;
-      await delay(180);
-      const id = "gv-" + Math.random().toString(36).slice(2, 9);
-      const now = new Date().toISOString();
-      const description = String(input.description ?? "");
-      const g: Grievance = {
-        id,
-        raisedBy: "You",
-        category: (input.category as Grievance["category"]) ?? "other",
-        subject:
-          (typeof input.subject === "string" && input.subject.trim()) ||
-          (description.length > 60 ? description.slice(0, 57) + "…" : description),
-        description,
-        priority: (input.priority as Grievance["priority"]) ?? "medium",
-        transactionRef: String(input.transactionRef ?? ""),
-        status: "open",
-        assignedTo: "Pending assignment",
-        resolutionNotes: "",
-        createdAt: now,
-        submittedAt: now,
-        resolvedAt: null,
-        isDemo: true,
-      };
-      addGrievance(g);
-      return g;
+      if (!created) {
+        throw new Error("Could not file grievance");
+      }
+      return created as Grievance;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["farmer", "grievances"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "notifications"] });
     },
   });
 };
@@ -1230,9 +1115,10 @@ export const useUpdateGrievance = () => {
   return useMutation<Grievance, Error, { id: string; patch: Record<string, unknown> }>({
     mutationFn: async ({ id, patch }) => {
       const updated = await updateGrievanceApi(id, patch);
-      if (updated) return updated as Grievance;
-      await delay(160);
-      return { id, ...patch } as Grievance;
+      if (!updated) {
+        throw new Error("Could not update grievance");
+      }
+      return updated as Grievance;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["farmer", "grievances"] });
@@ -1240,10 +1126,6 @@ export const useUpdateGrievance = () => {
   });
 };
 
-
-// Helpers.
-const delay = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 // ──────────────────────────────────────────────────────────────────────
 // Real-backend adapter helpers.
@@ -1415,6 +1297,37 @@ async function patchMyProfile(
   }
 }
 
+/**
+ * Update the authenticated user's `firstName` / `lastName` via
+ * `PUT /api/users` (UpdateUserDto on the backend). Returns the
+ * projected `FarmerProfile` on success, or `null` if the request
+ * failed / the response was empty.
+ *
+ * The `name` field on the legacy `FarmerProfile` UI shape is derived
+ * from `firstName + " " + lastName` in `userToProfile`, so splitting
+ * the form value here keeps the bell, home greeting, and sidebar in
+ * sync with what the user typed.
+ */
+async function updateMyName(
+  firstName: string,
+  lastName: string,
+): Promise<FarmerProfile | null> {
+  try {
+    const body: Record<string, unknown> = { firstName };
+    if (lastName) body.lastName = lastName;
+    const res = await apiFetch<BackendUser>(buildApiUrl("/api/users"), {
+      method: "PUT",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body),
+    });
+    if (!res || !res._id) return null;
+    return userToProfile(res);
+  } catch (err) {
+    console.warn("[data.ts] name update failed", err);
+    return null;
+  }
+}
+
 // Logistics selection (persisted in localStorage for cross-page continuity).
 export const useSelectedLogistics = () => {
   const [selectedId, setSelectedIdState] = useState<string | null>(
@@ -1440,86 +1353,24 @@ export const useSelectedLogistics = () => {
 
 // Notifications feed.
 //
-// Pulls real notifications from `GET /api/notifications` (these are
-// persisted by the backend NotificationService whenever a transaction
-// event fires). The synthetic derivations from the in-memory store are
-// kept as a fallback when the backend returns an empty list, so the
-// bell still shows pending offers/payments/grievances that haven't yet
-// been picked up by a refetch.
-export const useNotifications = () => {
-  const store = useFarmerDashboardStore();
-  const qc = useQueryClient();
-  return useQuery<NotificationItem[]>({
-    queryKey: [
-      "farmer",
-      "notifications",
-      store.offers.length,
-      store.grievances.length,
-      store.storageBookings.length,
-    ],
+// Pure pass-through to `GET /api/notifications`. The backend
+// `NotificationService` fires real `saveTheNotifications(...)` calls
+// from `LotController.markSold`, `OfferController.transition`,
+// `PaymentController.{create,update}`, `GrievanceController.{create,
+// update}`, `StorageController.createBooking`, and
+// `LogisticsController.createBooking`, so the bell mirrors backend
+// truth. No more in-memory synthesised items derived from the store —
+// they were the original source of the "phantom notifications" bug.
+export const useNotifications = () =>
+  useQuery<NotificationItem[]>({
+    queryKey: ["farmer", "notifications"],
     queryFn: async () => {
       const remote = await fetchMyNotifications();
-      // Synthetic fallback — only used if backend has no notifications.
-      // (Real backend writes notifications on lot_created, offer_*,
-      // payment_*, grievance_*, storage_*, logistics_*, so the synthetic
-      // derivations should rarely fire once the bell is in steady state.)
-      const synthetic: NotificationItem[] = [];
-      if (remote.length === 0) {
-        const pendingOffers = store.offers.filter(
-          (o) => o.status === "pending",
-        );
-        for (const o of pendingOffers) {
-          synthetic.push({
-            id: "syn-offer-" + o.id,
-            kind: "offer",
-            title: "New offer from " + o.buyerName,
-            body: "Rs " + o.pricePerKg + "/kg - " + o.quantityKg + "kg",
-            href: `/farmer/lots/${o.lotId}`,
-            read: false,
-            createdAt: o.createdAt,
-          });
-        }
-        const cachedPayments = qc.getQueryData<PaymentRecord[]>([
-          "farmer",
-          "payments",
-        ]);
-        const pendingPayments = (cachedPayments ?? []).filter(
-          (p) => p.status === "pending",
-        );
-        for (const p of pendingPayments) {
-          synthetic.push({
-            id: "syn-pay-" + p.id,
-            kind: "payment",
-            title: "Payment pending",
-            body: "Rs " + p.amount + " from " + p.buyerName,
-            href: `/farmer/payments`,
-            read: false,
-            createdAt: p.createdAt,
-          });
-        }
-        const openGrievances = store.grievances.filter(
-          (g) => g.status === "open" || g.status === "in_review",
-        );
-        for (const g of openGrievances) {
-          synthetic.push({
-            id: "syn-gv-" + g.id,
-            kind: "grievance",
-            title: "Grievance " + g.status.replace("_", " "),
-            body: g.subject,
-            href: `/farmer/grievances`,
-            read: false,
-            createdAt: g.createdAt,
-          });
-        }
-      }
-      const persisted = store.notifications;
-      return [...remote, ...synthetic, ...persisted].slice(0, 25);
+      return remote;
     },
-    initialData: [],
     refetchInterval: 30_000,
     staleTime: 10_000,
   });
-};
 
 export const useMarkNotificationRead = () => {
   const qc = useQueryClient();

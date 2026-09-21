@@ -31,7 +31,7 @@ export function BuyersListPage() {
     return (buyers ?? [])
       .map((b) => ({
         buyer: b,
-        score: computeBuyerMatch(b, profile, primaryLot),
+        score: computeBuyerMatch(b, profile, primaryLot ?? undefined),
       }))
       .filter(({ buyer }) =>
         query
