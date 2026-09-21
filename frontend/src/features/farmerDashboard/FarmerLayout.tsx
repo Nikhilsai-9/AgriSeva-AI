@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FarmerLayout ΓÇö the shell for the new Farmer Market Intelligence
  * Dashboard.
  *
@@ -41,6 +41,7 @@ import {
   useNotifications,
   useMarkAllNotificationsRead,
 } from "@/features/farmerDashboard/hooks/data";
+import { PageMeta } from "@/components/PageMeta";
 import type { ReactNode } from "react";
 
 interface NavItem {
@@ -88,6 +89,10 @@ export function FarmerLayout() {
 
   return (
     <div className="farmer-shell min-h-screen w-full bg-gradient-to-b from-emerald-50 via-white to-amber-50 text-foreground">
+      <PageMeta
+        title="Farmer Dashboard"
+        description="AgriSeva-AI Farmer Dashboard — live Agmarknet mandi prices, lots, storage, logistics, payments, and buyer offers."
+      />
       {/*
         Blanket "Demo Data" banner was misleading: it rendered unconditionally
         even when live Agmarknet/eNAM data was already flowing from the

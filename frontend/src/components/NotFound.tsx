@@ -25,8 +25,8 @@ export const NotFound = () => {
   return (
     <div className="min-h-screen bg-background dark:bg-slate-950 flex flex-col items-center justify-center p-4 sm:p-6 text-center overflow-hidden transition-colors duration-500 relative font-sans">
       <PageMeta
-        title={t("common.notFoundTitle", "Page not found")}
-        description={t("common.notFoundDesc", "The page you requested could not be found on AgriSeva-AI. Return to the landing page or visit your Farmer Dashboard.")}
+        title="Page Not Found"
+        description="The page you requested could not be found on AgriSeva-AI. Return to the landing page or visit your Farmer Dashboard."
         noindex
       />
 

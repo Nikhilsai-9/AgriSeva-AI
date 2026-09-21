@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
 import { isCoordinatorRole } from "@/lib/roles";
 import { useTranslation } from "@/locales";
+import { PageMeta } from "@/components/PageMeta";
 export const Route = createFileRoute("/home/")({
   validateSearch: z.object({
     question: z.string().optional(),
@@ -54,6 +55,10 @@ function RouteComponent() {
 
   return (
     <div className="min-h-screen min-w-screen p-4 relative flex flex-col overflow-hidden">
+      <PageMeta
+        title="Dashboard"
+        description="AgriSeva-AI Multilingual AI Agricultural Advisory, Mandi Market Intelligence, and Expert Support."
+      />
       <PlaygroundPage />
     </div>
   );

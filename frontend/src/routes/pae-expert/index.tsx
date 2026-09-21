@@ -7,6 +7,7 @@ import { ThemeToggleCompact } from "@/components/atoms/ThemeToggle";
 import { UserProfileActions } from "@/components/atoms/user-profile-actions";
 import { NotificationModal } from "@/components/NotificationModal";
 import { BellIcon } from "lucide-react";
+import { PageMeta } from "@/components/PageMeta";
 
 export const Route = createFileRoute("/pae-expert/")({
   component: RouteComponent,
@@ -29,6 +30,10 @@ function RouteComponent() {
 
   return (
     <div className="min-h-screen min-w-screen relative flex flex-col overflow-hidden">
+      <PageMeta
+        title="PAE Expert Portal"
+        description="AgriSeva-AI Post-AI Evaluation Expert Portal."
+      />
       <header className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 ">
         <h1 className="text-lg font-semibold">PAE Expert Portal</h1>
         <div className="flex items-center gap-2">

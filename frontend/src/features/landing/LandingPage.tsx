@@ -175,7 +175,7 @@ export function LandingPage() {
   return (
     <div className="agriseva-landing-wrapper w-full min-h-screen">
       <PageMeta
-        title="AgriSeva-AI ΓÇö AI Advisory for Indian Farmers"
+        title="AgriSeva-AI | AI Advisory for Indian Farmers"
         description="AgriSeva-AI is an AI-powered advisory platform that helps Indian farmers make better decisions with live Agmarknet market prices, weather, soil health, government schemes, and multilingual voice support."
       />
       <style>{`
