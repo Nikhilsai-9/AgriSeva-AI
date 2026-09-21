@@ -1,4 +1,4 @@
-﻿import type { IUser } from "@/types";
+import type { IUser } from "@/types";
 import {
   AlertTriangle,
   BarChart3,
@@ -180,10 +180,15 @@ export const MobileSidebar = ({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger className="md:hidden">
-        <div className="p-2 rounded-lg hover:bg-accent transition-colors">
+      <SheetTrigger asChild>
+        <button
+          type="button"
+          className="p-2 rounded-lg hover:bg-accent transition-colors flex items-center justify-center cursor-pointer text-foreground shrink-0 select-none"
+          aria-label={t("sidebar.menu", "Open navigation menu")}
+          title={t("sidebar.menu", "Menu")}
+        >
           <Menu className="w-6 h-6" />
-        </div>
+        </button>
       </SheetTrigger>
 
       <SheetContent

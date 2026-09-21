@@ -22,7 +22,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
     glass:
       "bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-500/40 text-neutral-200",
     outline:
-      "bg-transparent border border-emerald-500/30 hover:border-emerald-500/60 text-neutral-200 hover:text-white",
+      "bg-emerald-500/5 hover:bg-emerald-500/15 border border-emerald-600/30 hover:border-emerald-600/60 text-slate-800 dark:text-neutral-200 hover:text-emerald-700 dark:hover:text-white shadow-2xs",
     ghost: "bg-transparent hover:bg-white/5 text-neutral-300 hover:text-white",
     light:
       "bg-white/80 hover:bg-white/95 border border-[#16241c]/15 hover:border-emerald-600/40 text-[#16241c] shadow-xs",
@@ -39,19 +39,19 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       >
         <Globe
           className={`w-3.5 h-3.5 flex-shrink-0 ${
-            isLight ? "text-emerald-700" : "text-emerald-400"
+            isLight ? "text-emerald-700" : "text-emerald-600 dark:text-emerald-400"
           }`}
         />
         <span
           className={`tracking-wide truncate max-w-[85px] xs:max-w-[110px] sm:max-w-none ${
-            isLight ? "font-semibold text-[#16241c]" : "font-semibold text-white"
+            isLight ? "font-semibold text-[#16241c]" : "font-semibold text-slate-900 dark:text-white"
           }`}
         >
           {currentLanguage?.nativeName || "Language"}
         </span>
         <ChevronDown
           className={`w-3 h-3 flex-shrink-0 ${
-            isLight ? "text-[#33493c] opacity-80" : "text-neutral-400 opacity-70"
+            isLight ? "text-[#33493c] opacity-80" : "text-slate-500 dark:text-neutral-400 opacity-80"
           }`}
         />
       </button>

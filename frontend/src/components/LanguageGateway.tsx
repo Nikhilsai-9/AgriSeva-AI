@@ -75,7 +75,7 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
 
   const dialogContent = (
     <div
-      className="w-full max-w-2xl bg-[#0d1512]/95 border border-emerald-500/30 rounded-2xl shadow-2xl backdrop-blur-xl p-4 sm:p-6 md:p-8 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[88vh] text-white my-auto overflow-hidden transition-all"
+      className="w-full max-w-2xl bg-[#0d1512]/95 border border-emerald-500/30 rounded-2xl shadow-2xl backdrop-blur-xl p-4 sm:p-6 md:p-8 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[min(88vh,680px)] text-white m-auto overflow-hidden transition-all"
       onClick={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal={isModal}
@@ -228,7 +228,7 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
 
     return createPortal(
       <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md overflow-y-auto animate-fadeIn"
+        className="fixed inset-0 z-[9999] overflow-y-auto overscroll-contain bg-black/80 backdrop-blur-md p-3 sm:p-4 md:p-6 flex justify-center items-start animate-fadeIn"
         onClick={closeLanguageSelector}
       >
         {dialogContent}
