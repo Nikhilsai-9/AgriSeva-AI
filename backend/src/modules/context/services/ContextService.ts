@@ -26,7 +26,13 @@ export class ContextService extends BaseService implements IContextService {
   async addContext(
     userId: string,
     text: string,
-  ): Promise<{insertedId: string}> {
+    options?: {
+      language?: string;
+      submissionId?: string;
+      user?: any;
+      details?: any;
+    },
+  ): Promise<{ insertedId: string; questionId?: string }> {
     try {
       if (!text || text.trim().length === 0) {
         throw new BadRequestError('Context text required');
@@ -34,17 +40,20 @@ export class ContextService extends BaseService implements IContextService {
 
       return this._withTransaction(async (session: ClientSession) => {
         const result = await this.contextRepo.addContext(text, session);
-
         const contextId = result.insertedId;
 
-        // await this.questionService.addDummyQuestions(
-        //   userId,
-        //   contextId,
-        //   dummyQuestions,
-        //   session,
-        // );
+        const question = await this.questionService.createQuestionFromContext(
+          userId,
+          contextId,
+          text,
+          options,
+          session,
+        );
 
-        return result;
+        return {
+          insertedId: contextId,
+          questionId: question?._id?.toString(),
+        };
       });
     } catch (error) {
       throw new InternalServerError(`Failed to add context: ${error}`);

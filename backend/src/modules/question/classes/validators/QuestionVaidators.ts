@@ -556,7 +556,36 @@ class GeneratedQuestionResponse {
   answer!: string;
 
   @IsString()
-  referenceSource!: string
+  referenceSource!: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  confidence?: string;
+
+  @IsOptional()
+  @IsArray()
+  sources?: any[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  warnings?: string[];
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsString()
+  generatedAt?: string;
+
+  @IsOptional()
+  @IsString()
+  questionId?: string;
 }
 
 class DateRangeRequest {

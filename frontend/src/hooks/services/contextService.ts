@@ -6,11 +6,19 @@ const API_BASE_URL = env.apiBaseUrl();
 export class ContextService {
   private _baseUrl = `${API_BASE_URL}/context`;
 
-  async submitTranscript(transcript: string): Promise<void> {
+  async submitTranscript(
+    transcript: string,
+    options?: { language?: string; submissionId?: string; details?: any }
+  ): Promise<{ insertedId: string; questionId?: string }> {
     try {
-      await apiFetch<void>(this._baseUrl, {
+      return await apiFetch<{ insertedId: string; questionId?: string }>(this._baseUrl, {
         method: "POST",
-        body: JSON.stringify({ transcript }),
+        body: JSON.stringify({
+          transcript,
+          language: options?.language,
+          submissionId: options?.submissionId,
+          details: options?.details,
+        }),
       });
     } catch (error) {
       console.error(`Error in Transcript:`, error);

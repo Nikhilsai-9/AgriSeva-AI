@@ -66,13 +66,18 @@ export class ContextController {
   @HttpCode(201)
   @Authorized()
   async addContext(
-    @Body() body: { transcript: string },
+    @Body() body: { transcript: string; language?: string; submissionId?: string; details?: any },
     @CurrentUser() user: IUser,
-  ): Promise<{ insertedId: string }> {
+  ): Promise<{ insertedId: string; questionId?: string }> {
     verifyNotTester(user);
-    const { transcript } = body;
+    const { transcript, language, submissionId, details } = body;
     const userId = user._id.toString();
-    return this.contextService.addContext(userId, transcript);
+    return this.contextService.addContext(userId, transcript, {
+      language,
+      submissionId,
+      user,
+      details,
+    });
   }
 
   @Post('/translate')

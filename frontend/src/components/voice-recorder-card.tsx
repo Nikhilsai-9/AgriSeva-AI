@@ -39,13 +39,30 @@ import { Skeleton } from "./atoms/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./atoms/tooltip";
 import { useSendAudioChunk } from "@/hooks/api/context/useSendAudioChunk";
 import { useTranslation } from "@/locales";
+import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
+
+export interface GroundedSourceItem {
+  type: string;
+  id: string;
+  title: string;
+  reference: string;
+  score?: number;
+  metadata?: Record<string, any>;
+}
 
 export interface GeneratedQuestion {
   id: string;
   question: string;
   agri_specialist: string;
   answer: string;
-  referenceSource:string;
+  referenceSource: string;
+  status?: string;
+  confidence?: 'high' | 'medium' | 'low';
+  sources?: GroundedSourceItem[];
+  warnings?: string[];
+  language?: string;
+  generatedAt?: string;
+  questionId?: string;
 }
 
 export interface VoiceRecorderCardProps {
@@ -87,6 +104,7 @@ const supportedLanguages: {
 
 export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
   const { t } = useTranslation();
+  const { data: currentUser } = useGetCurrentUser();
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState(``);
   const [isListening, setIsListening] = useState(false);
@@ -268,23 +286,67 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
   };
 
   const handleSubmit = async () => {
-    if (!combinedTranscript.trim()) {
+    const textToSubmit = combinedTranscript.trim();
+    if (!textToSubmit) {
       toast.error("Transcript is empty!");
       return;
     }
 
     try {
-      if (questions.length === 0) {
-        const qstns = await generateQuestions(combinedTranscript);
+      let currentQuestions = questions;
+      if (currentQuestions.length === 0) {
+        const qstns = await generateQuestions(textToSubmit);
         if (qstns && qstns.length > 0) {
+          currentQuestions = qstns;
           setQuestions(qstns);
         }
       }
-      await submitTranscript(combinedTranscript);
-      toast.success("Transcript submitted and answer generated!");
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to submit transcript. Try again!");
+
+      const submissionId =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `sub-${Date.now()}`;
+
+      // Derive details safely from authenticated user context if present (never fabricate!)
+      const userKvk = currentUser?.kvkCovered?.[0];
+      const farmerProf = currentUser?.farmerProfile;
+      const derivedDetails = {
+        state: userKvk?.state || farmerProf?.state || "",
+        district: userKvk?.district || farmerProf?.district || "",
+        crop: farmerProf?.primaryCrops?.[0] || "",
+        season: "",
+        domain: [],
+      };
+
+      const result = await submitTranscript({
+        transcript: textToSubmit,
+        language,
+        submissionId,
+        details: derivedDetails,
+      });
+
+      // Distinguish outcome accurately per Safe Fix 9 & 13
+      const isUnavailableFallback = currentQuestions.some(
+        (q) => q.referenceSource === "advisory_fallback_service_unavailable"
+      );
+
+      if (isUnavailableFallback) {
+        toast.info(
+          `Question saved to pipeline (ID: ${result?.questionId || "created"}). AI search unavailable — routed to expert review.`
+        );
+      } else {
+        toast.success(
+          `Question saved to pipeline (ID: ${result?.questionId || "created"}).`
+        );
+      }
+
+      // Reset state cleanly so subsequent questions have distinct identities (Safe Fix 6)
+      setTranscript("");
+      setQuestions([]);
+      lastTranscriptRef.current = "";
+    } catch (error: any) {
+      console.error("Failed to submit transcript:", error);
+      toast.error(error?.message || "Failed to submit transcript. Try again!");
     }
   };
 
@@ -299,6 +361,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
         .forEach((track) => track.stop());
     }
     setQuestions([]);
+    lastTranscriptRef.current = "";
   };
 
   return (
@@ -541,78 +604,104 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                                 </AccordionTrigger>
                                 
                                 <AccordionContent className="pt-3 pb-1">
-                                  <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3 space-y-2">
-                                    <div className="flex justify-between items-center w-full px-2">
-                                      <div className="flex items-center gap-2">
-                                        <svg
-                                          className="w-4 h-4 text-green-600 dark:text-green-400"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                          />
-                                        </svg>
-                                        <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                                         {t("common.referenceSource", "Reference Source")}
-                                        </span>
-                                      </div>
+                                   <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-lg p-3 space-y-3">
+                                     {/* Status & Qualitative Confidence Header */}
+                                     <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/80 dark:border-slate-800">
+                                       <div className="flex items-center gap-2">
+                                         <span
+                                           className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                                             qn.status === "grounded"
+                                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300"
+                                               : qn.status === "calculated"
+                                               ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300"
+                                               : qn.status === "source_unavailable"
+                                               ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300"
+                                               : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300"
+                                           }`}
+                                         >
+                                           {qn.status === "grounded"
+                                             ? "Grounded Advisory"
+                                             : qn.status === "calculated"
+                                             ? "Market Intelligence"
+                                             : qn.status === "source_unavailable"
+                                             ? "Source Unavailable"
+                                             : "Needs Expert Review"}
+                                         </span>
 
-                                      
-                                    </div>
+                                         <span className="text-xs text-muted-foreground font-medium">
+                                           Confidence:{" "}
+                                           <span className="text-foreground font-semibold">
+                                             {qn.confidence === "high"
+                                               ? "Verified source"
+                                               : qn.confidence === "medium"
+                                               ? "Supported by sources"
+                                               : "Needs expert review"}
+                                           </span>
+                                         </span>
+                                       </div>
 
-                                    <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed px-2">
-                                    {qn.referenceSource || "Nil"}
-                                    </p>
+                                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                         <User className="w-3 h-3" />
+                                         <span className="font-medium text-foreground">
+                                           {qn.agri_specialist}
+                                         </span>
+                                       </div>
+                                     </div>
 
-                                    
-                                  </div>
-                                </AccordionContent>
+                                     {/* Warnings / Missing Dosage Alert */}
+                                     {qn.warnings && qn.warnings.length > 0 && (
+                                       <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-md p-2.5 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                                         <span className="font-semibold block">Notice / Safety Disclaimer:</span>
+                                         {qn.warnings.map((w, idx) => (
+                                           <p key={idx}>{w}</p>
+                                         ))}
+                                       </div>
+                                     )}
 
-                                <AccordionContent className="pt-3 pb-1">
-                                  <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3 space-y-2">
-                                    <div className="flex justify-between items-center w-full px-2">
-                                      <div className="flex items-center gap-2">
-                                        <svg
-                                          className="w-4 h-4 text-green-600 dark:text-green-400"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                          />
-                                        </svg>
-                                        <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                                          Specialist Answer
-                                        </span>
-                                      </div>
+                                     {/* Answer Body */}
+                                     <div className="px-1">
+                                       <p className="text-sm text-foreground leading-relaxed">
+                                         {qn.answer || "No response generated."}
+                                       </p>
+                                     </div>
 
-                                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                        <User className="w-3 h-3" />
-                                        <span className="font-medium">
-                                          Specialist:
-                                        </span>
-                                        <span className="font-medium text-foreground">
-                                          {qn.agri_specialist}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed px-2">
-                                      {qn.answer || "Nil"}
-                                    </p>
-
-                                    
-                                  </div>
-                                </AccordionContent>
+                                     {/* Provenance Evidence Sources */}
+                                     {qn.sources && qn.sources.length > 0 && (
+                                       <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800 space-y-1.5">
+                                         <span className="text-xs font-semibold text-muted-foreground block">
+                                           Verified Evidence Sources:
+                                         </span>
+                                         <div className="flex flex-wrap gap-2">
+                                           {qn.sources.map((src, sIdx) => (
+                                             <div
+                                               key={sIdx}
+                                               className="text-xs px-2 py-1 rounded bg-background border border-border flex items-center gap-1.5"
+                                             >
+                                               <span className="font-bold text-primary">
+                                                 {src.type === "golden"
+                                                   ? "Golden Dataset"
+                                                   : src.type === "reviewer"
+                                                   ? "Expert Reviewed"
+                                                   : src.type === "market_prices"
+                                                   ? "Agmarknet Mandi"
+                                                   : src.type === "pop"
+                                                   ? "Official PoP"
+                                                   : src.type === "buyers"
+                                                   ? "Verified Buyer"
+                                                   : "Official Source"}
+                                               </span>
+                                               {src.reference && (
+                                                 <span className="text-muted-foreground truncate max-w-[200px]">
+                                                   ({src.reference})
+                                                 </span>
+                                               )}
+                                             </div>
+                                           ))}
+                                         </div>
+                                       </div>
+                                     )}
+                                   </div>
+                                 </AccordionContent>
                               </AccordionItem>
                             </Accordion>
                           </div>

@@ -1,7 +1,10 @@
 import { IQuestionRepository } from '#root/shared/database/interfaces/IQuestionRepository.js';
 import { BaseService, MongoDatabase } from '#root/shared/index.js';
 import { GLOBAL_TYPES } from '#root/types.js';
-import { inject, injectable } from 'inversify';
+import { inject, injectable, optional } from 'inversify';
+import { GROUNDED_ANSWER_TYPES } from '#root/modules/groundedAnswer/types.js';
+import type { IGroundedAnswerService } from '#root/modules/groundedAnswer/interfaces/IGroundedAnswerService.js';
+import { GroundedAnswerService } from '#root/modules/groundedAnswer/services/GroundedAnswerService.js';
 import { ClientSession, ObjectId } from 'mongodb';
 import { startBalanceWorkloadWorkers } from '#root/workers/balanceWorkload.manager.js';
 import { startPaeAllocationWorker } from '#root/workers/paeAllocation.manager.js';
@@ -166,6 +169,9 @@ export class QuestionService extends BaseService implements IQuestionService {
     private readonly callDetailsRepository: ICallDetailsRepository,
     @inject(AUDIT_TRAILS_TYPES.AuditTrailsService)
     private readonly auditTrailsService: IAuditTrailsService,
+    @inject(GROUNDED_ANSWER_TYPES.GroundedAnswerService)
+    @optional()
+    private readonly groundedAnswerService?: IGroundedAnswerService,
   ) {
     super(mongoDatabase);
   }
@@ -518,52 +524,43 @@ export class QuestionService extends BaseService implements IQuestionService {
     // While text to speech
     context: string,
   ): Promise<GeneratedQuestionResponse[]> {
-    let questions: any = {};
-    try {
-      questions = await this.aiService.getQuestionByContext(context);
-    } catch (error) {
-      console.warn('aiService.getQuestionByContext failed, using fallback advisory:', error);
-    }
+    const service =
+      this.groundedAnswerService ||
+      new GroundedAnswerService(this.mongoDatabase);
 
-    const merged = [
-      ...(questions?.reviewer || []).map((item: any) => ({
-        question: item.question,
-        answer: item.answer,
-        agri_specialist: item.source || 'AGRI_EXPERT',
-        referenceSource: 'reviewer',
-      })),
+    const groundedResult = await service.generateGroundedAnswer({
+      query: context,
+    });
 
-      ...(questions?.golden || []).map((item: any) => ({
-        question: item.question,
-        answer: item.answer,
-        agri_specialist: item.metadata?.['Agri Specialist'] || 'Unknown',
-        referenceSource: 'golden',
-      })),
+    const specialistLabel =
+      groundedResult.status === 'calculated'
+        ? 'Agmarknet Market Intelligence'
+        : groundedResult.status === 'grounded'
+        ? 'Grounded AgriSeva Advisor'
+        : 'AgriSeva Expert Routing';
 
-      ...(questions?.pop || []).map((item: any) => ({
-        question: 'Reference Information',
-        answer: item.text,
-        agri_specialist: 'POP_DOCUMENT',
-        referenceSource: 'pop',
-      })),
-    ];
+    const referenceSourceLabel =
+      groundedResult.sources[0]?.type ||
+      (groundedResult.status === 'source_unavailable'
+        ? 'source_unavailable'
+        : 'expert_review');
 
-    if (merged.length === 0) {
-      merged.push({
+    return [
+      {
+        id: new ObjectId().toString(),
         question: context,
-        answer: 'వ్యవసాయ నిపుణుల సలహా: మీ పంట సంరక్షణ కొరకు సమగ్ర పోషక యాజమాన్యం మరియు సరైన సస్యరక్షణ మందులను సిఫార్సు చేసిన మోతాదులో వాడండి. అవసరమైతే స్థానిక కృషి విజ్ఞాన కేంద్రం (KVK) నిపుణులను సంప్రదించండి.',
-        agri_specialist: 'AgriSeva AI Specialist',
-        referenceSource: 'advisory',
-      });
-    }
-
-    const uniqueQuestions = Array.from(
-      new Map(merged.map(q => [q.question, q])).values(),
-    ).map(q => ({
-      ...q,
-      id: new ObjectId().toString(),
-    }));
-    return uniqueQuestions;
+        answer: groundedResult.answer,
+        agri_specialist: specialistLabel,
+        referenceSource: referenceSourceLabel,
+        status: groundedResult.status,
+        confidence: groundedResult.confidence,
+        sources: groundedResult.sources,
+        warnings: groundedResult.warnings,
+        language: groundedResult.language,
+        generatedAt: groundedResult.generatedAt,
+        questionId: groundedResult.questionId,
+      },
+    ];
   }
 
   /**
@@ -582,14 +579,10 @@ export class QuestionService extends BaseService implements IQuestionService {
       const agentSearchResponse = await axios.post(
         `${aiConfig.agentSearchUrl}/search`,
         payload,
-        { timeout: 100000 },
-      );
-      console.log(
-        'Agent Search Output:',
-        JSON.stringify(agentSearchResponse.data, null, 2),
-      );
+        { timeout: 5000 },
+      ).catch(() => null);
 
-      const data = agentSearchResponse.data || {};
+      const data = agentSearchResponse?.data || {};
 
       // Send this in the appropriate format expected by the frontend
       let formattedResponse: any[] = [];
@@ -632,7 +625,6 @@ export class QuestionService extends BaseService implements IQuestionService {
           })),
         ];
       } else if (data && Array.isArray(data.results)) {
-        // Map the results array from the agent_search response
         formattedResponse = data.results.map((item: any) => ({
           question: item.question || data.extracted_question || context,
           answer: item.answer || item.text || 'Answer not available',
@@ -640,36 +632,53 @@ export class QuestionService extends BaseService implements IQuestionService {
           referenceSource: 'agent_search',
           id: item.id || new ObjectId().toString(),
         }));
-      } else if (Array.isArray(data)) {
-        formattedResponse = data.map((item: any) => ({
-          question: item.question || context,
-          answer: item.answer || item.response || JSON.stringify(item),
-          agri_specialist: item.agri_specialist || item.source || 'AGRI_EXPERT',
-          referenceSource: item.referenceSource || 'agent_search',
-          id: item.id || new ObjectId().toString(),
-        }));
-      } else if (data && typeof data === 'object') {
-        formattedResponse = [
-          {
-            question: data.extracted_question || data.question || context,
-            answer: data.answer || data.response || JSON.stringify(data),
-            agri_specialist:
-              data.agri_specialist || data.source || 'AGRI_EXPERT',
-            referenceSource: data.referenceSource || 'agent_search',
-            id: data.id || new ObjectId().toString(),
-          },
-        ];
       }
 
-      // Deduplicate by question text
-      const uniqueQuestions = Array.from(
-        new Map(formattedResponse.map(q => [q.question, q])).values(),
-      ).map(q => ({
-        ...q,
-        id: q.id || new ObjectId().toString(),
-      }));
+      if (formattedResponse.length > 0) {
+        return Array.from(
+          new Map(formattedResponse.map(q => [q.question, q])).values(),
+        ).map(q => ({
+          ...q,
+          id: q.id || new ObjectId().toString(),
+        }));
+      }
 
-      return uniqueQuestions;
+      // If upstream search service had no results or was offline, use GroundedAnswerService
+      const service =
+        this.groundedAnswerService ||
+        new GroundedAnswerService(this.mongoDatabase);
+
+      const groundedResult = await service.generateGroundedAnswer({
+        query: context,
+        state,
+        crop,
+      });
+
+      return [
+        {
+          id: new ObjectId().toString(),
+          question: context,
+          answer: groundedResult.answer,
+          agri_specialist:
+            groundedResult.status === 'calculated'
+              ? 'Agmarknet Market Intelligence'
+              : groundedResult.status === 'grounded'
+              ? 'Grounded AgriSeva Advisor'
+              : 'AgriSeva Expert Routing',
+          referenceSource:
+            groundedResult.sources[0]?.type ||
+            (groundedResult.status === 'source_unavailable'
+              ? 'source_unavailable'
+              : 'expert_review'),
+          status: groundedResult.status,
+          confidence: groundedResult.confidence,
+          sources: groundedResult.sources,
+          warnings: groundedResult.warnings,
+          language: groundedResult.language,
+          generatedAt: groundedResult.generatedAt,
+          questionId: groundedResult.questionId,
+        },
+      ];
     } catch (error) {
       console.error('Failed to generate questions from call context:', error);
       throw new InternalServerError(
@@ -1391,6 +1400,132 @@ export class QuestionService extends BaseService implements IQuestionService {
 
       throw new InternalServerError(`Failed to add question: ${error}`);
     }
+  }
+
+  async createQuestionFromContext(
+    userId: string,
+    contextId: string,
+    text: string,
+    options?: {
+      source?: QuestionSource;
+      language?: string;
+      submissionId?: string;
+      details?: Partial<IQuestion['details']>;
+      user?: IUser;
+    },
+    session?: ClientSession,
+  ): Promise<IQuestion> {
+    const trimmedText = (text || '').trim();
+    if (!trimmedText) {
+      throw new BadRequestError('Question text cannot be empty');
+    }
+
+    // 1. Idempotency check: if a question for this contextId already exists, return it
+    if (contextId && ObjectId.isValid(contextId)) {
+      const existing = await this.questionRepo.getByContextId(contextId, session);
+      if (existing && existing.length > 0) {
+        return existing[0];
+      }
+    }
+
+    // 2. Derive source from user context (Safe Fix 1: no invented enums or hardcoded values)
+    const validSources: QuestionSource[] = ['AGRISEVA_AI', 'AGRI_EXPERT', 'WHATSAPP', 'OUTREACH'];
+    let source: QuestionSource = 'AGRISEVA_AI';
+    if (options?.source && validSources.includes(options.source)) {
+      source = options.source;
+    } else if (options?.user?.role === 'expert') {
+      source = 'AGRI_EXPERT';
+    }
+
+    // 3. Derive details from actual user/agent context if available, otherwise empty values (never fabricate!)
+    const userKvk = options?.user?.kvkCovered?.[0];
+    const farmerProf = options?.user?.farmerProfile;
+    const rawDetails = options?.details || {};
+
+    const state = (rawDetails.state || userKvk?.state || farmerProf?.state || '').toString().trim();
+    const district = (rawDetails.district || userKvk?.district || farmerProf?.district || '').toString().trim();
+    const crop = (rawDetails.crop || farmerProf?.primaryCrops?.[0] || '').toString().trim();
+    const season = (rawDetails.season || '').toString().trim();
+    const domain = Array.isArray(rawDetails.domain) ? rawDetails.domain : [];
+
+    const details: IQuestion['details'] = {
+      state: state ? toTitleCase(state) : '',
+      district: district ? toTitleCase(district) : '',
+      crop: crop ? toTitleCase(crop) : '',
+      season: season ? toTitleCase(season) : '',
+      domain,
+    };
+
+    // 4. Preserve original transcript exactly (Safe Fix 2: no silent translation or rewriting)
+    const formattedText = `Question: ${trimmedText}`;
+    let textEmbedding: number[] = [];
+    if (appConfig.ENABLE_AI_SERVER) {
+      try {
+        const { embedding } = await this.aiService.getEmbedding(formattedText);
+        textEmbedding = embedding;
+      } catch (err: any) {
+        console.warn('[createQuestionFromContext] AI embedding unavailable:', err?.message);
+      }
+    }
+
+    // 5. Initial status according to existing question workflow (Safe Fix 4)
+    // AGRISEVA_AI questions start as 'pending'; AGRI_EXPERT questions start as 'open'
+    const status = source === 'AGRISEVA_AI' || source === 'WHATSAPP' ? 'pending' : 'open';
+
+    const baseQuestion: IQuestion = {
+      userId: userId && ObjectId.isValid(userId) ? new ObjectId(userId) : null,
+      question: trimmedText,
+      originalQuestion: trimmedText,
+      priority: 'medium',
+      source,
+      status,
+      totalAnswersCount: 0,
+      contextId: contextId && ObjectId.isValid(contextId) ? new ObjectId(contextId) : null,
+      details,
+      isAutoAllocate: !(source === 'AGRISEVA_AI' || source === 'WHATSAPP'),
+      autoAllocateGateKeeper: true,
+      autoAllocateAuditor: true,
+      autoAllocateModerator: true,
+      embedding: textEmbedding,
+      metrics: null,
+      text: formattedText,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // 6. Save question
+    const savedQuestion = await this.questionRepo.addQuestion(baseQuestion, session);
+    if (!savedQuestion?._id) {
+      throw new InternalServerError('Failed to save question linked to context');
+    }
+
+    const questionId = savedQuestion._id.toString();
+
+    // 7. Create bare submission record (Safe Fix 4: enters existing submission workflow)
+    const submissionData: IQuestionSubmission = {
+      questionId: new ObjectId(questionId),
+      lastRespondedBy: null,
+      history: [],
+      queue: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    await this.questionSubmissionRepo.addSubmission(submissionData, session);
+
+    // 8. Kick off existing background processing (single-allocation cron or timebound flow)
+    setImmediate(() => {
+      this.processQuestionInBackground({
+        questionId,
+        source,
+        details,
+        baseQuestion: { ...baseQuestion, _id: savedQuestion._id },
+        logData: { contextId, source, questionId },
+      }).catch((err: any) =>
+        console.error(`[createQuestionFromContext] Background processing error for questionId=${questionId}:`, err?.message),
+      );
+    });
+
+    return savedQuestion;
   }
 
   private async processQuestionInBackground(params: {

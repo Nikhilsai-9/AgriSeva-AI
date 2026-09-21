@@ -4,6 +4,8 @@ import {
   IQuestion,
   IQuestionSubmission,
   AddQuestionResult,
+  QuestionSource,
+  IUser,
 } from '#root/shared/interfaces/models.js';
 import {
   AddQuestionBodyDto,
@@ -423,6 +425,21 @@ export interface IQuestionService {
     userId: string,
     body: AddQuestionBodyDto,
   ): Promise<AddQuestionResult>;
+
+  /** Create a question directly from context/transcript */
+  createQuestionFromContext(
+    userId: string,
+    contextId: string,
+    text: string,
+    options?: {
+      source?: QuestionSource;
+      language?: string;
+      submissionId?: string;
+      details?: Partial<IQuestion['details']>;
+      user?: IUser;
+    },
+    session?: ClientSession,
+  ): Promise<IQuestion>;
 
   /** Question detail page */
   getQuestionById(questionId: string): Promise<QuestionResponse>;
