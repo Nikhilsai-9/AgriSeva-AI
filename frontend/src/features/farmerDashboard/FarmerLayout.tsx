@@ -35,6 +35,7 @@ import {
 import { useTranslation } from "@/locales";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuthStore } from "@/stores/auth-store";
+import { env } from "@/config/env";
 import { cn } from "@/lib/utils";
 import {
   useNotifications,
@@ -87,7 +88,20 @@ export function FarmerLayout() {
 
   return (
     <div className="farmer-shell min-h-screen w-full bg-gradient-to-b from-emerald-50 via-white to-amber-50 text-foreground">
-      <DemoBanner t={t} />
+      {/*
+        Blanket "Demo Data" banner was misleading: it rendered unconditionally
+        even when live Agmarknet/eNAM data was already flowing from the
+        production backend, and the fallback copy asserted "Live mandi feeds
+        will be enabled when the production backend is connected" while the
+        backend was, in fact, connected. The truthful contract is now:
+
+          * When VITE_ENABLE_MOCKS=true  → MSW intercepts every API call, the
+            whole stack is mock → a single global "Demo Mode" banner is honest.
+          * When VITE_ENABLE_MOCKS=false (default / production) → per-feature
+            source badges (Market Prices, Market Comparison) are the source
+            of truth for data provenance. No blanket banner.
+      */}
+      {env.enableMocks() && <DemoBanner t={t} />}
       <Header
         t={t}
         userName={auth.user?.name || "Farmer"}
@@ -117,7 +131,7 @@ function DemoBanner({ t }: { t: (k: string, fb: string) => string }) {
         <p>
           {t(
             "farmer.banner.demo",
-            "Demo Data ΓÇö This dashboard currently renders sample data so you can explore the experience. Live mandi feeds and buyer KYC will be enabled when the production backend is connected."
+            "Demo Mode - The frontend is running against MSW mocks (VITE_ENABLE_MOCKS=true). Backend APIs are intercepted for offline development, so live mandi feeds and real buyer KYC verification are not active. Per-section source badges still label each dataset."
           )}
         </p>
       </div>

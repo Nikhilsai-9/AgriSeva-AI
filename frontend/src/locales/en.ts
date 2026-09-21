@@ -536,7 +536,11 @@ export const en = {
   },
   farmer: {
     banner: {
-      demo: "Demo Data — This dashboard currently renders sample data so you can explore the experience. Live mandi feeds and buyer KYC will be enabled when the production backend is connected.",
+      // Shown only when VITE_ENABLE_MOCKS=true (MSW intercepts every API
+      // call). The previous copy ("Live mandi feeds and buyer KYC will be
+      // enabled when the production backend is connected") became false
+      // once Agmarknet + eNAM were wired up to the live backend.
+      demo: "Demo Mode - The frontend is running against MSW mocks (VITE_ENABLE_MOCKS=true). Backend APIs are intercepted for offline development, so live mandi feeds and real buyer KYC verification are not active. Per-section source badges still label each dataset.",
     },
     brand: {
       kicker: "AgriSeva • Farmer",

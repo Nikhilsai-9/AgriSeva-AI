@@ -436,10 +436,12 @@ export const useMarketPrices = (query: MarketPriceQuery) =>
         const message = err instanceof Error ? err.message : "Invalid JSON";
         return errorMarketPriceResponse(message);
       }
-      // Backend explicitly says isDemo OR returned an empty payload:
-      // substitute the documented demo dataset (this IS the supported
-      // demo fallback contract, not an error).
-      if (data.isDemo || data.prices.length === 0) {
+      // Only fall back to the documented demo dataset when the backend
+      // EXPLICITLY reports `isDemo: true` (e.g. Agmarknet / eNAM MCP
+      // unreachable). An empty `prices` array is left empty so the UI can
+      // render an honest "No market data for this filter" state, instead
+      // of masking it as demo and lying about the source.
+      if (data.isDemo) {
         return buildDemoMarketPriceResponse(commodity);
       }
       return buildResponseFromBackend(data, commodity);
