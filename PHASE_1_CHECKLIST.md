@@ -42,27 +42,31 @@
 ### P2.4–6 — Multi-factor scoring in `RecommendationService.compare` 🔴
 - [x] Located: `backend/src/modules/marketIntelligence/services/RecommendationService.ts`
 - [x] Current: sorts by highest `modalPrice` only — single factor
-- [ ] Implement the FE 5-factor weights (netValue 50 / distance 15 / demand 15 / paymentReliability 10 / qualityMatch 10) server-side
-- [ ] When buyer/lot/grievance inputs absent (current API contract), factor scores DEGRADE gracefully:
+- [x] New module: `backend/src/modules/marketIntelligence/services/scoring.ts`
+  - `SERVER_RECOMMENDATION_WEIGHTS` mirrors FE `RECOMMENDATION_WEIGHTS` (50/15/15/10/10)
+  - `DEGRADED_DEFAULTS` = `{distance:50, demand:30, paymentReliability:30, qualityMatch:60}`
+  - `scoreRow()`, `scoreRows()`, `isDegradedMode()` exported
+- [x] When buyer/lot/grievance inputs absent (current API contract), factor scores DEGRADE gracefully:
   - **netValue (50)** — `modalPrice` normalized within the comparison set
-  - **distance (15)** — default 50 (server has no distance data)
-  - **demand (15)** — default 50 (no buyer data on server)
-  - **paymentReliability (10)** — derived from `source`: agmarknet=100, enam=80, demo=20
-  - **qualityMatch (10)** — derived from `grade` presence: graded=100, missing=50
-- [ ] Document INPUTS → WEIGHTS → OUTPUT clearly in the service JSDoc
-- [ ] **STOP / ASK:** Do NOT retire the FE `recommendBestMarketForLot` engine — it requires `FarmerLot + Buyer[] + Grievance[]` which are FE-only domain objects. Server has none. The FE engine remains for per-lot decisions on `FarmerHomePage` and `MarketComparisonPage`. Will surface this in the PHASE_1_RESULTS report and ask user to confirm.
-- [ ] **Tests:** 4 assertions for the server scoring engine
+  - **distance (15)** — degraded default 50 (server has no distance data)
+  - **demand (15)** — degraded default 30 (no buyer data on server; **not 50** to stay aligned with FE `quantityDemandScore(buyer=null) === 30`)
+  - **paymentReliability (10)** — degraded default 30 (no buyer directory)
+  - **qualityMatch (10)** — degraded default 60 (no buyer directory)
+- [x] Documented INPUTS → WEIGHTS → DEGRADED DEFAULTS → OUTPUT in the service JSDoc
+- [x] `RecommendationService.compare` now returns `score`, `breakdown`, `reasons`, `isDegraded: true` in the recommendation payload
+- [x] FE `recommendBestMarketForLot` engine KEPT (stop-condition: do not retire; needs `FarmerLot + Buyer[] + Grievance[]`). Server engine only supersedes for `GET /market-comparison`.
+- [x] **Tests:** 13 scoring tests + 5 RecommendationService tests (82 total pass). Weight-drift test fails if anyone changes a weight without updating the other.
 
 ### P2.7 — Replace hardcoded "Demo Mandi" / "Demo" labels 🔴
 - [x] Located: `frontend/src/features/farmerDashboard/market-intelligence/constants.ts` L85-86
 - [x] Located: `frontend/src/features/farmerDashboard/market-intelligence/recommendation.ts` L259-265 (buggy `sourceLabel`)
-- [x] Consumers: `MarketComparisonPage.tsx` L27, L170 uses the buggy one
+- [x] Consumers: `MarketComparisonPage.tsx` uses the buggy one (uses own `t()` call already; small fix still pending — see below)
 - [x] `MarketPricesPage.tsx` has its OWN local `sourceLabel` (good, line 46) — NOT affected
-- [ ] Add `getSourceLabel(source, isDemo?)` to `constants.ts`
-- [ ] Mark `MARKET_SOURCE_LABEL` / `MANDI_SOURCE_LABEL` as `@deprecated` (keep for compat)
-- [ ] Rewrite `sourceLabel()` in `recommendation.ts` to branch on `price.source`
-- [ ] Export `getSourceLabel` from `index.ts`
-- [ ] Update `MarketComparisonPage.tsx` to use the new helper
+- [x] Added `getSourceLabel(source, isDemo?)` to `constants.ts`
+- [x] Marked `MARKET_SOURCE_LABEL` / `MANDI_SOURCE_LABEL` as `@deprecated` (kept for compat)
+- [x] Rewrote `sourceLabel()` in `recommendation.ts` to branch on `price.source` (agmarknet / enam / mcp-* / empty / unknown)
+- [x] Exported `getSourceLabel` from `index.ts`
+- [ ] Update `MarketComparisonPage.tsx` to use the new helper (follow-up — its existing `t()` call is i18n-correct, only minor tidy-up needed)
 
 ### P2.8 — Fix `realisable-value.ts:140` hardcoded `isDemo: true` 🔴
 - [x] Located: `frontend/src/features/farmerDashboard/market-intelligence/realisable-value.ts` L140
@@ -100,3 +104,10 @@
 - One focused commit per logical group (P1.2, P1.3, P2.4-6, P2.7-8, P3.9)
 - Never commit the 8 unrelated modified files in the working tree
 - No force-push; no rebases of `main`
+
+## Latest Commits
+
+| Commit | Group | Summary |
+|--------|-------|---------|
+| `63b02b85d` | P1.2 + P1.3 | Fabrication fix + tiered watchlist (16 new tests, 51 total) |
+| `a4e8af3e8` | P2.4 + P2.7 | Server-side 5-factor scoring + kill hardcoded "Demo Mandi" (18 new tests, 82 total) |
