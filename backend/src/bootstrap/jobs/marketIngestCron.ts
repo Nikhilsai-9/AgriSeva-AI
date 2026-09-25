@@ -13,6 +13,42 @@ import {getContainer} from '../loadModules.js';
 import {GLOBAL_TYPES} from '#root/types.js';
 import {MarketIngestionService} from '#root/modules/marketIntelligence/services/MarketIngestionService.js';
 
+export async function runMarketIngestionJob(): Promise<{
+  totalTargets: number;
+  successful: number;
+  recordsPersisted: number;
+  durationMs: number;
+}> {
+  const start = Date.now();
+  console.log('<<JOB>> [MarketIngest] Starting 6h watchlist ingestion');
+  try {
+    const container = getContainer();
+    const ingestionService = container.get<MarketIngestionService>(
+      GLOBAL_TYPES.MarketIngestionService,
+    );
+    const results = await ingestionService.runWatchlist();
+    const ok = results.filter(r => r.success).length;
+    const totalRows = results.reduce(
+      (a, r) => a + r.recordsPersisted,
+      0,
+    );
+    const durationMs = Date.now() - start;
+    console.log(
+      `<<JOB>> [MarketIngest] Done in ${durationMs}ms — ` +
+        `${ok}/${results.length} ok, ${totalRows} rows upserted`,
+    );
+    return {
+      totalTargets: results.length,
+      successful: ok,
+      recordsPersisted: totalRows,
+      durationMs,
+    };
+  } catch (err) {
+    console.error('<<JOB>> [MarketIngest] Error:', err);
+    throw err;
+  }
+}
+
 const ENABLED =
   String(process.env.ENABLE_MARKET_INGEST_CRON ?? 'true').toLowerCase() !==
   'false';
@@ -22,25 +58,10 @@ if (ENABLED) {
   cron.schedule(
     '7 */6 * * *',
     async () => {
-      const start = Date.now();
-      console.log('<<CRON>> [MarketIngest] Starting 6h watchlist ingestion');
       try {
-        const container = getContainer();
-        const ingestionService = container.get<MarketIngestionService>(
-          GLOBAL_TYPES.MarketIngestionService,
-        );
-        const results = await ingestionService.runWatchlist();
-        const ok = results.filter(r => r.success).length;
-        const totalRows = results.reduce(
-          (a, r) => a + r.recordsPersisted,
-          0,
-        );
-        console.log(
-          `<<CRON>> [MarketIngest] Done in ${Date.now() - start}ms — ` +
-            `${ok}/${results.length} ok, ${totalRows} rows upserted`,
-        );
-      } catch (err) {
-        console.error('<<CRON>> [MarketIngest] Error:', err);
+        await runMarketIngestionJob();
+      } catch {
+        // Error logged inside runMarketIngestionJob
       }
     },
     {timezone: 'Asia/Kolkata'},

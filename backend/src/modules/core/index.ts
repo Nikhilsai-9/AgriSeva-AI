@@ -1,3 +1,5 @@
+export * from './types.js';
+
 import {sharedContainerModule} from '#root/container.js';
 import {Container, ContainerModule} from 'inversify';
 import {InversifyAdapter} from '#root/inversify-adapter.js';

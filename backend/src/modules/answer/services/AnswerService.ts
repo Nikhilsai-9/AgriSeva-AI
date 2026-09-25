@@ -32,7 +32,8 @@ import { appConfig } from '#root/config/app.js';
 import { aiConfig } from '#root/config/ai.js';
 import { IReRouteRepository } from '#root/shared/database/interfaces/IReRouteRepository.js';
 import { AiService } from '#root/modules/ai/services/AiService.js';
-import { CORE_TYPES, NotificationService } from '#root/modules/core/index.js';
+import { CORE_TYPES } from '#root/modules/core/types.js';
+import { NotificationService } from '#root/modules/notification/services/NotificationService.js';
 import {
   FetchAiInitialAnswerBody,
   ReviewAnswerBody,
