@@ -9,6 +9,7 @@ import express, { Express } from 'express';
 import { useExpressServer, RoutingControllersOptions } from 'routing-controllers';
 import type { CorsOptions } from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { apiReference } from '@scalar/express-api-reference';
@@ -98,14 +99,19 @@ const moduleOptions: RoutingControllersOptions = {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendPath = path.join(__dirname, '../../frontend/dist');
-app.use(express.static(frontendPath));
+if (fs.existsSync(frontendPath)) {
+  app.use(express.static(frontendPath));
+}
 
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/reference')) {
-    res.sendFile(path.join(frontendPath, 'index.html'));
-  } else {
-    next();
+    const indexPath = path.join(frontendPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+      return;
+    }
   }
+  next();
 });
 
 if (NODE_ENV === 'production' || NODE_ENV === 'staging') {

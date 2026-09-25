@@ -95,9 +95,11 @@ function getEnv(key: EnvKey, required = true, fallback = ""): string {
   }
 }
 
-// Public env helpers (ONLY using defined EnvKey values)
 export const env = {
-  apiBaseUrl: () => getEnv("VITE_API_BASE_URL", true, "http://localhost:3000/api"),
+  apiBaseUrl: () => {
+    const raw = (getEnv("VITE_API_BASE_URL", false, "http://localhost:3000/api") || "http://localhost:3000/api").trim().replace(/\/+$/, "");
+    return raw.endsWith("/api") ? raw : `${raw}/api`;
+  },
 
   enableMocks: () => getEnv("VITE_ENABLE_MOCKS", false, "false") === "true",
 

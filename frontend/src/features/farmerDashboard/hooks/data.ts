@@ -1172,8 +1172,9 @@ interface BackendUser {
 }
 
 const buildApiUrl = (path: string): string => {
-  const base = (env.apiBaseUrl() ?? '').replace(/\/$/, "");
-  return `${base}${path.startsWith("/") ? path : "/" + path}`;
+  const base = (env.apiBaseUrl() ?? '').replace(/\/+$/, "");
+  const normalizedPath = path.startsWith('/api/') ? path.slice(4) : path.startsWith('/') ? path : '/' + path;
+  return `${base}${normalizedPath.startsWith('/') ? normalizedPath : '/' + normalizedPath}`;
 };
 
 /** Project an `IUser` from the backend onto the UI's `FarmerProfile`. */
