@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "vibe-5b35a"
+    "default": "agriseva-ai"
   },
   "targets": {
     "vibe-5b35a": {
@@ -13,5 +13,6 @@
         ]
       }
     }
-  }
+  },
+  "etags": {}
 }

@@ -33,7 +33,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.4.1",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=20"
   },
   "devDependencies": {
     "@docusaurus/tsconfig": "3.7.0",

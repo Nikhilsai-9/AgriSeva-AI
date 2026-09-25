@@ -13,6 +13,16 @@ export const api = onRequest(
     memory: '1GiB',
     timeoutSeconds: 60,
     cors: true,
+    secrets: [
+      'DB_URL',
+      'GEMINI_API_KEY',
+      'SARVAM_API_KEY',
+      'INTERNAL_API_KEY',
+      'SENTRY_DSN',
+      'FAST2SMS_API_KEY',
+      'PLIVO_AUTH_ID',
+      'PLIVO_AUTH_TOKEN',
+    ],
   },
   app,
 );
@@ -28,6 +38,7 @@ export const marketIngestScheduled = onSchedule(
     region: 'asia-south1',
     memory: '512MiB',
     timeoutSeconds: 300,
+    secrets: ['DB_URL'],
   },
   async () => {
     console.log('[ScheduledFunction] Starting scheduled market ingestion run...');
