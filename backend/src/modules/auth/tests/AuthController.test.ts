@@ -27,6 +27,7 @@ describe('Auth Controller Integration Tests', () => {
   beforeAll(async () => {
     const container = new Container();
     container.bind(AUTH_TYPES.AuthService).toConstantValue(mockAuthService);
+    container.bind(AuthController).toSelf().inSingletonScope();
     container.bind(HttpErrorHandler).toSelf().inSingletonScope();
     useContainer(new InversifyAdapter(container));
     app = useExpressServer(appInstance, {
@@ -48,12 +49,6 @@ describe('Auth Controller Integration Tests', () => {
       const response = await request(app)
         .post('/auth/signup/')
         .send(signUpBody);
-      if (response.status !== 201) {
-        // Surface the failure body so future readers don't have to
-        // instrument HttpErrorHandler manually.
-        // eslint-disable-next-line no-console
-        console.log('signup failure body:', response.body);
-      }
       expect(response.status).toBe(201);
     }, 30000); // <-- timeout for this test
 

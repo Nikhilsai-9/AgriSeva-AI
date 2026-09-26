@@ -9,8 +9,14 @@ const DB_URL = process.env.DB_URL!;
 const DB_NAME = process.env.DB_NAME!;
 
 const TS = Date.now();
-const TEST_CROP_NAME = `Test_Crop_${TS}`;
-const TEST_CROP_NAME_LOWER = TEST_CROP_NAME.toLowerCase();
+// CropRepository.createCrop title-cases each whitespace-separated
+// word of the name (char 0 -> upper, rest -> lower). We pick the
+// lowercase form as input and treat TEST_CROP_NAME_TITLE as the
+// expected stored value.
+const TEST_CROP_NAME = `test_crop_${TS}`;
+const TEST_CROP_NAME_TITLE =
+  TEST_CROP_NAME.charAt(0).toUpperCase() +
+  TEST_CROP_NAME.slice(1).toLowerCase();
 const TEST_ALIAS_1 = `testalias1_${TS}`;
 const TEST_ALIAS_2 = `testalias2_${TS}`;
 const CREATED_BY = '664f00000000000000000001';
@@ -50,7 +56,7 @@ describe('CropRepository integration (prod_copy_db)', () => {
     );
 
     expect(crop._id).toBeDefined();
-    expect(crop.name).toBe(TEST_CROP_NAME_LOWER);
+    expect(crop.name).toBe(TEST_CROP_NAME_TITLE);
     expect(crop.aliases.some(a => typeof a !== 'string' && a.english_representation === TEST_ALIAS_1.toLowerCase())).toBe(true);
 
     createdDocId = crop._id!.toString();
@@ -63,17 +69,17 @@ describe('CropRepository integration (prod_copy_db)', () => {
   }, 30000);
 
   it('getAllCrops — returns list including the created crop', async () => {
-    const {crops, totalCount} = await repo.getAllCrops({search: TEST_CROP_NAME_LOWER});
+    const {crops, totalCount} = await repo.getAllCrops({search: TEST_CROP_NAME_TITLE});
 
     expect(totalCount).toBeGreaterThanOrEqual(1);
-    expect(crops.some(c => c.name === TEST_CROP_NAME_LOWER)).toBe(true);
+    expect(crops.some(c => c.name === TEST_CROP_NAME_TITLE)).toBe(true);
   }, 30000);
 
   it('getCropById — returns the correct crop', async () => {
     const crop = await repo.getCropById(createdDocId);
 
     expect(crop).not.toBeNull();
-    expect(crop!.name).toBe(TEST_CROP_NAME_LOWER);
+    expect(crop!.name).toBe(TEST_CROP_NAME_TITLE);
   }, 30000);
 
   it('getCropById — returns null for unknown id', async () => {
