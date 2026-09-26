@@ -4,6 +4,7 @@ import {
   useFarmerProfile,
   useUpdateFarmerProfile,
 } from "@/features/farmerDashboard/hooks/data";
+import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
 import {
   isValidPhoneNumber,
   normalizePhoneNumber,
@@ -25,7 +26,8 @@ import { useTranslation } from "@/locales";
 export function ContactOnboardingModal() {
   const { t } = useTranslation();
   const { user, isAuthenticated } = useAuthStore();
-  const { data: profile, isLoading } = useFarmerProfile();
+  const { data: profile, isLoading: isProfileLoading } = useFarmerProfile();
+  const { data: userProfile, isLoading: isUserLoading } = useGetCurrentUser({ enabled: isAuthenticated });
   const updateProfile = useUpdateFarmerProfile();
 
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -34,12 +36,17 @@ export function ContactOnboardingModal() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   // If user is not authenticated or profile is loading, or dismissed for this session, do not show
-  if (!isAuthenticated || !user || isLoading || isDismissed) {
+  if (!isAuthenticated || !user || isProfileLoading || isUserLoading || isDismissed) {
     return null;
   }
 
-  // If user already has a valid phone in their profile or auth store, do not show
-  const existingPhone = profile?.phone || user.phone;
+  // If user already has a valid phone in their profile, backend, or auth store, do not show
+  const existingPhone =
+    profile?.phone ||
+    userProfile?.farmerProfile?.phone ||
+    userProfile?.mobile ||
+    user?.phone;
+
   if (existingPhone && isValidPhoneNumber(existingPhone)) {
     return null;
   }

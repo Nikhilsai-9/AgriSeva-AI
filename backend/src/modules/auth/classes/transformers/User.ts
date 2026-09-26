@@ -4,7 +4,7 @@ import {
   ObjectIdArrayToStringArray,
   StringArrayToObjectIdArray,
 } from '#shared/constants/transformerConstants.js';
-import {IKVKCoveredItem, IPreference, IUser, NotificationRetentionType, UserRole} from '#shared/interfaces/models.js';
+import {IFarmerProfile, IKVKCoveredItem, IPreference, IUser, NotificationRetentionType, UserRole} from '#shared/interfaces/models.js';
 import {Expose, Transform} from 'class-transformer';
 import {ObjectId} from 'mongodb';
 
@@ -55,6 +55,9 @@ class User implements IUser {
 
   @Expose()
   mobile?: string;
+
+  @Expose()
+  farmerProfile?: IFarmerProfile | null;
 
   @Expose()
   university?: string;
@@ -121,7 +124,12 @@ class User implements IUser {
     this.notificationRetention=data.notificationRetention;
     this.createdAt = data?.createdAt || new Date();
     this.updatedAt = data?.updatedAt || new Date();
-    this.mobile = data?.mobile || '';
+    const resolvedMobile = data?.mobile || data?.farmerProfile?.phone || '';
+    this.mobile = resolvedMobile;
+    this.farmerProfile = data?.farmerProfile ?? (resolvedMobile ? { phone: resolvedMobile } : null);
+    if (this.farmerProfile && resolvedMobile && !this.farmerProfile.phone) {
+      this.farmerProfile.phone = resolvedMobile;
+    }
     this.university = data?.university || '';
     this.kvkCovered = data?.kvkCovered ?? null;
     this.isCallAgentActive = data?.isCallAgentActive;

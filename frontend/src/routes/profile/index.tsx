@@ -21,6 +21,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import type { IUser } from "@/types";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useState, useRef, useEffect } from "react";
+import { normalizePhoneNumber, isValidPhoneNumber } from "@/lib/phoneNumber";
 import {
   Edit2,
   ArrowLeft,
@@ -204,11 +205,11 @@ const validateMobile = (value: string) => {
   const trimmedValue = value.trim();
 
   if (!trimmedValue) {
-    return "Mobile number is required.";
+    return "";
   }
 
-  if (!/^\+\d{1,4}[\s-]?\d{6,14}$/.test(trimmedValue)) {
-    return "Enter a valid mobile number with country code, for example +91 9876543210.";
+  if (!isValidPhoneNumber(trimmedValue)) {
+    return "Enter a valid 10-digit mobile number with country code, for example +91 9876543210.";
   }
 
   return "";
@@ -239,6 +240,7 @@ const validateUniversity = (value: string) => {
 const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
   const [formData, setFormData] = useState<IUser>({
     ...user,
+    mobile: user?.mobile || (user as any)?.farmerProfile?.phone || "",
     preference: {
       state: user?.preference?.state ?? "",
       district: user?.preference?.district ?? "",
@@ -246,6 +248,16 @@ const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
       domain: user?.preference?.domain ?? "all",
     },
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        ...user,
+        mobile: user.mobile || (user as any)?.farmerProfile?.phone || prev.mobile,
+      }));
+    }
+  }, [user]);
 
   const { data: statesResponse = [] } = useGetStates();
   const stateOptions = statesResponse.map((s) => s.stateNameEnglish);
@@ -492,9 +504,13 @@ const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
             ? customDomain.trim()
             : (formData.preference?.domain ?? "all");
 
+      const normalizedMobile = formData.mobile?.trim()
+        ? normalizePhoneNumber(formData.mobile.trim())
+        : "";
+
       const payload: IUser = {
         ...formData,
-        mobile: formData.mobile?.trim(),
+        mobile: normalizedMobile || undefined,
         university: formData.university?.trim(),
         kvkCovered: kvkList.length > 0 ? kvkList : undefined,
         preference: {

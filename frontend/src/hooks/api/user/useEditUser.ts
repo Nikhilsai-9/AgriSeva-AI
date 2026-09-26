@@ -13,19 +13,26 @@ export const useEditUser = () => {
     mutationFn: async (user: Partial<IUser>): Promise<void | null> => {
       return await userService.edit(user);
     },
-    onSuccess: (_,user_variable) => {
-      const fullName=[user_variable?.firstName,user_variable?.lastName].filter(Boolean).join(" ");
-      const {user}=useAuthStore.getState();
-      if(user?.name!==fullName)
-        useAuthStore.getState().updateUser({
-          name: fullName,
-        });
+    onSuccess: (_, user_variable) => {
+      const fullName = [user_variable?.firstName, user_variable?.lastName].filter(Boolean).join(" ");
+      const resolvedPhone = user_variable?.mobile || (user_variable as any)?.phone || (user_variable as any)?.phoneNumber || (user_variable as any)?.farmerProfile?.phone;
+      const updates: Record<string, any> = {};
+      if (fullName) updates.name = fullName;
+      if (resolvedPhone) updates.phone = resolvedPhone;
+      if (user_variable?.avatar !== undefined) updates.avatar = user_variable.avatar;
+      if (Object.keys(updates).length > 0) {
+        useAuthStore.getState().updateUser(updates);
+      }
+      queryClient.invalidateQueries({
+        queryKey: ["user"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["farmer-profile"],
+      });
       queryClient.invalidateQueries({
         queryKey: ["users"],
         exact: false,
       });
-
-      //  Refresh moderator experts list
       queryClient.invalidateQueries({
         queryKey: ["experts"],
         exact: false,

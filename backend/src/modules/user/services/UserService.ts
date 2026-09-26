@@ -30,6 +30,7 @@ import {IQuestionRepository} from '#root/shared/database/interfaces/IQuestionRep
 import {sendEmailNotification} from '#root/utils/mailer.js';
 import { NotificationService } from '#root/modules/notification/services/NotificationService.js';
 import { TrendGranularity } from '#root/shared/database/providers/mongo/repositories/UserRepository.js';
+import { normalizePhoneNumber } from '#root/utils/phoneNumber.js';
 
 @injectable()
 export class UserService extends BaseService {
@@ -121,18 +122,33 @@ export class UserService extends BaseService {
         'firstName',
         'lastName',
         'mobile',
+        'phone',
+        'phoneNumber',
         'university',
         'kvkCovered',
         'preference',
         'avatar',
+        'farmerProfile',
       ] as const;
-      const sanitizedData: Partial<IUser> = {};
+      const sanitizedData: any = {};
 
       for (const field of editableFields) {
         if (Object.prototype.hasOwnProperty.call(data, field)) {
-          (sanitizedData as any)[field] = (data as any)[field];
+          sanitizedData[field] = (data as any)[field];
         }
       }
+
+      const rawPhone = sanitizedData.mobile ?? sanitizedData.phone ?? sanitizedData.phoneNumber ?? sanitizedData.farmerProfile?.phone;
+      if (rawPhone !== undefined) {
+        if (typeof rawPhone === 'string' && !rawPhone.trim()) {
+          throw new BadRequestError(
+            'Mobile number cannot be empty or blank space',
+          );
+        }
+        sanitizedData.mobile = normalizePhoneNumber(rawPhone);
+      }
+      delete sanitizedData.phone;
+      delete sanitizedData.phoneNumber;
 
       if (
         Object.keys(sanitizedData).length === 0 &&
@@ -143,10 +159,6 @@ export class UserService extends BaseService {
 
       if (sanitizedData.firstName !== undefined && !sanitizedData.firstName.trim())
         throw new BadRequestError('Firstname cannot be empty or blank space');
-      if (sanitizedData.mobile !== undefined && !sanitizedData.mobile.trim())
-        throw new BadRequestError(
-          'Mobile number cannot be empty or blank space',
-        );
       if (sanitizedData.university !== undefined && !sanitizedData.university.trim())
         throw new BadRequestError(
           'University name cannot be empty or blank space',
@@ -204,8 +216,18 @@ export class UserService extends BaseService {
         if (sanitizedData.mobile !== undefined) {
           sanitizedData.farmerProfile = {
             ...(existing.farmerProfile ?? {}),
+            ...(sanitizedData.farmerProfile ?? {}),
             phone: sanitizedData.mobile,
           };
+        } else if (sanitizedData.farmerProfile) {
+          sanitizedData.farmerProfile = {
+            ...(existing.farmerProfile ?? {}),
+            ...sanitizedData.farmerProfile,
+          };
+          if (sanitizedData.farmerProfile.phone) {
+            sanitizedData.farmerProfile.phone = normalizePhoneNumber(sanitizedData.farmerProfile.phone);
+            sanitizedData.mobile = sanitizedData.farmerProfile.phone;
+          }
         }
 
         const updatedUser = await this.userRepo.edit(userId, sanitizedData, session);
@@ -1232,7 +1254,16 @@ export class UserService extends BaseService {
         ...currentProfile,
       };
       // Scalar fields — copy only when present.
-      if (patch.phone !== undefined) merged.phone = patch.phone;
+      const rawPhone = patch.phone ?? patch.phoneNumber ?? patch.mobile;
+      let normalizedPhone: string | undefined = undefined;
+      if (rawPhone !== undefined) {
+        if (typeof rawPhone === 'string' && rawPhone.trim()) {
+          normalizedPhone = normalizePhoneNumber(rawPhone);
+          merged.phone = normalizedPhone;
+        } else {
+          merged.phone = '';
+        }
+      }
       if (patch.state !== undefined) merged.state = patch.state;
       if (patch.district !== undefined) merged.district = patch.district;
       if (patch.village !== undefined) merged.village = patch.village;
@@ -1242,9 +1273,13 @@ export class UserService extends BaseService {
       if (patch.experienceYears !== undefined) merged.experienceYears = patch.experienceYears;
       if (patch.preferredLanguage !== undefined) merged.preferredLanguage = patch.preferredLanguage;
       // Array fields — append-and-dedup so we don't lose existing entries.
-      if (patch.primaryCrops !== undefined) {
+      const incomingCrops = [
+        ...(patch.primaryCrops ?? []),
+        ...(patch.primaryCrop ? [patch.primaryCrop.trim()] : []),
+      ].filter(Boolean);
+      if (incomingCrops.length > 0) {
         merged.primaryCrops = Array.from(
-          new Set([...(currentProfile.primaryCrops ?? []), ...patch.primaryCrops]),
+          new Set([...(currentProfile.primaryCrops ?? []), ...incomingCrops]),
         );
       }
       if (patch.preferredMarkets !== undefined) {
@@ -1262,8 +1297,15 @@ export class UserService extends BaseService {
       merged.isDemo = false;
 
       const editFields: Partial<IUser> = { farmerProfile: merged };
-      if (patch.phone !== undefined) {
-        editFields.mobile = patch.phone;
+      if (normalizedPhone !== undefined) {
+        editFields.mobile = normalizedPhone;
+      }
+      if (patch.name !== undefined && typeof patch.name === 'string' && patch.name.trim()) {
+        const parts = patch.name.trim().split(/\s+/);
+        editFields.firstName = parts[0];
+        if (parts.length > 1) {
+          editFields.lastName = parts.slice(1).join(' ');
+        }
       }
 
       const updated = await this.userRepo.edit(
@@ -1274,7 +1316,7 @@ export class UserService extends BaseService {
       if (!updated) {
         throw new InternalServerError('Failed to persist farmer profile update');
       }
-      return {...updated, farmerProfile: merged, ...(patch.phone !== undefined ? { mobile: patch.phone } : {})};
+      return {...updated, farmerProfile: merged, ...(normalizedPhone !== undefined ? { mobile: normalizedPhone } : {})};
     });
   }
 

@@ -1,6 +1,7 @@
 import { auth, googleProvider } from "@/config/firebase";
 import { queryClient } from "@/routes/__root";
 import type { AuthUser, ExtendedUserCredential } from "@/types";
+import { env } from "@/config/env";
 import {
   // getIdToken,
   onAuthStateChanged,
@@ -61,7 +62,6 @@ export const useAuthStore = create<AuthStore>()(
           set({ loading: true, error: null });
           try {
             const result = await signInWithPopup(auth, googleProvider);
-            // const token = await getIdToken(result.user);
             const authUser: AuthUser = {
               uid: result.user.uid,
               email: result.user.email || "",
@@ -69,10 +69,37 @@ export const useAuthStore = create<AuthStore>()(
               avatar: result.user.photoURL || "",
             };
             set(
-              { user: authUser, firebaseUser: result.user, loading: false },
+              { user: authUser, firebaseUser: result.user, loading: false, isAuthenticated: true },
               undefined,
               "loginWithGoogle"
             );
+
+            try {
+              const token = await result.user.getIdToken();
+              const res = await fetch(`${env.apiBaseUrl()}/users/me`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              if (res.ok) {
+                const backendUser = await res.json();
+                const resolvedPhone = backendUser?.farmerProfile?.phone || backendUser?.mobile || "";
+                const resolvedName = [backendUser?.firstName, backendUser?.lastName].filter(Boolean).join(" ").trim();
+                set((state) => ({
+                  user: state.user
+                    ? {
+                        ...state.user,
+                        name: resolvedName || state.user.name,
+                        phone: resolvedPhone || state.user.phone,
+                        role: backendUser.role || state.user.role,
+                      }
+                    : state.user,
+                }));
+              }
+            } catch (profileErr) {
+              console.warn("[auth-store] Failed to fetch backend profile on login:", profileErr);
+            }
+
             return result;
           } catch (err: any) {
             console.error(err);
@@ -88,7 +115,7 @@ export const useAuthStore = create<AuthStore>()(
             queryClient.clear();
             localStorage.removeItem("questionDrafts");
             set(
-              { user: null, firebaseUser: null, loading: false },
+              { user: null, firebaseUser: null, loading: false, isAuthenticated: false },
               undefined,
               "logout"
             );
@@ -102,11 +129,14 @@ export const useAuthStore = create<AuthStore>()(
           set({ loading: true });
           onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
+              const existingUser = useAuthStore.getState().user;
               const authUser: AuthUser = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email || "",
-                name: firebaseUser.displayName || "",
-                avatar: firebaseUser.photoURL || "",
+                name: firebaseUser.displayName || existingUser?.name || "",
+                avatar: firebaseUser.photoURL || existingUser?.avatar || "",
+                phone: existingUser?.phone || undefined,
+                role: existingUser?.role || undefined,
               };
 
               set({
@@ -115,8 +145,34 @@ export const useAuthStore = create<AuthStore>()(
                 loading: false,
                 isAuthenticated: true,
               });
+
+              try {
+                const token = await firebaseUser.getIdToken();
+                const res = await fetch(`${env.apiBaseUrl()}/users/me`, {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                });
+                if (res.ok) {
+                  const backendUser = await res.json();
+                  const resolvedPhone = backendUser?.farmerProfile?.phone || backendUser?.mobile || "";
+                  const resolvedName = [backendUser?.firstName, backendUser?.lastName].filter(Boolean).join(" ").trim();
+                  set((state) => ({
+                    user: state.user
+                      ? {
+                          ...state.user,
+                          name: resolvedName || state.user.name,
+                          phone: resolvedPhone || state.user.phone,
+                          role: backendUser.role || state.user.role,
+                        }
+                      : state.user,
+                  }));
+                }
+              } catch (profileErr) {
+                console.warn("[auth-store] Failed to fetch backend profile on init:", profileErr);
+              }
             } else {
-              set({ user: null, firebaseUser: null, loading: false });
+              set({ user: null, firebaseUser: null, loading: false, isAuthenticated: false });
             }
           });
         },

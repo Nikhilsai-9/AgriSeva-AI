@@ -169,6 +169,17 @@ describe('UserController — farmer profile persistence', () => {
     expect(new Set(crops).size).toBe(crops.length);
   });
 
+  it('PATCH /users/me/farmer-profile updates phone and syncs mobile', async () => {
+    const res = await request(app)
+      .patch('/users/me/farmer-profile')
+      .send({ phone: '9876543210' });
+    expect(res.status).toBe(200);
+    expect(mockUserService.updateFarmerProfile).toHaveBeenCalledWith(
+      FARMER_ID,
+      expect.objectContaining({ phone: '9876543210' })
+    );
+  });
+
   it('PATCH requires authentication (401 without token)', async () => {
     nextUser = null;
     const res = await request(app)

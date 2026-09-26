@@ -182,7 +182,7 @@ export class UserController {
   ): Promise<IUser> {
     verifyNotTester(currentUser);
     const userId = currentUser._id.toString();
-    const updatedUser = await this.userService.updateUser(userId, body);
+    const updatedUser = await this.userService.updateUser(userId, body as Partial<IUser>);
     if (!updatedUser) {
       throw new NotFoundError('User not found');
     }

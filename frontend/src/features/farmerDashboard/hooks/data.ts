@@ -251,6 +251,13 @@ export const useUpdateFarmerProfile = () => {
     onSuccess: (data) => {
       qc.setQueryData(["farmer", "profile"], data);
       qc.invalidateQueries({ queryKey: ["farmer", "profile"] });
+      qc.invalidateQueries({ queryKey: ["user"] });
+      if (data?.phone) {
+        useAuthStore.getState().updateUser({ phone: data.phone });
+      }
+      if (data?.name) {
+        useAuthStore.getState().updateUser({ name: data.name });
+      }
     },
   });
 };

@@ -45,6 +45,18 @@ class FarmerProfilePatchDto {
 
   @IsOptional()
   @IsString()
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  mobile?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
   state?: string;
 
   @IsOptional()
@@ -58,6 +70,10 @@ class FarmerProfilePatchDto {
   @IsOptional()
   @IsArray()
   primaryCrops?: string[];
+
+  @IsOptional()
+  @IsString()
+  primaryCrop?: string;
 
   @IsOptional()
   @IsArray()
@@ -234,15 +250,44 @@ class UpdateUserDto {
   @IsOptional()
   @IsEnum(USER_ROLES)
   role?: UserRole;
+
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @IsOptional()
+  @IsString()
+  mobile?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  university?: string;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PreferenceDto)
+  preference?: PreferenceDto;
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => KVKCoveredItemDto)
   kvkCovered?: KVKCoveredItemDto[];
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => FarmerProfilePatchDto)
+  farmerProfile?: FarmerProfilePatchDto;
 }
 
 export class ToggleUserRoleDto {

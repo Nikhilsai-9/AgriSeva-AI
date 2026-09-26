@@ -4,10 +4,10 @@ export type UserRole = 'admin' | 'moderator' | 'expert' | 'pae_expert' | 'tester
 export type QuestionStatus = 'open' | 'in-review' | 'closed' | 'delayed' | 're-routed' | 'hold' | 'pae_submitted' | 'draft' | 'pass' | 'duplicate' | 'non_agri' | 'pending' | 'dynamic' | 'queue_progress' | 'auditor_review' | 'dynamic_closed'|'queue_duplicate' | 'duplicate_confirmed' | 'duplicate_closed'
 export type Tags = 'dynamic' | 'static_dynamic'
 export interface IPreference {
-  state: string;
+  state?: string;
   district?: string;
-  crop: string;
-  domain: string | string[];
+  crop?: string | ICropRef;
+  domain?: string | string[];
 }
 export type NotificationRetentionType = '3d' | '1w' | '2w' | '1m' | 'never';
 export type UserStatus = 'active' | 'in-active';

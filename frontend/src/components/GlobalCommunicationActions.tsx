@@ -48,7 +48,8 @@ import { toast } from "sonner";
 import { apiFetch } from "@/hooks/api/api-fetch";
 import { env } from "@/config/env";
 
-export const AGRISEVA_HELPLINE_NUMBER = "+919606751041";
+export const AGRISEVA_HELPLINE_NUMBER = env.helplineNumber();
+export const AGRISEVA_WHATSAPP_NUMBER = env.whatsappNumber();
 export const KISAN_TOLLFREE_NUMBER = "1800-180-1551";
 
 interface AppFeature {
@@ -744,12 +745,17 @@ export function GlobalCommunicationActions() {
                   </div>
 
                   <div className="pt-2 border-t border-border/60 flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold text-foreground">
-                      +91 96067 51041
-                    </span>
+                    <div>
+                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block uppercase tracking-wider">
+                        AgriSeva AI WhatsApp
+                      </span>
+                      <span className="text-xs font-mono font-bold text-foreground">
+                        {formatPhoneNumber(AGRISEVA_WHATSAPP_NUMBER)}
+                      </span>
+                    </div>
                     <Button
                       onClick={() => {
-                        const link = getWhatsAppLink(AGRISEVA_HELPLINE_NUMBER, "Namaste AgriSeva, I need agricultural advice for my crops.");
+                        const link = getWhatsAppLink(AGRISEVA_WHATSAPP_NUMBER, "Namaste AgriSeva-AI! I need agricultural advice for my farm.");
                         window.open(link, "_blank", "noopener,noreferrer");
                         setWhatsappDialogOpen(false);
                       }}
