@@ -13,6 +13,18 @@ import {GLOBAL_TYPES} from '#root/types.js';
 import {MongoDatabase} from '#root/shared/index.js';
 import type {MarketSourceId} from '../types.js';
 
+/**
+ * PHASE 2 §P2.D — Coarse classification of an ingestion
+ * failure. Drives `MarketReliabilityService` captcha counting
+ * and `MarketHealthController` surface reporting.
+ */
+export type DataUpdateErrorCategory =
+  | 'captcha'
+  | 'parse'
+  | 'network'
+  | 'rate_limit'
+  | 'other';
+
 export interface IDataUpdateLog {
   source: MarketSourceId;
   tool: string;
@@ -23,6 +35,8 @@ export interface IDataUpdateLog {
   recordsPersisted?: number;
   error?: string;
   target?: Record<string, unknown>;
+  /** PHASE 2 §P2.D — Failure category. Set on `success: false` rows. */
+  errorCategory?: DataUpdateErrorCategory;
 }
 
 @injectable()

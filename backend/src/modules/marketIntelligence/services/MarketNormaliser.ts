@@ -86,6 +86,72 @@ export function formatIstDate(when: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+
+/**
+ * PHASE 2 Â§P2.D â€” Captcha / challenge-page detection.
+ *
+ * Agmarknet and eNAM upstreams occasionally return HTML
+ * challenge pages (Cloudflare "Just a moment", Google reCAPTCHA)
+ * instead of JSON. The previous normaliser silently returned
+ * `[]` for such responses, and the ingestion layer logged a
+ * zero-record success â€” masking the fact that the upstream was
+ * actually rate-limiting us.
+ *
+ * These helpers run pure string / pattern checks on the raw
+ * response payload, the parsed `McpToolResult.data`, or the
+ * `McpToolResult.error` string. They NEVER throw.
+ *
+ * Exported so unit tests and downstream services can call them
+ * without going through `MarketNormaliser` itself.
+ */
+
+/** Markers extracted from real Cloudflare / reCAPTCHA HTML pages. */
+export const CAPTCHA_MARKERS: readonly string[] = [
+  '<title>Just a moment',
+  'cf-chl-bypass',
+  'cf-challenge-form',
+  'cf-chl-opt',
+  'g-recaptcha',
+  'Attention Required! | Cloudflare',
+  'Verifying you are human',
+  'Checking your browser before accessing',
+];
+
+/** True when `input` (case-insensitive) contains any captcha marker. */
+export function detectCaptchaInString(input: string): boolean {
+  if (!input || typeof input !== 'string') return false;
+  const lower = input.toLowerCase();
+  return CAPTCHA_MARKERS.some((m) => lower.includes(m.toLowerCase()));
+}
+
+/**
+ * Detect captcha markers in an MCP response payload (parsed or not).
+ * Accepts:
+ *   - string  â†’ checked directly
+ *   - object  â†’ serialised once with JSON.stringify, then checked
+ *   - null/undefined/other â†’ false
+ */
+export function detectCaptchaInPayload(payload: unknown): boolean {
+  if (payload === null || payload === undefined) return false;
+  if (typeof payload === 'string') {
+    return detectCaptchaInString(payload);
+  }
+  if (typeof payload === 'object') {
+    try {
+      return detectCaptchaInString(JSON.stringify(payload));
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+/** Detect captcha markers in an `McpToolResult.error` string. */
+export function detectCaptchaInError(error: string | undefined): boolean {
+  if (!error || typeof error !== 'string') return false;
+  return detectCaptchaInString(error);
+}
+
 export function cleanString(v: unknown): string | undefined {
   if (typeof v !== 'string') return undefined;
   const trimmed = v.trim();

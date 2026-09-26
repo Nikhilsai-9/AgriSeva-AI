@@ -18,7 +18,12 @@ import {inject, injectable} from 'inversify';
 import {GLOBAL_TYPES} from '#root/types.js';
 import {AgmarknetMcpClient} from '../mcp/agmarknetClient.js';
 import {EnamMcpClient} from '../mcp/enamClient.js';
-import {MarketNormaliser, todayIso} from './MarketNormaliser.js';
+import {
+  MarketNormaliser,
+  detectCaptchaInPayload,
+  detectCaptchaInError,
+  todayIso,
+} from './MarketNormaliser.js';
 import {CommodityResolver} from './CommodityResolver.js';
 import {MarketPriceRepository} from '../repositories/MarketPriceRepository.js';
 import {CommodityAliasRepository} from '../repositories/CommodityAliasRepository.js';
@@ -116,18 +121,42 @@ export class MarketIngestionService {
     const errors: string[] = [];
     const includeFallback = options.includeFallback ?? true;
     const date = target.arrivalDate ?? todayIso();
+    let captchaSuspected = false;
 
     const primary = await this.ingestFromAgmarknet(target, date);
+    captchaSuspected = captchaSuspected || primary.captchaSuspected;
     await this.logRepo.append({
       source: 'agmarknet',
       tool: 'marketwise_price_arrival_dynamic',
-      success: primary.ok,
+      success: primary.ok && !primary.captchaSuspected,
       durationMs: primary.durationMs,
       fetchedAt: new Date().toISOString(),
       recordsNormalised: primary.records.length,
       target: target as unknown as Record<string, unknown>,
       error: primary.error,
+      errorCategory: primary.captchaSuspected
+        ? 'captcha'
+        : primary.ok
+          ? undefined
+          : 'other',
     });
+
+    if (primary.captchaSuspected) {
+      // PHASE 2 §P2.D — Block ingestion on captcha. We do NOT
+      // try eNAM here: if Agmarknet is captcha-blocked, the
+      // eNAM fallback is likely behind the same proxy/CDN and
+      // will hit the same wall, wasting a fetch.
+      return {
+        source: 'agmarknet',
+        success: false,
+        recordsNormalised: 0,
+        recordsPersisted: 0,
+        errors: ['agmarknet: captcha suspected'],
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        captchaSuspected: true,
+      };
+    }
 
     if (primary.ok && primary.records.length > 0) {
       const persisted = await this.persistAll(primary.records);
@@ -140,6 +169,7 @@ export class MarketIngestionService {
         startedAt,
         finishedAt: new Date().toISOString(),
         records: primary.records,
+        captchaSuspected: false,
       };
     }
     if (primary.error) errors.push(`agmarknet: ${primary.error}`);
@@ -153,20 +183,40 @@ export class MarketIngestionService {
         errors,
         startedAt,
         finishedAt: new Date().toISOString(),
+        captchaSuspected: false,
       };
     }
 
     const fallback = await this.ingestFromEnam(target, date);
+    captchaSuspected = captchaSuspected || fallback.captchaSuspected;
     await this.logRepo.append({
       source: 'enam',
       tool: 'get_trade_data_list',
-      success: fallback.ok,
+      success: fallback.ok && !fallback.captchaSuspected,
       durationMs: fallback.durationMs,
       fetchedAt: new Date().toISOString(),
       recordsNormalised: fallback.records.length,
       target: target as unknown as Record<string, unknown>,
       error: fallback.error,
+      errorCategory: fallback.captchaSuspected
+        ? 'captcha'
+        : fallback.ok
+          ? undefined
+          : 'other',
     });
+
+    if (fallback.captchaSuspected) {
+      return {
+        source: 'enam',
+        success: false,
+        recordsNormalised: 0,
+        recordsPersisted: 0,
+        errors: [...errors, 'enam: captcha suspected'],
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        captchaSuspected: true,
+      };
+    }
 
     if (fallback.ok && fallback.records.length > 0) {
       const persisted = await this.persistAll(fallback.records);
@@ -179,6 +229,7 @@ export class MarketIngestionService {
         startedAt,
         finishedAt: new Date().toISOString(),
         records: fallback.records,
+        captchaSuspected: false,
       };
     }
     if (fallback.error) errors.push(`enam: ${fallback.error}`);
@@ -191,6 +242,7 @@ export class MarketIngestionService {
       errors,
       startedAt,
       finishedAt: new Date().toISOString(),
+      captchaSuspected: false,
     };
   }
 
@@ -295,7 +347,13 @@ export class MarketIngestionService {
   private async ingestFromAgmarknet(
     target: MarketIngestionTarget,
     date: string,
-  ): Promise<{ok: boolean; records: MarketPriceRecord[]; error?: string; durationMs: number}> {
+  ): Promise<{
+    ok: boolean;
+    records: MarketPriceRecord[];
+    error?: string;
+    durationMs: number;
+    captchaSuspected: boolean;
+  }> {
     // Prefer the state-filtered dashboard endpoint when a state is
     // supplied (narrower, hits cached state_id). Otherwise fall back
     // to the dynamic tool. The dashboard method is OPTIONAL — when
@@ -350,7 +408,36 @@ export class MarketIngestionService {
     }
 
     if (!result.ok || !result.data) {
-      return {ok: false, records: [], error: result.error, durationMs: result.durationMs};
+      // PHASE 2 §P2.D — check the error string too: a Cloudflare
+      // challenge page typically surfaces as `MCP ... returned
+      // HTTP 403: <html>...<title>Just a moment...`.
+      const captchaSuspected =
+        detectCaptchaInError(result.error) ||
+        detectCaptchaInPayload(result.data);
+      return {
+        ok: false,
+        records: [],
+        error: captchaSuspected ? 'captcha detected' : result.error,
+        durationMs: result.durationMs,
+        captchaSuspected,
+      };
+    }
+
+    // PHASE 2 §P2.D — Even on success-shaped payloads, the
+    // upstream may have returned a captcha HTML page that the MCP
+    // server wrapped (or that JSON.parse failed on but was
+    // passed through as a string). Scan before normalising.
+    if (
+      detectCaptchaInPayload(result.data) ||
+      detectCaptchaInError(result.error)
+    ) {
+      return {
+        ok: false,
+        records: [],
+        error: 'captcha detected',
+        durationMs: result.durationMs,
+        captchaSuspected: true,
+      };
     }
 
     // Only decorate when the dashboard endpoint was actually used.
@@ -369,13 +456,24 @@ export class MarketIngestionService {
       date,
       this.agmarknet.getEndpoint(),
     );
-    return {ok: true, records, durationMs: result.durationMs};
+    return {
+      ok: true,
+      records,
+      durationMs: result.durationMs,
+      captchaSuspected: false,
+    };
   }
 
   private async ingestFromEnam(
     target: MarketIngestionTarget,
     date: string,
-  ): Promise<{ok: boolean; records: MarketPriceRecord[]; error?: string; durationMs: number}> {
+  ): Promise<{
+    ok: boolean;
+    records: MarketPriceRecord[];
+    error?: string;
+    durationMs: number;
+    captchaSuspected: boolean;
+  }> {
     // eNAM requires state+apmc+commodity. Short-circuit otherwise.
     if (!target.state || !target.market || !target.commodity) {
       return {
@@ -383,6 +481,7 @@ export class MarketIngestionService {
         records: [],
         error: 'eNAM requires state+market+commodity',
         durationMs: 0,
+        captchaSuspected: false,
       };
     }
     const result = await this.enam.fetchTradeData({
@@ -393,10 +492,36 @@ export class MarketIngestionService {
       to_date: date,
     });
     if (!result.ok || !result.data) {
-      return {ok: false, records: [], error: result.error, durationMs: result.durationMs};
+      const captchaSuspected =
+        detectCaptchaInError(result.error) ||
+        detectCaptchaInPayload(result.data);
+      return {
+        ok: false,
+        records: [],
+        error: captchaSuspected ? 'captcha detected' : result.error,
+        durationMs: result.durationMs,
+        captchaSuspected,
+      };
+    }
+    if (
+      detectCaptchaInPayload(result.data) ||
+      detectCaptchaInError(result.error)
+    ) {
+      return {
+        ok: false,
+        records: [],
+        error: 'captcha detected',
+        durationMs: result.durationMs,
+        captchaSuspected: true,
+      };
     }
     const records = this.normaliser.normaliseEnam(result.data);
-    return {ok: true, records, durationMs: result.durationMs};
+    return {
+      ok: true,
+      records,
+      durationMs: result.durationMs,
+      captchaSuspected: false,
+    };
   }
 
   private async persistAll(records: MarketPriceRecord[]): Promise<number> {

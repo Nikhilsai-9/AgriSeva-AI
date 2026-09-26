@@ -46,6 +46,10 @@ export class MarketReliabilityService {
     const attempts24h = recent24h.length;
     const successes6h = recent6h.filter(r => r.success).length;
     const attempts6h = recent6h.length;
+    // PHASE 2 §P2.D — captcha incidents in last 24h
+    const captchaIncidentsLast24h = recent24h.filter(
+      r => r.errorCategory === 'captcha',
+    ).length;
 
     // last success & last attempt
     const all = await this.logRepo.findRecent({source}, 200);
@@ -93,6 +97,19 @@ export class MarketReliabilityService {
     if (consecutiveFails >= 2)
       reasons.push(`${consecutiveFails} consecutive failures`);
 
+    // PHASE 2 §P2.D — captcha incidents surface as an
+    // operator-visible reason. We deliberately do NOT fold
+    // them into the score: captcha is an external signal
+    // (the upstream is rate-limiting), not a reliability
+    // problem with our code.
+    if (captchaIncidentsLast24h > 0) {
+      reasons.push(
+        `${captchaIncidentsLast24h} captcha incident${
+          captchaIncidentsLast24h === 1 ? '' : 's'
+        } in last 24h — upstream may be rate-limiting`,
+      );
+    }
+
     const total = successScore + freshnessScore + activityScore + failScore;
 
     return {
@@ -105,6 +122,7 @@ export class MarketReliabilityService {
       recentSuccessesLast24h: successes24h,
       recentAttemptsLast24h: attempts24h,
       reasons,
+      captchaIncidentsLast24h,
     };
   }
 

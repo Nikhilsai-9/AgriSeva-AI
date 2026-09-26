@@ -41,6 +41,11 @@ export class MarketHealthController {
   async health(): Promise<{
     success: boolean;
     fetchedAt: string;
+    /** PHASE 2 §P2.D — true when any source has had a captcha
+     *  incident in the last 24h. Operators can monitor this
+     *  to detect upstream rate-limiting without scraping the
+     *  full reliability snapshots. */
+    captchaSuspected: boolean;
     sources: Array<{
       id: string;
       endpoint: string;
@@ -51,9 +56,12 @@ export class MarketHealthController {
       this.reliabilityService.snapshot('agmarknet'),
       this.reliabilityService.snapshot('enam'),
     ]);
+    const captchaSuspected =
+      agRel.captchaIncidentsLast24h > 0 || enRel.captchaIncidentsLast24h > 0;
     return {
-      success: true,
+      success: !captchaSuspected,
       fetchedAt: new Date().toISOString(),
+      captchaSuspected,
       sources: [
         {
           id: 'agmarknet',
