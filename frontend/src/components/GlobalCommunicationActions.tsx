@@ -436,7 +436,7 @@ export function GlobalCommunicationActions() {
       {/* Persistent Floating Bottom-Right Stack in Exact Order: 1. Phone, 2. WhatsApp, 3. AgriSeva-AI Helper */}
       <aside 
         aria-label="AgriSeva Global Communication & AI Helper"
-        className="fixed bottom-6 right-6 z-[90] flex flex-col items-center gap-3 select-none pointer-events-auto"
+        className="fixed bottom-5 right-5 z-[90] flex flex-col items-center gap-2.5 select-none pointer-events-auto"
       >
         <TooltipProvider delayDuration={200}>
           {/* 1. Phone Helpline Floating Button */}
@@ -447,10 +447,10 @@ export function GlobalCommunicationActions() {
                 id="floating-phone-action-btn"
                 aria-label="Open AgriSeva Voice Helpline & Dialer"
                 onClick={() => setPhoneDialogOpen(true)}
-                className="group relative flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-xl shadow-emerald-700/30 hover:shadow-emerald-600/50 hover:scale-110 active:scale-95 transition-all duration-200 border-2 border-white/30 dark:border-zinc-800/50 focus:outline-none focus:ring-4 focus:ring-emerald-500/40"
+                className="group relative flex h-12 w-12 sm:h-[48px] sm:w-[48px] items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-900/20 hover:shadow-lg hover:shadow-emerald-900/25 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/15 dark:border-zinc-800/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               >
-                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-15 transition-opacity" />
-                <Phone className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.2] fill-white/20" />
+                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
+                <Phone className="h-5 w-5 stroke-[2.2] text-white" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="left" className="text-xs font-semibold py-1.5 px-3 bg-zinc-900 text-white shadow-xl border border-zinc-700">
@@ -466,13 +466,12 @@ export function GlobalCommunicationActions() {
                 id="floating-whatsapp-action-btn"
                 aria-label="Open AgriSeva WhatsApp Assistance"
                 onClick={() => setWhatsappDialogOpen(true)}
-                className="group relative flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-full bg-gradient-to-tr from-[#25D366] via-[#20BA5C] to-[#128C7E] text-white shadow-xl shadow-green-600/30 hover:shadow-green-500/50 hover:scale-110 active:scale-95 transition-all duration-200 border-2 border-white/30 dark:border-zinc-800/50 focus:outline-none focus:ring-4 focus:ring-[#25D366]/40"
+                className="group relative flex h-12 w-12 sm:h-[48px] sm:w-[48px] items-center justify-center rounded-full bg-[#25D366] hover:bg-[#1ebe5a] text-white shadow-md shadow-green-900/20 hover:shadow-lg hover:shadow-green-900/25 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/15 dark:border-zinc-800/40 focus:outline-none focus:ring-2 focus:ring-[#25D366]/30"
               >
-                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-15 transition-opacity" />
-                <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.2] fill-white/20" />
-                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
+                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
+                <MessageSquare className="h-5 w-5 stroke-[2.2] text-white" />
+                <span className="absolute top-1 right-1 flex h-2 w-2">
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-300 ring-2 ring-white" />
                 </span>
               </button>
             </TooltipTrigger>
@@ -489,11 +488,10 @@ export function GlobalCommunicationActions() {
                 id="floating-helper-action-btn"
                 aria-label="Open AgriSeva-AI Product & Navigation Helper"
                 onClick={() => setHelperDialogOpen(true)}
-                className="group relative flex h-13 w-13 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 via-emerald-600 to-teal-700 text-white shadow-2xl shadow-emerald-700/40 hover:shadow-emerald-600/60 hover:scale-110 active:scale-95 transition-all duration-200 border-2 border-white/40 dark:border-zinc-800/60 focus:outline-none focus:ring-4 focus:ring-amber-400/50"
+                className="group relative flex h-12 w-12 sm:h-[48px] sm:w-[48px] items-center justify-center rounded-full bg-teal-700 hover:bg-teal-800 text-white shadow-md shadow-teal-900/25 hover:shadow-lg hover:shadow-teal-900/30 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/15 dark:border-zinc-800/40 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
               >
-                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-20 transition-opacity" />
-                <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 stroke-[2.2] text-amber-200 animate-pulse" />
-                <Bot className="h-4 w-4 absolute -bottom-0.5 -right-0.5 text-white bg-emerald-800 rounded-full p-0.5 border border-white" />
+                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
+                <Sparkles className="h-5 w-5 stroke-[2.2] text-white" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="left" className="text-xs font-semibold py-1.5 px-3 bg-zinc-900 text-white shadow-xl border border-zinc-700">
@@ -853,7 +851,7 @@ export function GlobalCommunicationActions() {
       <Dialog open={helperDialogOpen} onOpenChange={setHelperDialogOpen}>
         <DialogContent 
           id="agriseva-ai-helper-dialog"
-          className="sm:max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-2xl rounded-2xl"
+          className="sm:max-w-xl flex flex-col p-0 overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-2xl rounded-2xl top-auto left-auto translate-x-0 translate-y-0 bottom-[180px] right-4 w-[calc(100vw-32px)] max-h-[70vh] sm:bottom-44 sm:right-5 sm:w-[380px] sm:max-w-[380px] sm:max-h-[520px]"
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-emerald-900 text-white p-5 border-b border-emerald-700/50">
