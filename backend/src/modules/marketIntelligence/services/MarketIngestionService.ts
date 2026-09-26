@@ -30,8 +30,11 @@ import type {
   MarketSourceId,
 } from '../types.js';
 import {
+  MARKET_WATCHLIST,
   MARKET_WATCHLIST_TARGETS,
   WATCHLIST_TOTAL,
+  type WatchlistEntry,
+  type WatchlistTier,
 } from '../config/marketWatchlist.config.js';
 
 /**
@@ -221,6 +224,70 @@ export class MarketIngestionService {
     } finally {
       this.isRunning = false;
     }
+  }
+
+  /**
+   * PHASE 2 §P2.A — Tier-aware ingestion. Runs only the watchlist
+   * entries whose `tier` matches the supplied value (HIGH / MEDIUM /
+   * LOW). Each tier is wired to its own cron job so HIGH-volatility
+   * commodities refresh more often than LOW-volatility ones.
+   *
+   * The overlap guard from `runWatchlist()` is shared so two tiers
+   * that happen to overlap (e.g. a long MEDIUM run that straddles a
+   * HIGH trigger) will not stack ingestion attempts on the upstream.
+   *
+   * Returns the ingestion results in the order they were processed.
+   * If the tier name is invalid, the function returns `[]` and logs.
+   */
+  public async runWatchlistForTier(
+    tier: WatchlistTier,
+  ): Promise<MarketIngestionResult[]> {
+    const entries = MARKET_WATCHLIST.filter((e) => e.tier === tier);
+    if (entries.length === 0) {
+      console.warn(
+        `[marketIntelligence] cron asked to run tier "${tier}" — no watchlist entries match. Skipping.`,
+      );
+      return [];
+    }
+    if (this.isRunning) {
+      console.log(
+        `[marketIntelligence] cron ${tier} skipped — previous run still in flight`,
+      );
+      return [];
+    }
+    this.isRunning = true;
+    try {
+      const results: MarketIngestionResult[] = [];
+      for (const entry of entries) {
+        try {
+          const r = await this.ingest(
+            {commodity: entry.commodity, limit: entry.limit},
+            {includeFallback: true},
+          );
+          results.push(r);
+          console.log(
+            `[marketIntelligence] cron ${tier} ${entry.commodity} source=${r.source} normalised=${r.recordsNormalised} persisted=${r.recordsPersisted}`,
+          );
+        } catch (err: any) {
+          console.error(
+            `[marketIntelligence] cron ${tier} ${entry.commodity} crashed:`,
+            err?.message,
+          );
+        }
+      }
+      return results;
+    } finally {
+      this.isRunning = false;
+    }
+  }
+
+  /**
+   * Exposed for unit tests and ops tooling. Returns the watchlist
+   * entries that belong to a given tier, in the order declared in
+   * `config/marketWatchlist.config.ts`. Pure read — no DB / network.
+   */
+  public getWatchlistEntriesForTier(tier: WatchlistTier): WatchlistEntry[] {
+    return MARKET_WATCHLIST.filter((e) => e.tier === tier);
   }
 
   // ─── source-specific ingest paths ──────────────────────────────────

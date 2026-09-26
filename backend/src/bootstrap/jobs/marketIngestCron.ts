@@ -1,14 +1,20 @@
 /**
- * Market-intelligence cron — fetches the default watchlist of high-demand
- * commodities from Agmarknet (primary) → eNAM (fallback) every 6 hours
- * and upserts the results into `market_prices`.
+ * Manual market-intelligence refresh helper.
  *
- * Guarded by an `ENABLE_MARKET_INGEST_CRON` env var (default `true`).
- * The MarketIngestionService has its own overlap guard so a slow run
- * will not stack cron ticks.
+ * PHASE 2 §P2.A — the scheduled cron block that previously lived here
+ * (every 6h, runs the entire watchlist) has been moved to
+ * `./tieredMarketCron.ts`, which schedules the three tier jobs
+ * independently:
+ *
+ *   - HIGH   — every 4 hours (perishables & vegetables)
+ *   - MEDIUM — every 8 hours (cereals, pulses, oilseeds)
+ *   - LOW    — every 24 hours (cash crops & spices)
+ *
+ * This file now ONLY exports `runMarketIngestionJob()` so the manual
+ * admin path `POST /api/market-prices/refresh` can still trigger a
+ * full-watchlist ingestion on demand.
  */
 
-import cron from 'node-cron';
 import {getContainer} from '../loadModules.js';
 import {GLOBAL_TYPES} from '#root/types.js';
 import {MarketIngestionService} from '#root/modules/marketIntelligence/services/MarketIngestionService.js';
@@ -20,7 +26,7 @@ export async function runMarketIngestionJob(): Promise<{
   durationMs: number;
 }> {
   const start = Date.now();
-  console.log('<<JOB>> [MarketIngest] Starting 6h watchlist ingestion');
+  console.log('<<JOB>> [MarketIngest] Starting full watchlist ingestion (manual refresh)');
   try {
     const container = getContainer();
     const ingestionService = container.get<MarketIngestionService>(
@@ -49,21 +55,7 @@ export async function runMarketIngestionJob(): Promise<{
   }
 }
 
-const ENABLED =
-  String(process.env.ENABLE_MARKET_INGEST_CRON ?? 'true').toLowerCase() !==
-  'false';
-
-if (ENABLED) {
-  // every 6 hours at minute 7 (offset from other crons)
-  cron.schedule(
-    '7 */6 * * *',
-    async () => {
-      try {
-        await runMarketIngestionJob();
-      } catch {
-        // Error logged inside runMarketIngestionJob
-      }
-    },
-    {timezone: 'Asia/Kolkata'},
-  );
-}
+// NOTE: no cron.schedule(...) here — see `./tieredMarketCron.ts` for
+// the scheduled tier-aware ingestion jobs. Keeping this file
+// schedule-free means there is no risk of double-fetching the
+// upstream when both modules are imported.
