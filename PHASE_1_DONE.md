@@ -1,4 +1,4 @@
-# PHASE 1 — DONE ✅ — Market Intelligence 2.0
+﻿# PHASE 1 — DONE ✅ — Market Intelligence 2.0
 
 **Status:** Complete. All P1 / P2 / P3 items landed. P4 deferred per scope.
 
@@ -31,7 +31,7 @@ toward a **truthful, multi-source, server-canonical** recommendation surface:
 
 ### P1 — Data Fidelity (NO FABRICATION)
 
-#### P1.2 — Fix `decorateAgmarknetAggregate` data fabrication 🔴
+#### P1.2 — Fix `decorateAgmarknetAggregate` data fabrication ��
 - **`MarketIngestionService.ts:399-408`** — Removed `min_price = modalRaw`,
   `max_price = modalRaw` back-fill. When agmarknet only returns a modal price
   for a state aggregate, `minPrice` / `maxPrice` are now `null` instead of
@@ -49,6 +49,13 @@ toward a **truthful, multi-source, server-canonical** recommendation surface:
 - New file `config/marketWatchlist.config.ts` covering all 18 commodities
   declared in `COMMODITIES`:
   - **HIGH** — vegetables + perishables (6h cadence intent)
+  - **MEDIUM** — cereals, pulses, oilseeds (12h cadence intent)
+  - **LOW** — spices, cash crops (24h cadence intent)
+- Old `DEFAULT_WATCHLIST` export kept for backward compat.
+- **10 new tests** in `tests/marketWatchlist.config.test.ts`.
+- **DEFERRED:** actual tier-aware cron wiring (operational change, not a
+  logic bug). Per-entry `refreshHours` documents intent.
+
 ---
 
 ### P2 — Server as Canonical Engine
@@ -77,7 +84,7 @@ toward a **truthful, multi-source, server-canonical** recommendation surface:
   scoring is a SUPERSET that supersedes for the `GET /market-comparison`
   endpoint only.
 - **Weight-drift guard:** vitest fails if `SERVER_RECOMMENDATION_WEIGHTS`
-  don't sum to exactly 1.0 (catches accidental drift between the two
+  do not sum to exactly 1.0 (catches accidental drift between the two
   weighting tables).
 - **13 scoring tests + 5 RecommendationService tests** = 18 new tests,
   82 total.
@@ -93,8 +100,14 @@ toward a **truthful, multi-source, server-canonical** recommendation surface:
 - `constants.ts` exports new `getSourceLabel(source, isDemo?)` helper.
 - `MARKET_SOURCE_LABEL` / `MANDI_SOURCE_LABEL` marked `@deprecated`
   (kept for back-compat — no consumer forced to migrate in this phase).
-- `MarketPricesPage`'s own local `sourceLabel` is **unaffected** (it's a
+- `MarketPricesPage`'s own local `sourceLabel` is **unaffected** (it is a
   different copy, and was already correct).
+
+#### P2.8 — `RealisableValue.isDemo: false` (was hardcoded `true`) 🔴
+- `realisable-value.ts:140` was hardcoded `isDemo: true`. Now derives from
+  `price.source === 'demo' || price.source === undefined`.
+- This stops the FE from silently flagging real agmarknet rows as "demo".
+
 ---
 
 ### P3 — Surface Reliability in UI
@@ -134,6 +147,30 @@ toward a **truthful, multi-source, server-canonical** recommendation surface:
 | Before Phase 1 | 51 | — |
 | After P1.2 + P1.3 | 67 | +16 |
 | After P2.4 + P2.7 | 82 | +15 |
+| **Phase 1 total** | **82** | **+31** |
+
+- Backend: `pnpm test:ci` (vitest) after every backend change
+- Frontend: `pnpm tsc --noEmit` only — **no Jest introduction** (deferred to
+  PHASE 36 per `PHASE_0_AUDIT.md`)
+- Pure FE helpers (`bandForScore`, `bandLabel`) are unit-testable but
+  deferred until Jest exists in the FE test infra.
+
+---
+
+## Git history
+
+| Commit | Group | Summary |
+|--------|-------|---------|
+| `63b02b85d` | P1.2 + P1.3 | Fabrication fix + tiered watchlist (16 new tests, 51 total) |
+| `a4e8af3e8` | P2.4 + P2.7 | Server-side 5-factor scoring + kill hardcoded "Demo Mandi" (18 new tests, 82 total) |
+| `eb02deab6` | P3.9 | Reliability UI surface (chip/footer/banner) + `isAggregate` provenance badge |
+| `f890f3490` | docs | Log P3.9 commit hash in `PHASE_1_CHECKLIST.md` |
+
+Working tree is **clean** of Phase 1 files. Unrelated dirty files
+(`auth/classes/transformers/User.ts`, `auth/controllers/AuthController.ts`,
+`auth/services/FirebaseAuthService.ts`, `shared/constants/roles.ts`,
+`check_users.mjs`) were intentionally left untouched per Phase scope.
+
 ---
 
 ## STOP-condition compliance
@@ -144,7 +181,7 @@ toward a **truthful, multi-source, server-canonical** recommendation surface:
 | No scraping | ✅ | No new HTTP callers, no web fetches |
 | No AI/ML | ✅ | Pure weighted-average scoring, no inference, no embeddings |
 | No prediction / forecasting | ✅ | P4.11 explicitly deferred; scoring is on observed prices only |
-| No AI sale-window recommendation | ✅ | P4.12 explicitly deferred; insight is "today's best mandi" |
+| No AI sale-window recommendation | ✅ | P4.12 explicitly deferred; insight is "today best mandi" |
 | No Agmarknet schedule change | ✅ | `7 */6 * * *` cron untouched |
 | No FE engine retirement | ✅ | `recommendBestMarketForLot` still powers per-lot decisions |
 | No weight drift between FE/BE | ✅ | Weight-sum guard test fails on drift |
@@ -173,7 +210,6 @@ toward a **truthful, multi-source, server-canonical** recommendation surface:
 - P4.12 AI sale-window recommendation
 
 ---
-
 
 ## Files touched (Phase 1)
 
@@ -243,43 +279,3 @@ this without re-litigating honesty:
 ---
 
 **Phase 1 — DONE.** ✅
-
-| **Phase 1 total** | **82** | **+31** |
-
-- Backend: `pnpm test:ci` (vitest) after every backend change
-- Frontend: `pnpm tsc --noEmit` only — **no Jest introduction** (deferred to
-  PHASE 36 per `PHASE_0_AUDIT.md`)
-- Pure FE helpers (`bandForScore`, `bandLabel`) are unit-testable but
-  deferred until Jest exists in the FE test infra.
-
----
-
-## Git history
-
-| Commit | Group | Summary |
-|--------|-------|---------|
-| `63b02b85d` | P1.2 + P1.3 | Fabrication fix + tiered watchlist (16 new tests, 51 total) |
-| `a4e8af3e8` | P2.4 + P2.7 | Server-side 5-factor scoring + kill hardcoded "Demo Mandi" (18 new tests, 82 total) |
-| `eb02deab6` | P3.9 | Reliability UI surface (chip/footer/banner) + `isAggregate` provenance badge |
-| `f890f3490` | docs | Log P3.9 commit hash in `PHASE_1_CHECKLIST.md` |
-
-Working tree is **clean** of Phase 1 files. Unrelated dirty files
-(`auth/classes/transformers/User.ts`, `auth/controllers/AuthController.ts`,
-`auth/services/FirebaseAuthService.ts`, `shared/constants/roles.ts`,
-`check_users.mjs`) were intentionally left untouched per Phase scope.
-
-
-
-#### P2.8 — `RealisableValue.isDemo: false` (was hardcoded `true`) 🔴
-- `realisable-value.ts:140` was hardcoded `isDemo: true`. Now derives from
-  `price.source === 'demo' || price.source === undefined`.
-- This stops the FE from silently flagging real agmarknet rows as "demo".
-
-
-  - **MEDIUM** — cereals, pulses, oilseeds (12h cadence intent)
-  - **LOW** — spices, cash crops (24h cadence intent)
-- Old `DEFAULT_WATCHLIST` export kept for backward compat.
-- **10 new tests** in `tests/marketWatchlist.config.test.ts`.
-- **DEFERRED:** actual tier-aware cron wiring (operational change, not a
-  logic bug). Per-entry `refreshHours` documents intent.
-

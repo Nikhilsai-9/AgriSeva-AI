@@ -118,3 +118,11 @@
 | `63b02b85d` | P1.2 + P1.3 | Fabrication fix + tiered watchlist (16 new tests, 51 total) |
 | `a4e8af3e8` | P2.4 + P2.7 | Server-side 5-factor scoring + kill hardcoded "Demo Mandi" (18 new tests, 82 total) |
 | `eb02deab6` | P3.9 | Reliability UI surface (chip/footer/banner) + `isAggregate` provenance badge |
+| `f890f3490` | docs | Log P3.9 commit hash in this checklist |
+| `(next)`  | P1 closure doc | Add `PHASE_1_DONE.md` retro + pointer here |
+
+---
+
+> **Closure document:** `PHASE_1_DONE.md` — TL;DR, what shipped, test
+> progression, git history, STOP-condition compliance, deferred items,
+> files touched, and what this means for Phase 2+.
