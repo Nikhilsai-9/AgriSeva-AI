@@ -255,18 +255,18 @@ describe('SeedLoader.ensureSeeded() — production safety', () => {
     await loader.ensureSeeded();
 
     expect(buyersMock.upsertMany).toHaveBeenCalledTimes(1);
-    expect((buyersMock.upsertMany.mock.calls[0][0] as unknown[]).length).toBe(
-      DEMO_BUYERS.length,
-    );
+    expect(
+      ((buyersMock.upsertMany.mock as unknown as {calls: unknown[][]}).calls[0]?.[0] as unknown[])?.length,
+    ).toBe(DEMO_BUYERS.length);
 
     expect(storageMock.upsertManyOptions).toHaveBeenCalledTimes(1);
     expect(
-      (storageMock.upsertManyOptions.mock.calls[0][0] as unknown[]).length,
+      ((storageMock.upsertManyOptions.mock as unknown as {calls: unknown[][]}).calls[0]?.[0] as unknown[])?.length,
     ).toBe(DEMO_STORAGE_OPTIONS.length);
 
     expect(logisticsMock.upsertManyOptions).toHaveBeenCalledTimes(1);
     expect(
-      (logisticsMock.upsertManyOptions.mock.calls[0][0] as unknown[]).length,
+      ((logisticsMock.upsertManyOptions.mock as unknown as {calls: unknown[][]}).calls[0]?.[0] as unknown[])?.length,
     ).toBe(DEMO_LOGISTICS_OPTIONS.length);
 
     expect(lotsMock.upsert).toHaveBeenCalledTimes(DEMO_LOTS.length);
