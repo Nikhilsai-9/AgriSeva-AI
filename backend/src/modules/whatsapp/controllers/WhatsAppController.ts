@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import {
   JsonController,
   Get,
@@ -10,6 +9,7 @@ import {
   CurrentUser,
   QueryParam,
   ForbiddenError,
+  Res,
 } from 'routing-controllers';
 import { OpenAPI } from 'routing-controllers-openapi';
 import { inject, injectable } from 'inversify';
@@ -21,7 +21,7 @@ import { WhatsappUsers } from '#root/utils/dummyWhatsAppUsers.js';
 
 @OpenAPI({
   tags: ['whatsapp'],
-  description: 'WhatsApp history endpoints',
+  description: 'WhatsApp history endpoints and Cloud API Webhooks',
 })
 @injectable()
 @JsonController('/whatsapp', { transformResponse: false })
@@ -30,6 +30,59 @@ export class WhatsAppController {
     @inject(WHATSAPP_TYPES.WhatsAppService)
     private readonly whatsappService: IWhatsAppService,
   ) { }
+
+  @OpenAPI({
+    summary: 'Meta WhatsApp Cloud API Webhook Verification',
+    description: 'Verifies the webhook endpoint for Meta WhatsApp Cloud API',
+  })
+  @Get('/webhook')
+  async verifyWebhook(
+    @QueryParam('hub.mode') mode: string,
+    @QueryParam('hub.verify_token') verifyToken: string,
+    @QueryParam('hub.challenge') challenge: string,
+    @Res() response: any,
+  ) {
+    const expectedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'agriseva_webhook_token_2026';
+    if (mode === 'subscribe' && verifyToken === expectedToken) {
+      console.log('[WhatsAppController] Webhook verified successfully');
+      return response.status(200).send(challenge);
+    }
+    return response.status(403).send('Verification token mismatch');
+  }
+
+  @OpenAPI({
+    summary: 'Meta WhatsApp Cloud API Incoming Message Webhook',
+    description: 'Receives incoming messages from WhatsApp users and dispatches automated AI advisory replies.',
+  })
+  @Post('/webhook')
+  @HttpCode(200)
+  async handleIncomingWebhook(@Body() body: any, @Res() response: any) {
+    response.status(200).send('EVENT_RECEIVED');
+
+    try {
+      if (body?.object && body?.entry && body.entry[0]?.changes && body.entry[0].changes[0]?.value) {
+        const change = body.entry[0].changes[0].value;
+        const messages = change.messages;
+        const metadata = change.metadata;
+        const phoneNumberId = metadata?.phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+        if (messages && messages.length > 0) {
+          const incomingMsg = messages[0];
+          const from = incomingMsg.from;
+          const text = incomingMsg.text?.body;
+          const msgType = incomingMsg.type;
+
+          console.log(`[WhatsAppController] Incoming message from ${from}: ${text || `[type: ${msgType}]`}`);
+
+          if (text) {
+            await this.whatsappService.handleIncomingWhatsAppCloudMessage(from, text, phoneNumberId);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[WhatsAppController] Error handling incoming WhatsApp message:', err);
+    }
+  }
 
   @OpenAPI({
     summary: 'Get all WhatsApp threads',

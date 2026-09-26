@@ -35,4 +35,5 @@ export interface IWhatsAppService {
   getInactiveUsers(skip: number, limit: number): Promise<WhatsappUsersResponse>;
   getAllUsers(): Promise<WhatsappUsersResponse>;
   getUniqueUsers(): Promise<number>;
+  handleIncomingWhatsAppCloudMessage(from: string, text: string, phoneNumberId?: string): Promise<void>;
 }

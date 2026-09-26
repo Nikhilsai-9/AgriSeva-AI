@@ -331,10 +331,97 @@ export class WhatsAppService implements IWhatsAppService {
       const uniqueUsersCount = response.data.uniqueUserCount;
 
       return uniqueUsersCount;    
-      } catch (error) {
-      console.error('Error fetching inactive WhatsApp users:', error);
+    } catch (error) {
+      console.error('Error fetching unique WhatsApp users count:', error);
+      return 0;
+    }
+  }
 
-      throw new InternalServerError('Failed to fetch inactive WhatsApp users');
+  async handleIncomingWhatsAppCloudMessage(
+    from: string,
+    text: string,
+    phoneNumberId?: string,
+  ): Promise<void> {
+    console.log(`[WhatsAppService] Processing incoming message from ${from}: "${text}"`);
+
+    const targetPhoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '104239857281928';
+    const cloudToken = process.env.WHATSAPP_CLOUD_API_TOKEN || process.env.META_ACCESS_TOKEN || '';
+
+    let aiReply = '';
+
+    try {
+      const apiKey = aiConfig.geminiApiKey || process.env.GEMINI_API_KEY;
+      if (apiKey) {
+        const model = aiConfig.geminiModel || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+        const systemInstruction = `You are AgriSeva-AI, India's Multilingual Agricultural Advisory Voice & WhatsApp Assistant.
+Provide clear, empathetic, farmer-friendly, scientifically accurate guidance on crop health, pest control, weather, soil nutrients, or mandi market intelligence.
+Keep replies concise, structured, and easy to read on WhatsApp with bullet points and emojis.`;
+
+        const response = await axios.post(
+          url,
+          {
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: `${systemInstruction}\n\nFarmer WhatsApp Query: "${text}"` }],
+              },
+            ],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 600,
+            },
+          },
+          { timeout: 15000 },
+        );
+
+        const candidates = response.data?.candidates;
+        if (candidates && candidates.length > 0 && candidates[0]?.content?.parts?.[0]?.text) {
+          aiReply = candidates[0].content.parts[0].text.trim();
+        }
+      }
+    } catch (aiErr: any) {
+      console.warn('[WhatsAppService] Gemini generation error, using fallback guidance:', aiErr.message);
+    }
+
+    if (!aiReply) {
+      aiReply = `Namaste! Thank you for contacting AgriSeva-AI.\n\nWe have received your query regarding:\n"${text}"\n\nOur agricultural expert system is reviewing your request. For urgent crop disease diagnosis or today's mandi arrivals, please visit https://agriseva-ai.web.app or call our toll-free Kisan line 1800-180-1551.`;
+    }
+
+    const formattedMessage = `🌱 *AgriSeva-AI Advisory*\n\n${aiReply}\n\n━━━━━━━━━━━━━━━━\n_🌾 AgriSeva-AI • Multilingual Advisory System_`;
+
+    if (cloudToken) {
+      try {
+        console.log(`[WhatsAppService] Dispatching Meta Cloud API reply to ${from}...`);
+        const graphUrl = `https://graph.facebook.com/v21.0/${targetPhoneId}/messages`;
+        const res = await axios.post(
+          graphUrl,
+          {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: from,
+            type: 'text',
+            text: {
+              preview_url: false,
+              body: formattedMessage,
+            },
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${cloudToken}`,
+              'Content-Type': 'application/json',
+            },
+            timeout: 10000,
+          },
+        );
+        console.log('[WhatsAppService] Meta Cloud API message delivered:', res.data);
+      } catch (graphErr: any) {
+        console.error('[WhatsAppService] Error posting to Meta Cloud API:', graphErr.response?.data || graphErr.message);
+      }
+    } else {
+      console.log('[WhatsAppService] Automated AI reply generated (configure WHATSAPP_CLOUD_API_TOKEN in backend/.env to send via Meta Cloud API):');
+      console.log(formattedMessage);
     }
   }
 }
