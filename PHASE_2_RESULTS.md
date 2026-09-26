@@ -1,7 +1,11 @@
 # PHASE 2 — RESULTS — Operational Hardening & Test Coverage
 
-**Status:** P2.A, P2.B, P2.C, P2.E, P2.F, P2.G complete (141 new tests passing, 0 regressions).
-P2.D: deferred to PHASE 3 (see "Open items" section below).
+**Status:** All seven items shipped (P2.A, P2.B, P2.C, P2.D, P2.E,
+P2.F, P2.G) — **+141 new tests passing, 0 regressions**.
+P2.D (captcha detection) was committed in `44a5ad775` and its 18 BE
+tests were already counted in the BE total below; the earlier "P2.D
+deferred to PHASE 3" wording in this doc was written without
+noticing P2.D had landed, and has been corrected.
 
 **Companion docs:** `PHASE_2_PLAN.md` (planning), `PHASE_1_DONE.md`
 (closure of predecessor phase), `PHASE_2_DONE.md` (closure summary).
@@ -61,6 +65,33 @@ No production-code changes; coverage only.
 | `MarketHistoryService.test.ts`                                | 16    | `annotateWithChange` comparability rule (state+market+commodity+variety), changePct / trendPct formulas, null safety, immutability, out-of-order sort. `getHistory` repo-integration via injected mock. |
 | `MarketReliabilityService.test.ts`                            | 8     | Score components (40 / 30 / 20 / 10), Excellent/Good/Fair/Limited label boundaries, `snapshotAll` ordering (agmarknet then enam). Frozen clock via `vi.useFakeTimers`. |
 
+### ✅ P2.D — Captcha / challenge-page detection (PHASE 0 §7 risk #1)
+- Detects captcha markers in agmarknet / eNAM raw responses
+  (Cloudflare "Just a moment", `cf-chl-bypass`, `g-recaptcha`).
+  Helpers in `MarketNormaliser.ts`: `CAPTCHA_MARKERS`,
+  `detectCaptchaInString`, `detectCaptchaInPayload`,
+  `detectCaptchaInError` (case-insensitive, never throw, handle
+  circular objects safely).
+- `MarketIngestionService` runs captcha detection on **both**
+  `result.data` and `result.error` before normalising / persisting.
+  When a captcha is detected, the ingestion short-circuits with
+  `captchaSuspected: true`, records 0 normalisations, and writes a
+  `data_update_log` row with `errorCategory: 'captcha'`.
+- `DataUpdateLogRepository` gains `captchaIncidentsLast24h(sourceId)`.
+- `MarketReliabilityService.snapshot()` rolls captcha incidents into
+  the 24h window and surfaces them as a `reasons` entry — captcha is
+  intentionally NOT folded into the score, since it signals upstream
+  rate-limiting rather than a defect in our code.
+- `MarketHealthController.health()` exposes `captchaSuspected: boolean`
+  aggregated across both sources so monitoring can detect upstream
+  rate-limiting without scraping the full snapshots.
+- **+18 new BE tests** in `CaptchaDetection.test.ts`. Covers positive
+  matches (each marker), negative matches (legitimate HTML, JSON,
+  empty input), payload vs error paths, case-insensitivity, and the
+  never-throw / circular-object contract.
+- Commit: `44a5ad775 [phase2] p2.d: captcha / challenge-page
+  detection in MarketNormaliser`.
+
 ### ✅ P2.E — Timezone hardening (PHASE 0 §7 risk #4)
 - `todayIso()` in `MarketNormaliser.ts` now returns IST
   (Asia/Kolkata) via the new `formatIstDate()` helper backed by
@@ -103,23 +134,7 @@ No production-code changes; coverage only.
   `computeRealisableValue` `isDemo` outputs. **61/61 FE tests pass**
   (was 51 → +10).
 
-## 3. Items still open (P2.D only)
-
-### P2.D — Captcha detection (PHASE 0 §7 risk #1) — DEFERRED to PHASE 3
-- Detect captcha markers (`<title>Just a moment`, `cf-chl-bypass`,
-  `g-recaptcha`) in raw agmarknet / enam responses.
-- Surface via `captchaSuspected: boolean` on `MarketIngestionResult`
-  and `errorCategory: 'captcha'` on `data_update_log` rows.
-- Expose via `MarketHealthController` so monitoring can see when an
-  upstream source is rate-limiting.
-- **Reason for deferral:** P2.E/F/G covered the highest-value
-  correctness + clarity gaps first, and P2.D is the most invasive
-  of the remaining items (touches `MarketNormaliser`,
-  `MarketIngestionResult` shape, `MarketHealthController`, and
-  `data_update_log`). Cleanly scope-able as PHASE 3 §P3.A with full
-  design and migration path, rather than rushing it into P2 close.
-
-## 4. STOP-condition compliance
+## 3. STOP-condition compliance
 
 - ✅ All edits confined to `backend/src/modules/marketIntelligence/**`,
   `frontend/src/features/farmerDashboard/**`, `frontend/vitest.config.ts`,
@@ -128,9 +143,12 @@ No production-code changes; coverage only.
 - ✅ No single change introduced more than 200 net lines outside of
   test files.
 - ✅ Full `npx vitest run src/modules/marketIntelligence` reports
-  **13 files / 178 tests / 0 failures**.
+  **13 files / 178 tests / 0 failures** (this total includes P2.D's
+  `CaptchaDetection.test.ts` and its 18 tests, committed in
+  `44a5ad775`).
 - ✅ Full `npm test -- --run` (frontend) reports **61 tests / 0 failures**.
 
 ---
 
-_Last updated at the close of P2.G. P2.D deferred to PHASE 3._
+_Last updated at the close of P2.D (commit `44a5ad775`). All seven
+items shipped; no items deferred from PHASE 2._
