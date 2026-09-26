@@ -186,6 +186,15 @@ body {
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+
+  /* ── Extra-small breakpoints ──
+   * Tailwind v4 only ships sm(640), md(768), lg(1024), xl(1280), 2xl(1536).
+   * We add xxs (320px) and xs (384px) so small mobile (iPhone SE 1st/2nd gen,
+   * Galaxy Fold cover, and other narrow devices) can be styled explicitly.
+   * Usage: `xxs:flex-col`, `xs:gap-2`, `xs:text-sm`, etc.
+   */
+  --breakpoint-xxs: 20rem; /* 320px */
+  --breakpoint-xs: 24rem;  /* 384px */
 }
 
 body {
@@ -390,4 +399,121 @@ code {
 
 .animate-badgePulse {
   animation: badgePulse 2.4s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GLOBAL RESPONSIVE UTILITIES
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* Respect notched / Dynamic Island / Android cutouts.
+ * Use as wrappers around any chrome that abuts the viewport edge. */
+html {
+  /* Keep any overscroll / horizontal accident from producing a
+   * document-level scrollbar at narrow widths. */
+  overflow-x: clip;
+}
+
+body {
+  /* Defensive: PrimeReact tables and other 3rd-party widgets occasionally
+   * render a stray 1-2px overflow during transitions. Clip (not hide) keeps
+   * sticky positioning working while preventing page-level horizontal
+   * scroll on every viewport from 320px → 4K. */
+  overflow-x: clip;
+}
+
+/* ── Safe-area helpers ──
+ * iOS Safari + Android Chrome reserve room for the home indicator / nav
+ * bar via env(safe-area-inset-*). Pair with `viewport-fit=cover` in
+ * index.html so the env() resolves to a real value (else it falls back
+ * to 0px and the helpers are no-ops).
+ */
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+.pl-safe {
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+}
+.pr-safe {
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+}
+.px-safe {
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+}
+.py-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+.mb-safe {
+  margin-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+.bottom-safe {
+  bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* ── Hide scrollbar utility (also used as `.no-scrollbar`) ──
+ * The header and various tab strips depend on a clean horizontal scroll.
+ * `.no-scrollbar` is the canonical class referenced throughout the codebase.
+ */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Scroll fade mask (for horizontally-scrollable tab strips) ──
+ * Adds a soft edge fade so it's visually obvious that more content
+ * exists off-screen.
+ */
+.scroll-fade-x {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black 24px,
+    black calc(100% - 24px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black 24px,
+    black calc(100% - 24px),
+    transparent 100%
+  );
+}
+
+/* ── PrimeReact table scrollability on small screens ──
+ * PrimeReact's .p-datatable wrapper occasionally overflows because of
+ * its internal scroll container. Ensure the wrapper itself stays within
+ * the parent and the inner scrollbar is reachable on mobile.
+ */
+.p-datatable-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Focus visibility (a11y across all viewports) ──
+ * Ensure keyboard users always see a clear focus ring on tap targets
+ * that may be tiny on mobile.
+ */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Responsive container clamp ──
+ * A drop-in helper for content that should never exceed a sensible
+ * reading width even on 4K monitors. Use alongside max-w-screen-2xl.
+ */
+.container-clamp {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: min(100% - 1.5rem, 84rem);
 }

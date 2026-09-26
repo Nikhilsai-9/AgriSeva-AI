@@ -89,6 +89,11 @@ export function formatPhoneNumber(input: string | undefined | null): string {
     return `+91 ${national.slice(0, 5)} ${national.slice(5)}`;
   }
 
+  if (normalized.startsWith('+1') && normalized.length === 12) {
+    const national = normalized.slice(2);
+    return `+1 (${national.slice(0, 3)}) ${national.slice(3, 6)}-${national.slice(6)}`;
+  }
+
   return normalized;
 }
 

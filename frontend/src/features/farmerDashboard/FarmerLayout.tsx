@@ -119,7 +119,7 @@ export function FarmerContent() {
           primary={PRIMARY_NAV}
           secondary={SECONDARY_NAV}
         />
-        <main className="flex-1 min-w-0 pb-28 lg:pb-10">
+        <main className="flex-1 min-w-0 pb-28 lg:pb-10 pb-safe">
           <Outlet />
         </main>
       </div>
@@ -273,7 +273,7 @@ function BottomNav({
   items: NavItem[];
 }) {
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-emerald-100 shadow-[0_-2px_12px_rgba(0,0,0,0.04)]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-emerald-100 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] pb-safe">
       <div className="grid grid-cols-5">
         {items.map((item) => {
           const active = isActive(pathname, item);
@@ -283,14 +283,14 @@ function BottomNav({
               key={item.to}
               to={item.to}
               className={cn(
-                "flex flex-col items-center justify-center py-2 text-[10px] sm:text-[11px] font-medium min-h-[56px]",
+                "flex flex-col items-center justify-center py-2 text-[10px] sm:text-[11px] font-medium min-h-[56px] min-w-0 touch-manipulation",
                 active ? "text-emerald-700" : "text-emerald-900/70"
               )}
             >
               <Icon
-                className={cn("h-5 w-5 sm:h-6 sm:w-6 mb-0.5", active && "scale-110")}
+                className={cn("h-5 w-5 sm:h-6 sm:w-6 mb-0.5 shrink-0", active && "scale-110")}
               />
-              <span className="truncate px-1">
+              <span className="truncate px-1 w-full text-center">
                 {t(item.labelKey, fallbackFor(item))}
               </span>
               {active && (
@@ -370,18 +370,23 @@ export function FarmerSectionTitle({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-end justify-between gap-3 mb-3", className)}>
-      <div>
-        <h2 className="text-base sm:text-lg font-bold text-emerald-900">
+    <div
+      className={cn(
+        "flex flex-wrap items-end justify-between gap-2 sm:gap-3 mb-3",
+        className
+      )}
+    >
+      <div className="min-w-0 flex-1">
+        <h2 className="text-base sm:text-lg font-bold text-emerald-900 break-words">
           {children}
         </h2>
         {hint && (
-          <p className="text-xs sm:text-sm text-emerald-900/60 mt-0.5">
+          <p className="text-xs sm:text-sm text-emerald-900/60 mt-0.5 break-words">
             {hint}
           </p>
         )}
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }

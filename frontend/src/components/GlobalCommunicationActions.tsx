@@ -434,10 +434,22 @@ export function GlobalCommunicationActions() {
 
   return (
     <>
-      {/* Persistent Floating Bottom-Right Stack in Exact Order: 1. Phone, 2. WhatsApp, 3. AgriSeva-AI Helper */}
-      <aside 
+      {/* Persistent Floating Bottom-Right Stack in Exact Order: 1. Phone, 2. WhatsApp, 3. AgriSeva-AI Helper
+       *
+       * Responsive notes:
+       *  - Non-farmer routes: 16-20px from viewport bottom (1rem / 1.25rem).
+       *  - Farmer routes: sit 4.25rem (= 68px) above the bottom-nav strip so
+       *    they don't cover the mobile navigation. Desktop they collapse back
+       *    to 1.25rem.
+       *  - Both use `max(..., env(safe-area-inset-bottom))` so the stack
+       *    stays above the iOS home indicator / Android gesture bar and
+       *    never sits flush against the device edge.
+       *  - `right-3 sm:right-5` likewise respects safe-area-inset-right on
+       *    notched phones in landscape.
+       */}
+      <aside
         aria-label="AgriSeva Global Communication & AI Helper"
-        className={`fixed ${isFarmerRoute ? "bottom-[4.25rem] lg:bottom-5" : "bottom-4 sm:bottom-5"} right-3 sm:right-5 z-[90] flex flex-col items-center gap-2 sm:gap-2.5 select-none pointer-events-auto`}
+        className={`fixed ${isFarmerRoute ? "bottom-[max(4.25rem,calc(4.25rem+env(safe-area-inset-bottom)))] lg:bottom-[max(1.25rem,env(safe-area-inset-bottom))]" : "bottom-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-[max(1.25rem,env(safe-area-inset-bottom))]"} right-[max(0.75rem,env(safe-area-inset-right))] sm:right-[max(1.25rem,env(safe-area-inset-right))] z-[90] flex flex-col items-center gap-2 sm:gap-2.5 select-none pointer-events-auto`}
       >
         <TooltipProvider delayDuration={200}>
           {/* 1. Phone Helpline Floating Button */}

@@ -6,6 +6,13 @@ interface AgriSevaBrandProps {
   size?: "sm" | "md" | "lg" | "banner";
   showSlogan?: boolean;
   align?: "left" | "center";
+  /**
+   * When true, the logo SVG becomes a touch smaller at very small widths
+   * (below `xs:` / 384px) and the slogan NEVER renders even at sm+. Used by
+   * the global header at mobile widths where the right-side icon cluster
+   * needs every pixel of vertical and horizontal space.
+   */
+  compactBelowSm?: boolean;
 }
 
 export function AgriSevaBrand({
@@ -13,35 +20,45 @@ export function AgriSevaBrand({
   size = "md",
   showSlogan = true,
   align = "left",
+  compactBelowSm = false,
 }: AgriSevaBrandProps) {
   const { t } = useTranslation();
   const isCenter = align === "center";
 
-  // Sizing configurations
+  // Sizing configurations. At `compactBelowSm`, we shave both the SVG mascot
+  // and the brand text by 1–2 Tailwind steps below the `xs:` breakpoint so
+  // the global header fits comfortably at 320–375px.
   const robotSizes = {
-    sm: "w-8 h-8",
-    md: "w-11 h-11",
-    lg: "w-14 h-14",
-    banner: "w-16 h-16 md:w-20 md:h-20",
+    sm: compactBelowSm
+      ? "w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8"
+      : "w-7 h-7 xs:w-8 xs:h-8 sm:w-9 sm:h-9",
+    md: "w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11",
+    lg: "w-12 h-12 sm:w-14 sm:h-14",
+    banner: "w-14 h-14 md:w-20 md:h-20",
   };
 
   const titleSizes = {
-    sm: "text-lg md:text-xl font-bold tracking-tight",
-    md: "text-2xl md:text-3xl font-extrabold tracking-tight",
-    lg: "text-3xl md:text-4xl font-extrabold tracking-tight",
-    banner: "text-3xl md:text-5xl font-black tracking-tight",
+    sm: compactBelowSm
+      ? "text-sm xs:text-base sm:text-lg font-bold tracking-tight whitespace-nowrap"
+      : "text-base xs:text-lg sm:text-xl font-bold tracking-tight whitespace-nowrap",
+    md: "text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight",
+    lg: "text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight",
+    banner: "text-2xl sm:text-3xl md:text-5xl font-black tracking-tight",
   };
 
   const sloganSizes = {
-    sm: "text-[11px] font-medium tracking-normal hidden md:block text-muted-foreground",
+    sm: "text-[11px] font-medium tracking-normal hidden sm:block text-muted-foreground",
     md: "text-xs md:text-sm font-serif italic text-muted-foreground",
     lg: "text-sm md:text-base font-serif italic text-muted-foreground",
     banner: "text-sm md:text-lg font-serif italic text-gray-700 dark:text-gray-300",
   };
 
+  // For compactBelowSm the slogan is suppressed entirely regardless of prop.
+  const effectiveShowSlogan = compactBelowSm ? false : showSlogan;
+
   return (
     <div
-      className={`inline-flex items-center gap-3.5 ${
+      className={`inline-flex items-center gap-2 xxs:gap-2.5 sm:gap-3.5 min-w-0 ${
         isCenter ? "justify-center text-center" : "text-left"
       } ${className}`}
     >
@@ -126,7 +143,7 @@ export function AgriSevaBrand({
           <span className="text-[#15803D] dark:text-[#22C55E]">AI</span>
         </h1>
 
-        {showSlogan && (
+        {effectiveShowSlogan && (
           <p
             className={`mt-1 tracking-tight ${sloganSizes[size]}`}
             style={{

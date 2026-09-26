@@ -27,13 +27,13 @@ export function PlaygroundHeader({
   const { t } = useTranslation();
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-2 sm:py-2.5">
+      <div className="mx-auto flex items-center justify-between gap-1.5 xxs:gap-2 sm:gap-3 lg:gap-4 px-2 xxs:px-3 sm:px-4 py-1.5 sm:py-2 min-h-[52px] sm:min-h-[60px]">
         {/* AgriSeva Brand Logo & Tagline */}
-        <div className="flex items-center shrink-0 cursor-pointer">
-          <AgriSevaBrand size="sm" showSlogan={true} />
+        <div className="flex items-center shrink-0 cursor-pointer min-w-0">
+          <AgriSevaBrand size="sm" showSlogan={false} compactBelowSm={true} />
         </div>
 
-        <div className="flex-1 md:flex justify-center min-w-0 hidden ">
+        <div className="flex-1 lg:flex justify-center min-w-0 hidden ">
           <TabsList className="flex gap-2 overflow-x-auto whitespace-nowrap bg-transparent p-0 no-scrollbar">
             {user &&
               user.role !== "expert" &&
@@ -194,16 +194,16 @@ export function PlaygroundHeader({
         </div>
 
         {/* RIGHT SIDE ICONS */}
-        <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-1 xxs:gap-1.5 sm:gap-2 lg:gap-3 shrink-0">
           <LanguageSwitcher variant="outline" />
 
           {/* Notifications */}
           <NotificationModal
             trigger={
-              <button 
+              <button
                 type="button"
                 aria-label={t("common.notifications", "Notifications")}
-                className="relative p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer text-foreground shrink-0"
+                className="relative p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer text-foreground shrink-0 min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center"
               >
                 <BellIcon className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground hover:text-foreground transition" />
                 {user?.notifications! > 0 && (
@@ -219,8 +219,14 @@ export function PlaygroundHeader({
 
           <ThemeToggleCompact />
 
-          <UserProfileActions />
+          {/* Profile — only visible on lg+ so it doesn't crowd 320-480px widths
+           * where the hamburger includes it. */}
+          <div className="hidden lg:block">
+            <UserProfileActions />
+          </div>
 
+          {/* Hamburger is mobile-only. On desktop the role-aware navigation
+           * is reachable through the horizontal tab strip directly above. */}
           <MobileSidebar
             user={user!}
             setTab={setTab}
