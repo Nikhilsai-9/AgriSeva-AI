@@ -35,6 +35,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { PlaygroundHeader } from "@/components/PlaygroundHeader";
+import { Tabs } from "@/components/atoms/tabs";
 import { FarmerContent } from "@/features/farmerDashboard/FarmerLayout";
 import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
 import { PageMeta } from "@/components/PageMeta";
@@ -89,11 +90,15 @@ export function FarmerDashboardShell() {
     // to /home does.
   };
 
-  // setTab is unused on this route (the global shell on /home owns tab
-  // state) but the prop is required by <PlaygroundHeader/>.
-  const noop = (_value: string) => {
-    /* no-op: /farmer has no internal tab state */
-  };
+  // setTab is required by <PlaygroundHeader/> (the MobileSidebar uses it
+  // when the user picks a non-Farmer tab from the hamburger menu). We route
+  // it through handleTabChange so any non-Farmer tab from the mobile sidebar
+  // behaves identically to clicking that tab in the desktop nav: navigate
+  // to /home and let PlaygroundPage pick up the right active tab from there.
+  //
+  // Both setTab and onTabChange funnel through handleTabChange; the parent
+  // <Tabs> below wires its own onValueChange to the same handler so the
+  // desktop TabsTrigger clicks behave identically.
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-emerald-50 via-white to-amber-50 text-foreground flex flex-col">
@@ -101,14 +106,28 @@ export function FarmerDashboardShell() {
         title="Farmer Dashboard"
         description="AgriSeva-AI Farmer Dashboard — live Agmarknet mandi prices, lots, storage, logistics, payments, and buyer offers."
       />
-      <PlaygroundHeader
-        user={user ?? null}
-        activeTab={FARMER_DASHBOARD_TAB}
-        onTabChange={handleTabChange}
-        setTab={noop}
-        setChatbotSource={setChatbotSource}
-      />
-      <FarmerContent />
+      {/*
+        <PlaygroundHeader/> contains <TabsList> and <TabsTrigger> (Radix UI
+        primitives), which require a <Tabs> ancestor in the React context
+        tree — without it the page crashes with "TabsList must be used
+        within Tabs". The other two consumers (play-ground.tsx and
+        routes/chatbot/index.tsx) wrap the header in <Tabs> for the same
+        reason; we mirror that contract here.
+      */}
+      <Tabs
+        value={FARMER_DASHBOARD_TAB}
+        onValueChange={handleTabChange}
+        className="h-full w-full"
+      >
+        <PlaygroundHeader
+          user={user ?? null}
+          activeTab={FARMER_DASHBOARD_TAB}
+          onTabChange={handleTabChange}
+          setTab={handleTabChange}
+          setChatbotSource={setChatbotSource}
+        />
+        <FarmerContent />
+      </Tabs>
     </div>
   );
 }
