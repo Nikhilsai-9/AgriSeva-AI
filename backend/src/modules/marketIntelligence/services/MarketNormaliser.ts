@@ -246,7 +246,7 @@ export class MarketNormaliser {
       minPrice: toFiniteNumber(input.minPrice),
       maxPrice: toFiniteNumber(input.maxPrice),
       modalPrice: toFiniteNumber(input.modalPrice),
-      unit: input.unit || 'â‚¹/quintal',
+      unit: input.unit || '₹/quintal',
       arrivalDate,
       reportedAt: toIsoDate(input.reportedAt) ?? new Date().toISOString(),
       ingestedAt: new Date().toISOString(),
@@ -307,7 +307,7 @@ export class MarketNormaliser {
         minPrice: toFiniteNumber(raw.min_price ?? raw.minPrice),
         maxPrice: toFiniteNumber(raw.max_price ?? raw.maxPrice),
         modalPrice: toFiniteNumber(raw.modal_price ?? raw.modalPrice),
-        unit: 'â‚¹/quintal',
+        unit: '₹/quintal',
         arrivalDate,
         reportedAt: toIsoDate(raw.arrival_date ?? raw.reported_at),
         arrivalQty: toFiniteNumber(
@@ -356,7 +356,7 @@ export class MarketNormaliser {
         minPrice: toFiniteNumber(raw['Min Price'] ?? raw.min_price),
         maxPrice: toFiniteNumber(raw['Max Price'] ?? raw.max_price),
         modalPrice: toFiniteNumber(raw['Modal Price'] ?? raw.modal_price),
-        unit: cleanString(raw.Unit ?? raw.unit) ?? 'â‚¹/quintal',
+        unit: cleanString(raw.Unit ?? raw.unit) ?? '₹/quintal',
         arrivalDate,
         reportedAt: toIsoDate(raw['Price Date'] ?? raw.reported_at),
         arrivalQty: toFiniteNumber(
