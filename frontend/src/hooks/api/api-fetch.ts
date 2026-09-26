@@ -24,6 +24,13 @@ export const apiFetch = async <T>(
       console.error("Failed to get token:", err);
     }
   }
+  if (!token && typeof window !== "undefined" && window.localStorage) {
+    token =
+      localStorage.getItem("firebase-auth-token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("access_token") ||
+      null;
+  }
 
   const isFormData = options.body instanceof FormData;
 

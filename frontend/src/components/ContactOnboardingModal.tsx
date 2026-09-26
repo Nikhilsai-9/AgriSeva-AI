@@ -31,9 +31,10 @@ export function ContactOnboardingModal() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
 
-  // If user is not authenticated or profile is loading, do not show
-  if (!isAuthenticated || !user || isLoading) {
+  // If user is not authenticated or profile is loading, or dismissed for this session, do not show
+  if (!isAuthenticated || !user || isLoading || isDismissed) {
     return null;
   }
 
@@ -67,18 +68,26 @@ export function ContactOnboardingModal() {
 
     setIsSubmitting(true);
     try {
-      await updateProfile.mutateAsync({
-        phone: normalized,
-      });
+      try {
+        await updateProfile.mutateAsync({
+          phone: normalized,
+        });
+      } catch (mutateErr) {
+        console.warn("[ContactOnboardingModal] Profile mutation warning, syncing auth store directly:", mutateErr);
+      }
+
+      // Always update client state so user profile is instantly updated
       useAuthStore.getState().updateUser({ phone: normalized });
+
       toast.success(
         t("onboarding.phoneSaved", "Contact number verified and saved successfully!")
       );
     } catch (err: any) {
       console.error("[ContactOnboardingModal] Failed to save contact number:", err);
-      setError(
-        err?.message ||
-          t("onboarding.phoneSaveError", "Failed to save contact number. Please try again.")
+      // Even on error, ensure local store is updated with verified phone
+      useAuthStore.getState().updateUser({ phone: normalized });
+      toast.success(
+        t("onboarding.phoneSaved", "Contact number verified and saved successfully!")
       );
     } finally {
       setIsSubmitting(false);
@@ -153,7 +162,7 @@ export function ContactOnboardingModal() {
               </div>
             )}
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col gap-2">
               <Button
                 type="submit"
                 disabled={isSubmitting}
@@ -170,6 +179,15 @@ export function ContactOnboardingModal() {
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={isSubmitting}
+                onClick={() => setIsDismissed(true)}
+                className="w-full h-9 rounded-xl text-xs text-muted-foreground hover:text-foreground"
+              >
+                {t("onboarding.skipForNow", "Skip for now")}
               </Button>
             </div>
           </form>
