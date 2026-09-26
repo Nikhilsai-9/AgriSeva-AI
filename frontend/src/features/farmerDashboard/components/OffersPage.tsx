@@ -20,6 +20,7 @@ import {
 } from "@/features/farmerDashboard/FarmerLayout";
 import { formatDate, formatKg, formatRupees } from "@/features/farmerDashboard/hooks/utils";
 import { cn } from "@/lib/utils";
+import { DataStateBadge } from "@/features/farmerDashboard/DataStateBadge";
 
 const FILTERS = ["all", "pending", "accepted", "rejected", "countered"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -64,12 +65,9 @@ export function OffersPage() {
   return (
     <FarmerPageContainer className="space-y-5">
       <FarmerSectionTitle
+      <FarmerSectionTitle
         hint={t("farmer.offers.hint", "Every offer across all your lots.")}
-        action={
-          <span className="text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-            Demo
-          </span>
-        }
+        action={<DataStateBadge items={offers} />}
       >
         {t("farmer.offers.title", "My Offers")}
       </FarmerSectionTitle>

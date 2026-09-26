@@ -706,25 +706,11 @@ type LogisticsBookPayload = Record<string, unknown>;
  * misleading once a real farmer had signed in and started creating real
  * lots: their real records were labelled demo.
  *
- * The classification uses ONLY the per-record `isDemo` flag the backend
- * already attaches to every record:
- *
- *   - "all_demo"    → every visible record has isDemo=true
- *   - "mixed"       → some real, some demo (seed leftovers + new records)
- *   - "all_real"    → every visible record has isDemo=false/undefined
- *   - "empty"       → no records to classify
+ * The classification lives in `./../dataState.ts` so it can be unit-tested
+ * in isolation (no React/Query/MSW/Zustand dependencies). This module
+ * re-exports it for backwards compatibility with existing call sites.
  */
-export type DemoDataState = "all_demo" | "mixed" | "all_real" | "empty";
-
-export function classifyDemoState<T extends { isDemo?: boolean }>(
-  items: T[] | null | undefined,
-): DemoDataState {
-  if (!items || items.length === 0) return "empty";
-  const demoCount = items.filter((x) => x.isDemo === true).length;
-  if (demoCount === items.length) return "all_demo";
-  if (demoCount === 0) return "all_real";
-  return "mixed";
-}
+export {classifyDemoState, type DemoDataState} from "../dataState";
 
 const mapRemoteBuyer = (b: {
   id: string;

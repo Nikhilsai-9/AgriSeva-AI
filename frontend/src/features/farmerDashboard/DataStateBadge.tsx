@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import {
   classifyDemoState,
   type DemoDataState,
-} from "./hooks/data";
+} from "./dataState";
 
 export interface DataStateBadgeProps<T extends { isDemo?: boolean }> {
   items: T[] | null | undefined;
