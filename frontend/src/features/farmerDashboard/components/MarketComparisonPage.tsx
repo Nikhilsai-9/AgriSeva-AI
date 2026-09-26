@@ -23,8 +23,8 @@ import {
   formatRupees,
 } from "@/features/farmerDashboard/hooks/utils";
 import {
+  getSourceLabel,
   recommendBestMarketForLot,
-  sourceLabel,
 } from "@/features/farmerDashboard/market-intelligence";
 import {
   FarmerCard,
@@ -62,15 +62,17 @@ export function MarketComparisonPage() {
     new Set((prices ?? []).map((p) => p.source).filter(Boolean)),
   );
   const isDemo = sourcesInUse.length === 0 || sourcesInUse.every((s) => s === "demo");
-  const sourceLabelText = isDemo
-    ? t("farmer.common.sourceDemo", "Demo")
-    : sourcesInUse.includes("agmarknet") && sourcesInUse.includes("enam")
-    ? t("farmer.common.sourceMulti", "Agmarknet + eNAM")
-    : sourcesInUse[0] === "agmarknet"
-    ? "AGMARKNET"
-    : sourcesInUse[0] === "enam"
-    ? "eNAM"
-    : t("farmer.common.sourceLive", "LIVE");
+  // PHASE 2 §P2.F — Single-source branches route through the
+  // shared `getSourceLabel(source, isDemo)` helper so the UI
+  // never silently mislabels real data as "Demo". Multi-source
+  // (Agmarknet + eNAM) stays inline because the helper is
+  // single-source by contract.
+  const hasAgmarknet = sourcesInUse.includes("agmarknet");
+  const hasEnam = sourcesInUse.includes("enam");
+  const sourceLabelText =
+    hasAgmarknet && hasEnam
+      ? t("farmer.common.sourceMulti", "Agmarknet + eNAM")
+      : getSourceLabel(sourcesInUse[0], isDemo);
 
   const [expandedIdx, setExpandedIdx] = useState<number | null>(0);
 
