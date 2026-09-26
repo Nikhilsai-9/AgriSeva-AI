@@ -68,7 +68,14 @@ export interface RealisableValue {
   net: number;
   /** Convenience: net per kg in ₹. */
   netPerKg: number;
-  /** Always true in this build — distinguishes demo flag. */
+  /**
+   * PHASE 2 §P2.G — true when the upstream `price.source`
+   * is missing or `=== 'demo'`. Previously this field was
+   * hardcoded `true` on every computation, which silently
+   * flagged real agmarknet / eNAM rows as demo. Now derived
+   * from the actual price payload so the UI can truthfully
+   * say "this net is from live mandi data".
+   */
   isDemo: boolean;
 }
 
@@ -137,8 +144,25 @@ export function computeRealisableValue({
     },
     net,
     netPerKg,
-    isDemo: true,
+    // PHASE 2 §P2.G — derive isDemo from the actual price source
+    // so live agmarknet / eNAM rows are NOT mislabelled as demo.
+    isDemo: deriveIsDemo(price),
   };
+}
+
+/**
+ * Single source of truth for "is this a demo price?".
+ *
+ * PHASE 2 §P2.G — routes every `isDemo` decision through one
+ * helper so the rule cannot drift between call sites. The
+ * rule is: a price is demo if and only if its source is the
+ * literal string `'demo'` or is missing entirely (legacy
+ * fixtures from before source was populated).
+ */
+export function deriveIsDemo(price: {source?: string} | null | undefined): boolean {
+  if (!price) return true;
+  const s = (price.source ?? '').toLowerCase();
+  return s === 'demo' || s === '';
 }
 
 /**

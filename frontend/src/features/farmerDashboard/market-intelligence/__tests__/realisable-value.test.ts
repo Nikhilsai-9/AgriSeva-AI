@@ -12,7 +12,11 @@
  *   realisable = max(0, gross − Σ(breakdown))
  */
 import {describe, it, expect} from 'vitest';
-import {computeRealisableValue, realisableValueLines} from '../realisable-value';
+import {
+  computeRealisableValue,
+  deriveIsDemo,
+  realisableValueLines,
+} from '../realisable-value';
 import type {FarmerLot, MarketPrice} from '../../types';
 
 const lot = (over: Partial<FarmerLot> = {}): FarmerLot => ({
@@ -164,5 +168,66 @@ describe('realisableValueLines — formatting helper', () => {
       'Gross (modal price × qty)',
       'Net realisable',
     ]);
+  });
+});
+
+describe('deriveIsDemo — PHASE 2 §P2.G single source of truth', () => {
+  it('agmarknet price is NOT demo', () => {
+    expect(deriveIsDemo({source: 'agmarknet'})).toBe(false);
+  });
+
+  it('eNAM price is NOT demo', () => {
+    expect(deriveIsDemo({source: 'enam'})).toBe(false);
+  });
+
+  it('explicit demo source IS demo', () => {
+    expect(deriveIsDemo({source: 'demo'})).toBe(true);
+  });
+
+  it('uppercase DEMO is case-insensitive and still demo', () => {
+    expect(deriveIsDemo({source: 'DEMO'})).toBe(true);
+  });
+
+  it('missing source is treated as demo (legacy fixtures)', () => {
+    expect(deriveIsDemo({})).toBe(true);
+    expect(deriveIsDemo({source: undefined})).toBe(true);
+  });
+
+  it('null / undefined price is treated as demo', () => {
+    expect(deriveIsDemo(null)).toBe(true);
+    expect(deriveIsDemo(undefined)).toBe(true);
+  });
+});
+
+describe('computeRealisableValue — isDemo derivation (PHASE 2 §P2.G)', () => {
+  it('agmarknet price → isDemo = false (was hardcoded true)', () => {
+    const rv = computeRealisableValue({
+      lot: lot(),
+      price: price({source: 'agmarknet'}),
+    });
+    expect(rv.isDemo).toBe(false);
+  });
+
+  it('eNAM price → isDemo = false', () => {
+    const rv = computeRealisableValue({
+      lot: lot(),
+      price: price({source: 'enam'}),
+    });
+    expect(rv.isDemo).toBe(false);
+  });
+
+  it('demo source → isDemo = true', () => {
+    const rv = computeRealisableValue({
+      lot: lot(),
+      price: price({source: 'demo'}),
+    });
+    expect(rv.isDemo).toBe(true);
+  });
+
+  it('price with no source field → isDemo = true (legacy fixture safety)', () => {
+    const legacyPrice = price();
+    delete (legacyPrice as Partial<MarketPrice>).source;
+    const rv = computeRealisableValue({lot: lot(), price: legacyPrice});
+    expect(rv.isDemo).toBe(true);
   });
 });
