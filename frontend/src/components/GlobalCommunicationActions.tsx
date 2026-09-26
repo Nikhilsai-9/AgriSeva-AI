@@ -508,7 +508,7 @@ export function GlobalCommunicationActions() {
       <Dialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen}>
         <DialogContent
           id="agriseva-phone-helpline-dialog"
-          className="w-[calc(100vw-24px)] max-w-md p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card max-h-[85vh] overflow-y-auto"
+          className={`max-w-md p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card data-[state=open]:slide-in-from-bottom-4 data-[state=closed]:slide-out-to-bottom-4 duration-300 top-auto left-auto translate-x-0 translate-y-0 ${isFarmerRoute ? "bottom-[195px] lg:bottom-44" : "bottom-[160px] sm:bottom-44"} right-3 sm:right-5 w-[calc(100vw-24px)] max-h-[80vh] sm:max-h-[640px]`}
         >
           <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 p-6 text-white">
             <div className="flex items-center justify-between">
@@ -697,7 +697,7 @@ export function GlobalCommunicationActions() {
       <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
         <DialogContent
           id="agriseva-whatsapp-dialog"
-          className="w-[calc(100vw-24px)] max-w-md p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card max-h-[85vh] overflow-y-auto"
+          className={`max-w-md p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card data-[state=open]:slide-in-from-bottom-4 data-[state=closed]:slide-out-to-bottom-4 duration-300 top-auto left-auto translate-x-0 translate-y-0 ${isFarmerRoute ? "bottom-[195px] lg:bottom-44" : "bottom-[160px] sm:bottom-44"} right-3 sm:right-5 w-[calc(100vw-24px)] max-h-[80vh] sm:max-h-[640px]`}
         >
           <div className="bg-gradient-to-r from-[#25D366] via-[#20BA5C] to-[#128C7E] p-6 text-white">
             <div className="flex items-center justify-between">
