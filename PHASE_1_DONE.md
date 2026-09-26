@@ -269,12 +269,18 @@ Phase 1 closed the **trust gap**: data is no longer fabricated, the scoring
 is multi-factor, and reliability is visible. Future phases can build on
 this without re-litigating honesty:
 
-- **PHASE 36 — FE Jest infra** unblocks unit tests for `bandForScore`,
-  `recommendBestMarketForLot` weight sum, etc.
+- **PHASE 36 â€” FE Jest infra** unblocks unit tests for `bandForScore`,
+  `recommendBestMarketForLot` weight sum, etc. â€” **done in PHASE 2 P2.B** (51 FE tests).
 - **PHASE 1+ operational work** can wire `refreshHours` cron cadence
-  per tier (P1.3 deferred item).
+  per tier (P1.3 deferred item) â€” **done in PHASE 2 P2.A** (tiered cron + 16 BE tests).
 - **PHASE 4–46 analytics / ML work** (if/when reactivated) has a clean
   base of truthful, scored data to build on.
+
+---
+
+See `PHASE_2_PLAN.md` and `PHASE_2_RESULTS.md` for the operational
+hardening items (P2.D captcha detection, P2.E timezone hardening, P2.F
+`MarketComparisonPage` tidy-up, P2.G `isDemo` derivation audit).
 
 ---
 
