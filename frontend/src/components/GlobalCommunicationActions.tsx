@@ -289,6 +289,7 @@ export function GlobalCommunicationActions() {
 
   const routerState = useRouterState();
   const currentPath = routerState?.location?.pathname || (typeof window !== "undefined" ? window.location.pathname : "/");
+  const isFarmerRoute = currentPath.startsWith("/farmer");
 
   // Context-aware tips for current page
   const currentPageContext = useMemo(() => {
@@ -505,7 +506,10 @@ export function GlobalCommunicationActions() {
           1. PHONE HELPLINE & DIALER DIALOG
          ───────────────────────────────────────────────────────────── */}
       <Dialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card">
+        <DialogContent
+          id="agriseva-phone-helpline-dialog"
+          className="w-[calc(100vw-24px)] max-w-md p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card max-h-[85vh] overflow-y-auto"
+        >
           <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 p-6 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -691,7 +695,10 @@ export function GlobalCommunicationActions() {
           2. WHATSAPP CONNECT DIALOG
          ───────────────────────────────────────────────────────────── */}
       <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card">
+        <DialogContent
+          id="agriseva-whatsapp-dialog"
+          className="w-[calc(100vw-24px)] max-w-md p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card max-h-[85vh] overflow-y-auto"
+        >
           <div className="bg-gradient-to-r from-[#25D366] via-[#20BA5C] to-[#128C7E] p-6 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -851,7 +858,7 @@ export function GlobalCommunicationActions() {
       <Dialog open={helperDialogOpen} onOpenChange={setHelperDialogOpen}>
         <DialogContent 
           id="agriseva-ai-helper-dialog"
-          className={`sm:max-w-xl flex flex-col p-0 overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-2xl rounded-2xl top-auto left-auto translate-x-0 translate-y-0 ${isFarmerRoute ? "bottom-[195px] lg:bottom-44" : "bottom-[160px] sm:bottom-44"} right-3 sm:right-5 w-[calc(100vw-24px)] max-h-[75vh] sm:w-[380px] sm:max-w-[380px] sm:max-h-[520px]`}
+          className={`sm:max-w-xl flex flex-col p-0 overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-2xl rounded-2xl data-[state=open]:slide-in-from-bottom-4 data-[state=closed]:slide-out-to-bottom-4 duration-300 top-auto left-auto translate-x-0 translate-y-0 ${isFarmerRoute ? "bottom-[195px] lg:bottom-44" : "bottom-[160px] sm:bottom-44"} right-3 sm:right-5 w-[calc(100vw-24px)] max-h-[75vh] sm:w-[380px] sm:max-w-[380px] sm:max-h-[520px]`}
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-emerald-900 text-white p-5 border-b border-emerald-700/50">
