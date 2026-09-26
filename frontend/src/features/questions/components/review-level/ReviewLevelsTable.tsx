@@ -73,7 +73,7 @@ export function ReviewLevelsTable({
               No questions found
             </p>
           ) : (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(400px,1fr))] pb-3">
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))] pb-3">
               {data.map((row, i) => (
                 <ReviewLevelsCard
                   key={i}

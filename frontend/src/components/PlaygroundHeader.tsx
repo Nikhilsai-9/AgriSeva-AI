@@ -27,7 +27,7 @@ export function PlaygroundHeader({
   const { t } = useTranslation();
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex items-center justify-between gap-4 px-4 py-2.5">
+      <div className="mx-auto flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-2 sm:py-2.5">
         {/* AgriSeva Brand Logo & Tagline */}
         <div className="flex items-center shrink-0 cursor-pointer">
           <AgriSevaBrand size="sm" showSlogan={true} />
@@ -194,16 +194,20 @@ export function PlaygroundHeader({
         </div>
 
         {/* RIGHT SIDE ICONS */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 shrink-0">
           <LanguageSwitcher variant="outline" />
 
           {/* Notifications */}
           <NotificationModal
             trigger={
-              <button className="relative p-1 rounded-md hover:bg-accent transition-colors">
-                <BellIcon className="w-5 h-5 text-muted-foreground hover:text-foreground transition" />
+              <button 
+                type="button"
+                aria-label={t("common.notifications", "Notifications")}
+                className="relative p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer text-foreground shrink-0"
+              >
+                <BellIcon className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground hover:text-foreground transition" />
                 {user?.notifications! > 0 && (
-                  <span className="absolute -top-[4px] -right-[12px] flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-semibold text-white">
+                  <span className="absolute -top-[2px] -right-[6px] sm:-top-[4px] sm:-right-[10px] flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] sm:text-[10px] font-semibold text-white">
                     {user?.notifications! > 99
                       ? "99+"
                       : user?.notifications}

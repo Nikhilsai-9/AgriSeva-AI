@@ -154,31 +154,33 @@ export function LotDetailPage({ lotId }: { lotId: string }) {
         {t("farmer.common.back", "Back")}
       </Link>
 
-      <FarmerCard className="p-5 sm:p-6">
-        <div className="flex items-start gap-4">
-          <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-            <Sprout className="h-7 w-7 sm:h-8 sm:w-8" />
+      <FarmerCard className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+            <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+              <Sprout className="h-6 w-6 sm:h-8 sm:w-8" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-lg sm:text-2xl font-bold text-emerald-900 truncate">
+                {lot.crop}
+              </p>
+              <p className="text-xs sm:text-sm text-emerald-900/70 truncate">
+                Grade {lot.qualityGrade} • {formatKg(lot.quantityKg)}
+              </p>
+              <p
+                className={cn(
+                  "mt-1 inline-block text-[11px] sm:text-xs font-semibold px-2 py-0.5 rounded-full",
+                  lot.status === "active" && "bg-emerald-100 text-emerald-800",
+                  lot.status === "sold" && "bg-sky-100 text-sky-800",
+                  lot.status === "expired" && "bg-stone-100 text-stone-700",
+                  lot.status === "draft" && "bg-amber-100 text-amber-800"
+                )}
+              >
+                {lot.status}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xl sm:text-2xl font-bold text-emerald-900 truncate">
-              {lot.crop}
-            </p>
-            <p className="text-sm text-emerald-900/70">
-              Grade {lot.qualityGrade} • {formatKg(lot.quantityKg)}
-            </p>
-            <p
-              className={cn(
-                "mt-1 inline-block text-xs font-semibold px-2 py-0.5 rounded-full",
-                lot.status === "active" && "bg-emerald-100 text-emerald-800",
-                lot.status === "sold" && "bg-sky-100 text-sky-800",
-                lot.status === "expired" && "bg-stone-100 text-stone-700",
-                lot.status === "draft" && "bg-amber-100 text-amber-800"
-              )}
-            >
-              {lot.status}
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-wrap items-center sm:flex-col sm:items-end gap-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-emerald-100">
             {lot.status === "active" && (
               <button
                 type="button"

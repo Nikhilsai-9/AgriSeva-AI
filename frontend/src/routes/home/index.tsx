@@ -54,7 +54,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="min-h-screen min-w-screen p-4 relative flex flex-col overflow-hidden">
+    <div className="min-h-screen w-full px-2 sm:px-4 py-2 sm:py-4 relative flex flex-col">
       <PageMeta
         title="Dashboard"
         description="AgriSeva-AI Multilingual AI Agricultural Advisory, Mandi Market Intelligence, and Expert Support."

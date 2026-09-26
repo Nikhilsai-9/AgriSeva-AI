@@ -50,19 +50,19 @@ export function PaymentsPage() {
       </FarmerSectionTitle>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <FarmerCard className="p-4 bg-emerald-50/50">
-          <p className="text-xs text-emerald-900/70">
+        <FarmerCard className="p-3.5 sm:p-4 bg-emerald-50/50 min-w-0">
+          <p className="text-xs text-emerald-900/70 truncate">
             {t("farmer.payments.totalReceived", "Total received")}
           </p>
-          <p className="text-2xl font-extrabold text-emerald-900">
+          <p className="text-lg sm:text-2xl font-extrabold text-emerald-900 truncate">
             {formatRupees(totals.paid)}
           </p>
         </FarmerCard>
-        <FarmerCard className="p-4 bg-amber-50/50">
-          <p className="text-xs text-emerald-900/70">
+        <FarmerCard className="p-3.5 sm:p-4 bg-amber-50/50 min-w-0">
+          <p className="text-xs text-emerald-900/70 truncate">
             {t("farmer.payments.totalPending", "Pending")}
           </p>
-          <p className="text-2xl font-extrabold text-amber-800">
+          <p className="text-lg sm:text-2xl font-extrabold text-amber-800 truncate">
             {formatRupees(totals.pending)}
           </p>
         </FarmerCard>

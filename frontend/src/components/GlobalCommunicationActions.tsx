@@ -436,7 +436,7 @@ export function GlobalCommunicationActions() {
       {/* Persistent Floating Bottom-Right Stack in Exact Order: 1. Phone, 2. WhatsApp, 3. AgriSeva-AI Helper */}
       <aside 
         aria-label="AgriSeva Global Communication & AI Helper"
-        className="fixed bottom-5 right-5 z-[90] flex flex-col items-center gap-2.5 select-none pointer-events-auto"
+        className={`fixed ${isFarmerRoute ? "bottom-[4.25rem] lg:bottom-5" : "bottom-4 sm:bottom-5"} right-3 sm:right-5 z-[90] flex flex-col items-center gap-2 sm:gap-2.5 select-none pointer-events-auto`}
       >
         <TooltipProvider delayDuration={200}>
           {/* 1. Phone Helpline Floating Button */}
@@ -851,7 +851,7 @@ export function GlobalCommunicationActions() {
       <Dialog open={helperDialogOpen} onOpenChange={setHelperDialogOpen}>
         <DialogContent 
           id="agriseva-ai-helper-dialog"
-          className="sm:max-w-xl flex flex-col p-0 overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-2xl rounded-2xl top-auto left-auto translate-x-0 translate-y-0 bottom-[180px] right-4 w-[calc(100vw-32px)] max-h-[70vh] sm:bottom-44 sm:right-5 sm:w-[380px] sm:max-w-[380px] sm:max-h-[520px]"
+          className={`sm:max-w-xl flex flex-col p-0 overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-2xl rounded-2xl top-auto left-auto translate-x-0 translate-y-0 ${isFarmerRoute ? "bottom-[195px] lg:bottom-44" : "bottom-[160px] sm:bottom-44"} right-3 sm:right-5 w-[calc(100vw-24px)] max-h-[75vh] sm:w-[380px] sm:max-w-[380px] sm:max-h-[520px]`}
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-emerald-900 text-white p-5 border-b border-emerald-700/50">

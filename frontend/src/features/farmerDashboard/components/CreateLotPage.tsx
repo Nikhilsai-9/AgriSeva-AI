@@ -208,7 +208,7 @@ export function CreateLotPage() {
             </select>
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block">
               <span className="block text-sm font-semibold text-emerald-900 mb-1">
                 {t("farmer.createLot.quantity", "Quantity (kg)")}
@@ -240,7 +240,7 @@ export function CreateLotPage() {
             </label>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block">
               <span className="block text-sm font-semibold text-emerald-900 mb-1">
                 {t("farmer.createLot.harvestDate", "Harvest date")}

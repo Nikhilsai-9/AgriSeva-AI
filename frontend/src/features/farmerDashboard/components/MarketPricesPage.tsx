@@ -157,7 +157,7 @@ export function MarketPricesPage() {
           <Filter className="h-4 w-4" />
           {t("farmer.prices.filters", "Filters")}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           <label className="block">
             <span className="block text-xs font-semibold text-emerald-900/70 mb-1">
               {t("farmer.prices.crop", "Crop")}
@@ -398,16 +398,16 @@ function Stat({
   return (
     <div
       className={cn(
-        "rounded-lg px-2 py-1.5",
+        "rounded-lg px-2 py-1.5 min-w-0",
         accent ? "bg-emerald-50" : "bg-stone-50"
       )}
     >
-      <p className="text-[10px] uppercase tracking-wider text-emerald-900/60 font-semibold">
+      <p className="text-[10px] uppercase tracking-wider text-emerald-900/60 font-semibold truncate">
         {label}
       </p>
       <p
         className={cn(
-          "text-sm font-bold",
+          "text-xs sm:text-sm font-bold truncate",
           accent ? "text-emerald-900" : "text-emerald-900/80"
         )}
       >

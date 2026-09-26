@@ -85,7 +85,7 @@ export function LogisticsPage() {
                     </span>
                   )}
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <Row icon={<MapPin className="h-3 w-3" />} label={t("farmer.logistics.route", "Route")}>{opt.from} - {opt.to}</Row>
                   <Row icon={<Calendar className="h-3 w-3" />} label={t("farmer.logistics.eta", "ETA")}>{formatDate(opt.estimatedDeliveryDate)}</Row>
                   <Row icon={<Package className="h-3 w-3" />} label={t("farmer.logistics.capacity", "Capacity")}>{opt.capacityKg?.toLocaleString("en-IN") ?? 0} kg</Row>

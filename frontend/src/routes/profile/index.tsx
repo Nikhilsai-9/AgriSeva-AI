@@ -101,30 +101,28 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className="min-h-screen bg-background ">
-      <div className="mx-auto  px-6 py-8 w-[90%] md:max-w-[70%]">
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto px-3 sm:px-6 py-6 sm:py-8 w-full max-w-4xl">
         {/* Header with Back Button and LanguageSwitcher */}
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div
-              className="flex items-center gap-2 group cursor-pointer w-fit"
+              className="flex items-center gap-2 group cursor-pointer w-fit p-1 rounded-lg hover:bg-accent transition-colors"
               onClick={handleBack}
             >
-              <div className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-hover:-translate-x-1 transition-transform duration-200" />
-              </div>
+              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-hover:-translate-x-1 transition-transform duration-200" />
             </div>
             <div>
-              <h1 className="flex items-center text-2xl font-semibold tracking-tight gap-2">
+              <h1 className="flex items-center text-xl sm:text-2xl font-semibold tracking-tight gap-2">
                 <Settings className="w-5 h-5 text-muted-foreground shrink-0" />
                 <span>{t("userProfile.profileSettings", "Profile Settings")}</span>
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {t("userProfile.profileSettingsDesc", "Manage your account information and preferences")}
               </p>
             </div>
           </div>
-          <div className="shrink-0">
+          <div className="shrink-0 self-end sm:self-auto">
             <LanguageSwitcher variant="outline" />
           </div>
         </div>

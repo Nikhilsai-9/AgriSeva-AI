@@ -33,7 +33,7 @@ export function AgriSevaBrand({
   };
 
   const sloganSizes = {
-    sm: "text-[11px] font-medium tracking-normal",
+    sm: "text-[11px] font-medium tracking-normal hidden md:block text-muted-foreground",
     md: "text-xs md:text-sm font-serif italic text-muted-foreground",
     lg: "text-sm md:text-base font-serif italic text-muted-foreground",
     banner: "text-sm md:text-lg font-serif italic text-gray-700 dark:text-gray-300",

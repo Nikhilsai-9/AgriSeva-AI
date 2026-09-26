@@ -598,7 +598,7 @@ export const QuestionsTable = ({
                   )}
                 </div>
               )}
-              <div className={`grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(400px,1fr))] pb-3 ${isLoading ? "opacity-50 pointer-events-none transition-opacity duration-200" : "transition-opacity duration-200"}`}>
+              <div className={`grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))] pb-3 ${isLoading ? "opacity-50 pointer-events-none transition-opacity duration-200" : "transition-opacity duration-200"}`}>
                 {items?.map((q, idx) => (
                   <QuestionsCard
                     currentPage={currentPage}

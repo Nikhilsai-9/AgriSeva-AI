@@ -37,7 +37,7 @@ const SidebarButton = ({
     <button
       onClick={onClick}
       className={`
-        group w-full px-4 py-3 
+        group w-full px-3.5 sm:px-4 py-2.5 sm:py-3 min-h-[44px]
         flex items-center gap-3
         text-left rounded-lg 
         transition-all duration-200 
@@ -54,7 +54,7 @@ const SidebarButton = ({
           isActive ? "" : "text-muted-foreground group-hover:text-foreground"
         }`}
       />
-      <span className="font-medium">{label}</span>
+      <span className="font-medium text-sm sm:text-base truncate">{label}</span>
     </button>
   );
 };
@@ -204,15 +204,15 @@ export const MobileSidebar = ({
         side="left"
         className="
           fixed left-0 top-0 h-full
-          w-80 p-0 flex flex-col  pt-0
+          w-[min(20rem,calc(100vw-2rem))] sm:w-80 max-w-[88vw] p-0 flex flex-col pt-0
           bg-background border-r 
           shadow-2xl
           animate-in slide-in-from-left duration-300
         "
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b bg-muted/30">
-          <AgriSevaBrand size="sm" showSlogan={true} />
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 border-b bg-muted/30">
+          <AgriSevaBrand size="sm" showSlogan={false} />
         </div>
 
         {/* Navigation */}

@@ -278,7 +278,7 @@ export const PlaygroundPage = () => {
           setChatbotSource={setChatbotSource}
         />
 
-        <div className=" h-full py-6 min-w-0">
+        <div className="h-full py-4 sm:py-6 min-w-0 max-w-[1920px] mx-auto w-full">
           <div className="grid h-full items-stretch gap-6 min-w-0">
             <div className="md:order-1 w-full min-w-0">
               {user &&

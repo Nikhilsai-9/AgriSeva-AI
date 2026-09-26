@@ -311,9 +311,16 @@ code {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     @apply bg-background text-foreground;
-    @apply overflow-y-scroll md:overflow-hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 }
 
