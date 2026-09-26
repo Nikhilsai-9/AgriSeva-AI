@@ -66,6 +66,7 @@ const mockReliability: MarketReliabilitySnapshot = {
   recentSuccessesLast24h: 4,
   recentAttemptsLast24h: 4,
   reasons: ['Fresh within last 6h', 'No recent failures'],
+  captchaIncidentsLast24h: 0,
 };
 
 // ─── Mock services ───────────────────────────────────────────────────
@@ -441,6 +442,7 @@ describe('MarketPricesController', () => {
         errors: [],
         startedAt: '2026-04-15T10:00:00.000Z',
         finishedAt: '2026-04-15T10:00:01.000Z',
+        captchaSuspected: false,
       };
       mockIngestionService.ingest.mockResolvedValueOnce(result);
 
@@ -473,6 +475,7 @@ describe('MarketPricesController', () => {
         errors: ['upstream timeout'],
         startedAt: '2026-04-15T10:00:00.000Z',
         finishedAt: '2026-04-15T10:00:01.000Z',
+        captchaSuspected: false,
       });
 
       const res = await request(app)

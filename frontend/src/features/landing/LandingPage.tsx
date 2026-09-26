@@ -1865,51 +1865,6 @@ export function LandingPage() {
         </div>
       </div>
 
-      {/* Floating Ask AgriSeva-AI Button */}
-      <button
-        onClick={() => navigate({ to: user ? "/home" : "/auth" })}
-        style={{
-          position: "fixed",
-          bottom: "24px",
-          right: "24px",
-          zIndex: 99,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "8px",
-          background: "#137a4c",
-          color: "#fff",
-          textDecoration: "none",
-          padding: "12px 20px",
-          borderRadius: "999px",
-          fontFamily: "'Poppins', sans-serif",
-          fontSize: "13.5px",
-          fontWeight: 700,
-          boxShadow: "0 10px 25px rgba(19,122,76,0.35)",
-          transition: "transform .2s, box-shadow .2s",
-          border: "1px solid rgba(255,255,255,0.2)",
-          cursor: "pointer",
-        }}
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 8V4H8" />
-          <rect width="16" height="12" x="4" y="8" rx="2" />
-          <path d="M2 14h2" />
-          <path d="M20 14h2" />
-          <path d="M15 13v2" />
-          <path d="M9 13v2" />
-        </svg>
-        <span>{t("common.askAgriSeva", "Ask AgriSeva-AI")}</span>
-      </button>
-
       <LandingFooter />
     </div>
   );

@@ -1,5 +1,31 @@
-import React, { useState } from "react";
-import { Phone, MessageSquare, ExternalLink, Bot, User, CheckCircle2, Headphones, Sparkles, Send, Copy, Check } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { 
+  Phone, 
+  MessageSquare, 
+  ExternalLink, 
+  Bot, 
+  User, 
+  CheckCircle2, 
+  Headphones, 
+  Sparkles, 
+  Send, 
+  Copy, 
+  Check, 
+  Search, 
+  Compass, 
+  ChevronRight, 
+  ArrowRight, 
+  AlertCircle, 
+  TrendingUp, 
+  Scale, 
+  Layers, 
+  FileText, 
+  Truck, 
+  ShieldAlert, 
+  HelpCircle,
+  Languages,
+  DollarSign
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +41,7 @@ import { Badge } from "./atoms/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./atoms/tooltip";
 import { useTranslation } from "@/locales";
 import { useAuthStore } from "@/stores/auth-store";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { plivoService } from "@/hooks/api/plivo/api";
 import { normalizePhoneNumber, isValidPhoneNumber, formatPhoneNumber, getWhatsAppLink, getTelLink } from "@/lib/phoneNumber";
 import { toast } from "sonner";
@@ -24,6 +50,140 @@ import { env } from "@/config/env";
 
 export const AGRISEVA_HELPLINE_NUMBER = "+919606751041";
 export const KISAN_TOLLFREE_NUMBER = "1800-180-1551";
+
+interface AppFeature {
+  id: string;
+  title: string;
+  category: string;
+  desc: string;
+  route?: string;
+  actionType?: "route" | "phone" | "whatsapp" | "language";
+  keywords: string[];
+  requiresAuth?: boolean;
+}
+
+const FEATURE_REGISTRY: AppFeature[] = [
+  {
+    id: "market-prices",
+    title: "Mandi Market Prices",
+    category: "Market Intelligence",
+    desc: "View verified daily Agmarknet and eNAM modal prices across commodities, states, and APMC mandis.",
+    route: "/farmer-dashboard/market-prices",
+    actionType: "route",
+    keywords: ["price", "mandi", "rate", "bajra", "cotton", "paddy", "wheat", "market", "apmc", "modal"],
+  },
+  {
+    id: "market-comparison",
+    title: "Market Comparison & Net Returns",
+    category: "Market Intelligence",
+    desc: "Compare realisable payouts between multiple mandis after calculating transport distance and freight costs.",
+    route: "/farmer-dashboard/compare-markets",
+    actionType: "route",
+    keywords: ["compare", "transport", "distance", "net price", "realisable", "freight", "better mandi"],
+  },
+  {
+    id: "ai-agent",
+    title: "AI Agronomic Advisory & Crop Diagnosis",
+    category: "Crop Health",
+    desc: "Ask any farming or disease question with voice or text. Get ICAR-grounded solutions or route to agricultural scientists.",
+    route: "/home",
+    actionType: "route",
+    keywords: ["disease", "pest", "crop", "ask", "ai", "yellow leaf", "fertilizer", "doctor", "advisory", "treatment"],
+  },
+  {
+    id: "voice-input",
+    title: "Voice Assistant & Multilingual Speech",
+    category: "AI Communication",
+    desc: "Tap the microphone on the AI Agent page to speak in your native dialect (Telugu, Tamil, Hindi, Kannada, etc.).",
+    route: "/home",
+    actionType: "route",
+    keywords: ["voice", "speak", "mic", "talk", "audio", "stt", "speech"],
+  },
+  {
+    id: "language-selector",
+    title: "23 Indian Languages Support",
+    category: "Accessibility",
+    desc: "Switch the full app interface, answers, and voice outputs across 23 official Indian languages.",
+    actionType: "language",
+    keywords: ["language", "telugu", "tamil", "hindi", "kannada", "marathi", "urdu", "bengali", "translate"],
+  },
+  {
+    id: "crop-lots",
+    title: "Harvested Crop Lots Listing",
+    category: "Commerce",
+    desc: "List your harvested crop lots with quantity, grade, and expected price for verified buyers to bid on.",
+    route: "/farmer-dashboard/lots",
+    actionType: "route",
+    requiresAuth: true,
+    keywords: ["lot", "sell", "produce", "listing", "crop lot", "quantity", "harvest"],
+  },
+  {
+    id: "buyer-offers",
+    title: "Buyer Offers & Direct Bids",
+    category: "Commerce",
+    desc: "Review, accept, or negotiate direct purchase offers submitted by institutional and wholesale buyers.",
+    route: "/farmer-dashboard/offers",
+    actionType: "route",
+    requiresAuth: true,
+    keywords: ["offer", "buyer", "bid", "deal", "accept offer", "negotiate", "purchase"],
+  },
+  {
+    id: "logistics",
+    title: "Logistics Booking & Transport",
+    category: "Supply Chain",
+    desc: "Book verified farm-to-mandi transport vehicles with transparent freight tracking.",
+    route: "/farmer-dashboard/logistics",
+    actionType: "route",
+    requiresAuth: true,
+    keywords: ["logistics", "transport", "truck", "freight", "vehicle", "dispatch"],
+  },
+  {
+    id: "storage",
+    title: "WDRA Warehouse & Storage",
+    category: "Supply Chain",
+    desc: "Locate certified WDRA warehouses and cold storages to safely preserve harvested crops against distress sales.",
+    route: "/farmer-dashboard/storage",
+    actionType: "route",
+    requiresAuth: true,
+    keywords: ["storage", "warehouse", "cold storage", "wdra", "depot"],
+  },
+  {
+    id: "payments",
+    title: "Payments & Financial Settlements",
+    category: "Finance",
+    desc: "Track bank account transfers, pending escrow releases, and invoice records for sold produce.",
+    route: "/farmer-dashboard/payments",
+    actionType: "route",
+    requiresAuth: true,
+    keywords: ["payment", "bank", "money", "rupees", "settlement", "invoice", "payout"],
+  },
+  {
+    id: "grievances",
+    title: "Grievances & Support Tickets",
+    category: "Support",
+    desc: "Submit and track dispute tickets for payment delays, transport discrepancies, or quality issues.",
+    route: "/farmer-dashboard/grievances",
+    actionType: "route",
+    requiresAuth: true,
+    keywords: ["grievance", "complaint", "dispute", "ticket", "issue", "support", "help"],
+  },
+  {
+    id: "phone-helpline",
+    title: "Voice Helpline & Kisan Call Center",
+    category: "Helplines",
+    desc: "Call the Kisan Call Center (1800-180-1551) toll-free or initiate an instant in-browser WebRTC call.",
+    actionType: "phone",
+    keywords: ["call", "phone", "helpline", "kisan call center", "talk to expert", "dialer"],
+  },
+  {
+    id: "whatsapp-assistant",
+    title: "WhatsApp Agricultural Assistant",
+    category: "Helplines",
+    desc: "Send crop questions, photos, or voice notes directly to the official AgriSeva WhatsApp number.",
+    actionType: "whatsapp",
+    keywords: ["whatsapp", "chat", "message", "wa", "text assistant"],
+  },
+];
 
 export function GlobalCommunicationActions() {
   const { t } = useTranslation();
@@ -123,6 +283,146 @@ export function GlobalCommunicationActions() {
     setWhatsappDialogOpen(false);
   };
 
+  const [helperDialogOpen, setHelperDialogOpen] = useState(false);
+  const [helperQuery, setHelperQuery] = useState("");
+
+  const routerState = useRouterState();
+  const currentPath = routerState?.location?.pathname || (typeof window !== "undefined" ? window.location.pathname : "/");
+
+  // Context-aware tips for current page
+  const currentPageContext = useMemo(() => {
+    if (currentPath.includes("market-prices") || currentPath.includes("market-intelligence")) {
+      return {
+        name: "Mandi Market Prices",
+        tip: "Filter by commodity, state, and district to inspect today's verified Agmarknet/eNAM modal rates, arrival volumes, and price trends.",
+      };
+    }
+    if (currentPath.includes("compare-markets")) {
+      return {
+        name: "Market Comparison",
+        tip: "Select your harvest location to calculate net realisable profit across competing mandis after accounting for truck transport costs.",
+      };
+    }
+    if (currentPath.includes("qa-interface") || currentPath.includes("/home")) {
+      return {
+        name: "AI Agricultural Advisory",
+        tip: "Speak in any Indian language or type your crop disease question. Our system retrieves ICAR-grounded solutions or connects you to a PAE/moderator expert.",
+      };
+    }
+    if (currentPath.includes("lots")) {
+      return {
+        name: "Crop Lots & Selling",
+        tip: "List harvested batches for verified institutional buyers. Specify crop variety, quantity (Quintals), and expected floor price.",
+      };
+    }
+    if (currentPath.includes("offers")) {
+      return {
+        name: "Buyer Offers",
+        tip: "Review direct purchase bids from buyers. You can accept, reject, or negotiate price and delivery terms.",
+      };
+    }
+    if (currentPath.includes("logistics")) {
+      return {
+        name: "Logistics Booking",
+        tip: "Book verified farm-gate transport trucks with upfront per-kilometer freight estimates and tracking.",
+      };
+    }
+    if (currentPath.includes("storage")) {
+      return {
+        name: "WDRA Warehouse Storage",
+        tip: "Find nearby certified WDRA cold storage depots to safely store perishables and avoid distress sales.",
+      };
+    }
+    if (currentPath.includes("payments")) {
+      return {
+        name: "Payments & Ledger",
+        tip: "Check completed bank account deposits, escrow releases, and downloadable transaction receipts.",
+      };
+    }
+    if (currentPath.includes("grievances")) {
+      return {
+        name: "Grievance Redressal",
+        tip: "Open support tickets for delayed payments, transit disputes, or quality issues.",
+      };
+    }
+    if (currentPath.includes("profile")) {
+      return {
+        name: "Farmer Profile",
+        tip: "Update your verified phone number, state, district, land size (acres), and cultivated crops.",
+      };
+    }
+    if (currentPath.includes("farmer-dashboard")) {
+      return {
+        name: "Farmer Dashboard",
+        tip: "Overview of your active lots, recent buyer bids, mandi price tickers, and weather advisories.",
+      };
+    }
+    if (currentPath.includes("auth")) {
+      return {
+        name: "Authentication & Sign In",
+        tip: "Sign in with Google or Email/Password to access your personalized farmer dashboard and crop lots.",
+      };
+    }
+    return {
+      name: "AgriSeva-AI Portal",
+      tip: "Explore live mandi prices, test AI crop disease diagnosis, or connect with the toll-free Kisan Call Center.",
+    };
+  }, [currentPath]);
+
+  // Unsupported query check (prevents AI hallucination)
+  const isUnsupportedFeatureQuery = (query: string): boolean => {
+    const q = query.toLowerCase();
+    const unsupportedKeywords = ["tractor", "machinery", "loan", "bank credit", "crypto", "stock market", "insurance policy buy"];
+    return unsupportedKeywords.some((kw) => q.includes(kw));
+  };
+
+  // Search feature registry
+  const filteredFeatures = useMemo(() => {
+    const q = helperQuery.trim().toLowerCase();
+    if (!q) return FEATURE_REGISTRY;
+
+    return FEATURE_REGISTRY.filter((f) => {
+      const matchTitle = f.title.toLowerCase().includes(q);
+      const matchDesc = f.desc.toLowerCase().includes(q);
+      const matchCat = f.category.toLowerCase().includes(q);
+      const matchKeyword = f.keywords.some((kw) => kw.toLowerCase().includes(q));
+      return matchTitle || matchDesc || matchCat || matchKeyword;
+    });
+  }, [helperQuery]);
+
+  const handleFeatureAction = (feature: AppFeature) => {
+    if (feature.requiresAuth && !user) {
+      toast.info(`Please sign in to access ${feature.title}`);
+      setHelperDialogOpen(false);
+      navigate({ to: "/auth" });
+      return;
+    }
+
+    if (feature.actionType === "route" && feature.route) {
+      setHelperDialogOpen(false);
+      navigate({ to: feature.route as any });
+      return;
+    }
+
+    if (feature.actionType === "phone") {
+      setHelperDialogOpen(false);
+      setPhoneDialogOpen(true);
+      return;
+    }
+
+    if (feature.actionType === "whatsapp") {
+      setHelperDialogOpen(false);
+      setWhatsappDialogOpen(true);
+      return;
+    }
+
+    if (feature.actionType === "language") {
+      setHelperDialogOpen(false);
+      toast.info("Language selector is located in the top navigation bar on every page.");
+      return;
+    }
+  };
+
   const handleCopyHelpline = () => {
     navigator.clipboard.writeText(AGRISEVA_HELPLINE_NUMBER);
     setCopiedHelpline(true);
@@ -132,36 +432,13 @@ export function GlobalCommunicationActions() {
 
   return (
     <>
-      {/* Persistent Floating Bottom-Right Stack */}
+      {/* Persistent Floating Bottom-Right Stack in Exact Order: 1. Phone, 2. WhatsApp, 3. AgriSeva-AI Helper */}
       <aside 
-        aria-label="AgriSeva Global Communication Helplines"
+        aria-label="AgriSeva Global Communication & AI Helper"
         className="fixed bottom-6 right-6 z-[90] flex flex-col items-center gap-3 select-none pointer-events-auto"
       >
         <TooltipProvider delayDuration={200}>
-          {/* WhatsApp Floating Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                id="floating-whatsapp-action-btn"
-                aria-label="Open AgriSeva WhatsApp Assistance"
-                onClick={() => setWhatsappDialogOpen(true)}
-                className="group relative flex h-13 w-13 items-center justify-center rounded-full bg-gradient-to-tr from-[#25D366] via-[#20BA5C] to-[#128C7E] text-white shadow-xl shadow-green-600/30 hover:shadow-green-500/50 hover:scale-110 active:scale-95 transition-all duration-200 border-2 border-white/30 dark:border-zinc-800/50 focus:outline-none focus:ring-4 focus:ring-[#25D366]/40"
-              >
-                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-15 transition-opacity" />
-                <MessageSquare className="h-6 w-6 stroke-[2.2] fill-white/20" />
-                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
-                </span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="text-xs font-semibold py-1.5 px-3 bg-zinc-900 text-white shadow-xl border border-zinc-700">
-              {t("common.whatsappHelp", "WhatsApp AI Assistance & Chat")}
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Phone Helpline Floating Button */}
+          {/* 1. Phone Helpline Floating Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -169,15 +446,61 @@ export function GlobalCommunicationActions() {
                 id="floating-phone-action-btn"
                 aria-label="Open AgriSeva Voice Helpline & Dialer"
                 onClick={() => setPhoneDialogOpen(true)}
-                className="group relative flex h-13 w-13 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-xl shadow-emerald-700/30 hover:shadow-emerald-600/50 hover:scale-110 active:scale-95 transition-all duration-200 border-2 border-white/30 dark:border-zinc-800/50 focus:outline-none focus:ring-4 focus:ring-emerald-500/40"
+                className="group relative flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-xl shadow-emerald-700/30 hover:shadow-emerald-600/50 hover:scale-110 active:scale-95 transition-all duration-200 border-2 border-white/30 dark:border-zinc-800/50 focus:outline-none focus:ring-4 focus:ring-emerald-500/40"
               >
                 <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-15 transition-opacity" />
-                <Phone className="h-6 w-6 stroke-[2.2] fill-white/20" />
+                <Phone className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.2] fill-white/20" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="left" className="text-xs font-semibold py-1.5 px-3 bg-zinc-900 text-white shadow-xl border border-zinc-700">
-              {t("common.voiceHelp", "Voice Helpline & Calling")}
+              {t("common.voiceHelp", "1. Voice Helpline & Calling")}
             </TooltipContent>
+          </Tooltip>
+
+          {/* 2. WhatsApp Floating Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                id="floating-whatsapp-action-btn"
+                aria-label="Open AgriSeva WhatsApp Assistance"
+                onClick={() => setWhatsappDialogOpen(true)}
+                className="group relative flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-full bg-gradient-to-tr from-[#25D366] via-[#20BA5C] to-[#128C7E] text-white shadow-xl shadow-green-600/30 hover:shadow-green-500/50 hover:scale-110 active:scale-95 transition-all duration-200 border-2 border-white/30 dark:border-zinc-800/50 focus:outline-none focus:ring-4 focus:ring-[#25D366]/40"
+              >
+                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-15 transition-opacity" />
+                <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.2] fill-white/20" />
+                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
+                </span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs font-semibold py-1.5 px-3 bg-zinc-900 text-white shadow-xl border border-zinc-700">
+              {t("common.whatsappHelp", "2. WhatsApp AI Assistance & Chat")}
+            </TooltipContent>
+          </Tooltip>
+
+          {/* 3. AgriSeva-AI Helper Floating Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                id="floating-helper-action-btn"
+                aria-label="Open AgriSeva-AI Product & Navigation Helper"
+                onClick={() => setHelperDialogOpen(true)}
+                className="group relative flex h-13 w-13 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 via-emerald-600 to-teal-700 text-white shadow-2xl shadow-emerald-700/40 hover:shadow-emerald-600/60 hover:scale-110 active:scale-95 transition-all duration-200 border-2 border-white/40 dark:border-zinc-800/60 focus:outline-none focus:ring-4 focus:ring-amber-400/50"
+              >
+                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-20 transition-opacity" />
+                <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 stroke-[2.2] text-amber-200 animate-pulse" />
+                <Bot className="h-4 w-4 absolute -bottom-0.5 -right-0.5 text-white bg-emerald-800 rounded-full p-0.5 border border-white" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs font-semibold py-1.5 px-3 bg-zinc-900 text-white shadow-xl border border-zinc-700">
+              {t("common.helper", "3. AgriSeva-AI Product Helper & Guide")}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </aside>
           </Tooltip>
         </TooltipProvider>
       </aside>
@@ -519,6 +842,202 @@ export function GlobalCommunicationActions() {
                 </div>
               </TabsContent>
             </Tabs>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. AGRISEVA-AI HELPER DIALOG (Product Navigation & Feature Guidance) */}
+      <Dialog open={helperDialogOpen} onOpenChange={setHelperDialogOpen}>
+        <DialogContent 
+          id="agriseva-ai-helper-dialog"
+          className="sm:max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-2xl rounded-2xl"
+        >
+          {/* Header */}
+          <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-emerald-900 text-white p-5 border-b border-emerald-700/50">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 shadow-inner">
+                  <Sparkles className="h-5 w-5 text-amber-300 animate-pulse" />
+                </div>
+                <div>
+                  <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
+                    AgriSeva-AI Helper
+                    <Badge className="bg-amber-400 text-emerald-950 text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-wider">
+                      Guide
+                    </Badge>
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-emerald-100/90 mt-0.5">
+                    Your real-time product navigation & feature guidance assistant
+                  </DialogDescription>
+                </div>
+              </div>
+            </div>
+
+            {/* Search / Ask Feature Bar */}
+            <div className="mt-4 relative">
+              <Search className="h-4 w-4 absolute left-3 top-3 text-emerald-200" />
+              <input
+                type="text"
+                id="helper-search-input"
+                value={helperQuery}
+                onChange={(e) => setHelperQuery(e.target.value)}
+                placeholder="Ask e.g. 'How to check mandi price?', 'How to create lot?', 'Tractor'..."
+                className="w-full bg-white/10 placeholder:text-emerald-200/70 text-white rounded-xl pl-9 pr-4 py-2 text-xs border border-white/20 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:bg-white/20 transition-all"
+              />
+              {helperQuery && (
+                <button
+                  type="button"
+                  onClick={() => setHelperQuery("")}
+                  className="absolute right-3 top-2.5 text-emerald-200 hover:text-white text-xs font-semibold"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Scrollable Content Body */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-slate-50/50 dark:bg-zinc-950">
+            {/* Context-Aware Quick Tips for Current Page */}
+            {currentPageContext && !helperQuery && (
+              <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/80 dark:bg-emerald-950/40 dark:border-emerald-800 text-xs space-y-1.5 shadow-sm">
+                <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold">
+                  <Compass className="h-4 w-4" />
+                  <span>💡 Current Page Guide: {currentPageContext.name}</span>
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  {currentPageContext.tip}
+                </p>
+              </div>
+            )}
+
+            {/* Search Results / Unsupported Query Warning */}
+            {helperQuery.trim() !== "" ? (
+              <div className="space-y-3">
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
+                  Search & Guidance Results
+                </div>
+
+                {isUnsupportedFeatureQuery(helperQuery) && (
+                  <div className="p-3.5 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>Feature Notice</span>
+                    </div>
+                    <p className="leading-relaxed">
+                      This capability (such as buying heavy equipment/tractors or direct bank loans) is not currently offered in AgriSeva-AI. AgriSeva-AI specializes strictly in <strong>Mandi Market Intelligence, Grounded Agronomic Q&A, Crop Lots, Logistics, and Direct Buyer Offers</strong>.
+                    </p>
+                  </div>
+                )}
+
+                {filteredFeatures.length === 0 && !isUnsupportedFeatureQuery(helperQuery) ? (
+                  <div className="text-center py-6 text-xs text-muted-foreground">
+                    No exact feature matches found for "{helperQuery}". Try asking about <em>mandi price, compare markets, voice, crop disease, lots, offers, call, or WhatsApp</em>.
+                  </div>
+                ) : (
+                  <div className="grid gap-2">
+                    {filteredFeatures.map((feat) => (
+                      <div
+                        key={feat.id}
+                        className="p-3 rounded-xl border border-border bg-card hover:border-emerald-400 hover:shadow-md transition-all flex items-start justify-between gap-3 group"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-xs text-foreground group-hover:text-emerald-700 dark:group-hover:text-emerald-400">
+                              {feat.title}
+                            </span>
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted-foreground">
+                              {feat.category}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground leading-snug">
+                            {feat.desc}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleFeatureAction(feat)}
+                          className="text-xs h-8 px-3 shrink-0 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 transition-colors flex items-center gap-1 font-semibold"
+                        >
+                          <span>Open</span>
+                          <ArrowRight className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Default State: Quick Feature Actions */
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Core Product Capabilities
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Click to navigate</span>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {FEATURE_REGISTRY.map((feat) => (
+                    <button
+                      key={feat.id}
+                      type="button"
+                      onClick={() => handleFeatureAction(feat)}
+                      className="p-2.5 text-left rounded-xl border border-border bg-card hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 hover:shadow-sm transition-all flex flex-col justify-between group"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-foreground group-hover:text-emerald-700 dark:group-hover:text-emerald-400">
+                            {feat.title}
+                          </span>
+                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                        <p className="text-[10.5px] text-muted-foreground line-clamp-2 leading-relaxed">
+                          {feat.desc}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Direct Helplines Gateway inside Helper */}
+                <div className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                      Need Direct Human Assistance?
+                    </div>
+                    <div className="text-[11px] text-emerald-700 dark:text-emerald-400">
+                      Call our agricultural helpline or message on WhatsApp.
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setHelperDialogOpen(false);
+                        setPhoneDialogOpen(true);
+                      }}
+                      className="h-8 px-2.5 text-xs bg-emerald-700 hover:bg-emerald-800 text-white flex items-center gap-1 shadow-sm font-semibold"
+                    >
+                      <Phone className="h-3 w-3" />
+                      <span>Call</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setHelperDialogOpen(false);
+                        setWhatsappDialogOpen(true);
+                      }}
+                      className="h-8 px-2.5 text-xs bg-[#25D366] hover:bg-[#20BA5C] text-white flex items-center gap-1 shadow-sm font-semibold"
+                    >
+                      <MessageSquare className="h-3 w-3" />
+                      <span>WhatsApp</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

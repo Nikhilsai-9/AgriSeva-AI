@@ -12,6 +12,7 @@ import {
   FarmerCard, FarmerPageContainer, FarmerSectionTitle,
 } from "@/features/farmerDashboard/FarmerLayout";
 import { formatDate } from "@/features/farmerDashboard/hooks/utils";
+import { DataStateBadge } from "@/features/farmerDashboard/DataStateBadge";
 import { cn } from "@/lib/utils";
 
 export function LogisticsPage() {
@@ -38,7 +39,7 @@ export function LogisticsPage() {
     <FarmerPageContainer className="space-y-5">
       <FarmerSectionTitle
         hint={t("farmer.logistics.hint", "Transport options from aggregators and FPO partners. Demo dataset.")}
-        action={<span className="text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{t("farmer.common.sourceDemo", "Demo")}</span>}
+        action={<DataStateBadge items={options} />}
       >
         {t("farmer.logistics.title", "Logistics & Transport")}
       </FarmerSectionTitle>

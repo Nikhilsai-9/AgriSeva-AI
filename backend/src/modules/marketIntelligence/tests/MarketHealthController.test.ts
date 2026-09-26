@@ -41,6 +41,7 @@ const agSnap: MarketReliabilitySnapshot = {
   recentSuccessesLast24h: 4,
   recentAttemptsLast24h: 4,
   reasons: ['Fresh within 6h', 'No consecutive failures'],
+  captchaIncidentsLast24h: 0,
 };
 
 const enSnap: MarketReliabilitySnapshot = {
@@ -53,6 +54,7 @@ const enSnap: MarketReliabilitySnapshot = {
   recentSuccessesLast24h: 3,
   recentAttemptsLast24h: 4,
   reasons: ['Mildly stale', '1 failure in last 24h'],
+  captchaIncidentsLast24h: 0,
 };
 
 // ─── App setup ───────────────────────────────────────────────────────

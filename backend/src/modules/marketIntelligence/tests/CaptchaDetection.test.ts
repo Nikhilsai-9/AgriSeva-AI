@@ -58,11 +58,12 @@ describe('MarketNormaliser — captcha detection (PHASE 2 §P2.D)', () => {
 
     it('returns false for empty / non-string input', () => {
       expect(detectCaptchaInString('')).toBe(false);
-      // @ts-expect-error — testing runtime guard
+      // Note: `strict: false` in tsconfig means TS does not error on
+      // undefined/null being passed to a `string` parameter — but the
+      // runtime guard inside `detectCaptchaInString` still returns false.
       expect(detectCaptchaInString(undefined)).toBe(false);
-      // @ts-expect-error — testing runtime guard
       expect(detectCaptchaInString(null)).toBe(false);
-      // @ts-expect-error — testing runtime guard
+      // @ts-expect-error — testing runtime guard for non-string input
       expect(detectCaptchaInString(42)).toBe(false);
     });
 

@@ -15,6 +15,7 @@ import {
   FarmerPageContainer,
   FarmerSectionTitle,
 } from "@/features/farmerDashboard/FarmerLayout";
+import { DataStateBadge } from "@/features/farmerDashboard/DataStateBadge";
 import { formatDate, formatRupees } from "@/features/farmerDashboard/hooks/utils";
 import { cn } from "@/lib/utils";
 
@@ -43,11 +44,7 @@ export function PaymentsPage() {
     <FarmerPageContainer className="space-y-5">
       <FarmerSectionTitle
         hint={t("farmer.payments.hint", "Every payment you have received or are awaiting.")}
-        action={
-          <span className="text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-            Demo
-          </span>
-        }
+        action={<DataStateBadge items={payments} />}
       >
         {t("farmer.payments.title", "Payments")}
       </FarmerSectionTitle>

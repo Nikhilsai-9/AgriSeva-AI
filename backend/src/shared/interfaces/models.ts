@@ -255,6 +255,20 @@ export interface IQuestion {
    *  gate-keeper/auditor queue cron. New questions default to true. Auditors handle
    *  auditor_review questions, one at a time. */
   autoAllocateAuditor?: boolean;
+  /**
+   * PHASE 2 §P2.F — BCP-47 language tag of the question text, as
+   * detected by `detectLanguageFromText`. Optional because legacy
+   * rows predate this field and some import paths may not populate
+   * it (defaults to 'English' downstream when undefined).
+   */
+  language?: string;
+  /**
+   * PHASE 2 §P2.F — same value as `language`, kept under a clearer
+   * name for downstream consumers that need to differentiate between
+   * "language we asked in" and "language we stored". Optional for
+   * the same legacy-row reason as `language`.
+   */
+  detectedLanguage?: string;
   /** Auditor assigned to this question (set by the cron). Kept for history after they
    *  act (push to GDB / notify user) — auditorFinishedAt is stamped then. */
   auditorId?: ObjectId | string | null;

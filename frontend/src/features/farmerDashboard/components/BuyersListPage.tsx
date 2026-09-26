@@ -16,6 +16,7 @@ import {
   FarmerPageContainer,
   FarmerSectionTitle,
 } from "@/features/farmerDashboard/FarmerLayout";
+import { DataStateBadge } from "@/features/farmerDashboard/DataStateBadge";
 import { cn } from "@/lib/utils";
 
 export function BuyersListPage() {
@@ -52,11 +53,7 @@ export function BuyersListPage() {
           "farmer.buyers.hint",
           "Verified buyers ranked by how well they match your crop, quantity, quality and distance."
         )}
-        action={
-          <span className="text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-            Demo
-          </span>
-        }
+        action={<DataStateBadge items={buyers} />}
       >
         {t("farmer.buyers.title", "Find Buyers")}
       </FarmerSectionTitle>

@@ -21,6 +21,7 @@ import {
 } from "@/features/farmerDashboard/FarmerLayout";
 import { cn } from "@/lib/utils";
 import { formatKg } from "@/features/farmerDashboard/hooks/utils";
+import { DataStateBadge } from "@/features/farmerDashboard/DataStateBadge";
 
 export function StoragePage() {
   const { t } = useTranslation();
@@ -82,8 +83,8 @@ export function StoragePage() {
   return (
     <FarmerPageContainer className="space-y-5">
       <FarmerSectionTitle
-        hint={t("farmer.storage.hint", "Cold storage and warehousing facilities near your farm. Demo dataset.")}
-        action={<span className="text-[10px] font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{t("farmer.common.sourceDemo", "Demo")}</span>}
+        hint={t("farmer.storage.hint", "Cold storage and warehousing facilities near your farm.")}
+        action={<DataStateBadge items={options} />}
       >
         {t("farmer.storage.title", "Storage Facilities")}
       </FarmerSectionTitle>
