@@ -5,6 +5,7 @@ import { Toaster as SonnerToast } from "sonner";
 import { NotFound } from "@/components/NotFound";
 import { CookieConsent } from "@/components/CookieConsent";
 import { GlobalCommunicationActions } from "@/components/GlobalCommunicationActions";
+import { ContactOnboardingModal } from "@/components/ContactOnboardingModal";
 import { useAuthStore } from "@/stores/auth-store";
 import { useEffect } from "react";
 
@@ -24,6 +25,7 @@ function RootComponent() {
         <Outlet />
         <CookieConsent />
         <GlobalCommunicationActions />
+        <ContactOnboardingModal />
       </QueryClientProvider>
     </ThemeProvider>
   );

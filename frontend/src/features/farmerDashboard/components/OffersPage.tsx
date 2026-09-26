@@ -65,7 +65,6 @@ export function OffersPage() {
   return (
     <FarmerPageContainer className="space-y-5">
       <FarmerSectionTitle
-      <FarmerSectionTitle
         hint={t("farmer.offers.hint", "Every offer across all your lots.")}
         action={<DataStateBadge items={offers} />}
       >

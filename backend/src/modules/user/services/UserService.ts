@@ -196,6 +196,18 @@ export class UserService extends BaseService {
       const authService = getFromContainer(FirebaseAuthService);
 
       return this._withTransaction(async (session: ClientSession) => {
+        const existing = await this.userRepo.findById(userId, session);
+        if (!existing) {
+          throw new NotFoundError(`User with ID ${userId} not found`);
+        }
+
+        if (sanitizedData.mobile !== undefined) {
+          sanitizedData.farmerProfile = {
+            ...(existing.farmerProfile ?? {}),
+            phone: sanitizedData.mobile,
+          };
+        }
+
         const updatedUser = await this.userRepo.edit(userId, sanitizedData, session);
         if (!updatedUser)
           throw new NotFoundError(`User with ID ${userId} not found`);
@@ -1249,15 +1261,20 @@ export class UserService extends BaseService {
       }
       merged.isDemo = false;
 
+      const editFields: Partial<IUser> = { farmerProfile: merged };
+      if (patch.phone !== undefined) {
+        editFields.mobile = patch.phone;
+      }
+
       const updated = await this.userRepo.edit(
         userId,
-        {farmerProfile: merged},
+        editFields,
         session,
       );
       if (!updated) {
         throw new InternalServerError('Failed to persist farmer profile update');
       }
-      return {...updated, farmerProfile: merged};
+      return {...updated, farmerProfile: merged, ...(patch.phone !== undefined ? { mobile: patch.phone } : {})};
     });
   }
 

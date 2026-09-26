@@ -1282,14 +1282,18 @@ async function fetchMyProfile(): Promise<FarmerProfile | null> {
   try {
     const res = await apiFetch<BackendUser>(buildApiUrl("/api/users/me"));
     if (!res || !res._id) return null;
-    return userToProfile(res);
+    const prof = userToProfile(res);
+    if (prof.phone) {
+      useAuthStore.getState().updateUser({ phone: prof.phone });
+    }
+    return prof;
   } catch (err) {
     console.warn("[data.ts] profile fetch failed", err);
     return null;
   }
 }
 
-async function patchMyProfile(
+export async function patchMyProfile(
   patch: Partial<FarmerProfile>,
 ): Promise<FarmerProfile | null> {
   try {
@@ -1317,12 +1321,21 @@ async function patchMyProfile(
       body: JSON.stringify(body),
     });
     if (!res || !res._id) return null;
-    return userToProfile(res);
+    const prof = userToProfile(res);
+    if (prof.phone) {
+      useAuthStore.getState().updateUser({ phone: prof.phone });
+    }
+    return prof;
   } catch (err) {
     console.warn("[data.ts] profile patch failed", err);
     return null;
   }
 }
+
+export async function saveUserContactNumber(phone: string): Promise<FarmerProfile | null> {
+  return patchMyProfile({ phone });
+}
+
 
 /**
  * Update the authenticated user's `firstName` / `lastName` via

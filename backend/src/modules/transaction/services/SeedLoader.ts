@@ -10,9 +10,27 @@
  *      re-write the demo dataset — that would clobber live data.
  *   3. The seed is triggered from each controller's first read OR
  *      eagerly at boot (see TransactionModule index).
+ *
+ * PRODUCTION GUARD
+ * ────────────────
+ * Demo data is fictional and exists only to support local development
+ * and offline demos. It MUST NEVER be silently written into a
+ * production MongoDB. The decision is taken ONCE per process via
+ * `isDemoSeedingEnabled()` (see `backend/src/config/demoSeeding.ts`):
+ *
+ *   • Default (no env var)         → SKIP seeding entirely.
+ *   • ENABLE_DEMO_SEEDING=true     → seed (dev/staging opt-in).
+ *   • VITE_ENABLE_MOCKS=...        → IGNORED (browser flag, not a
+ *                                    backend authorisation).
+ *
+ * When seeding is disabled, every Farmer Dashboard collection
+ * (buyers, logistics options, storage options, payment journal,
+ * demo lots, demo offers, demo grievances) starts empty and the API
+ * surfaces the honest "no data" state via `isDemo: false`.
  */
 
 import {inject, injectable} from 'inversify';
+import {isDemoSeedingEnabled, getDemoSeedingDecision} from '../../../config/demoSeeding.js';
 import {BuyerRepository} from '../repositories/BuyerRepository.js';
 import {LotRepository} from '../repositories/LotRepository.js';
 import {OfferRepository} from '../repositories/OfferRepository.js';
@@ -49,10 +67,32 @@ export class SeedLoader {
    * Idempotent: only inserts when the corresponding collection is
    * empty. Uses the repository's deterministic upsert paths so a
    * concurrent first call never duplicates rows.
+   *
+   * Production-safe: bails out early when `isDemoSeedingEnabled()`
+   * is `false`, so no fictional records can ever be inserted into a
+   * production MongoDB. The decision is taken once per process from
+   * the backend's `ENABLE_DEMO_SEEDING` env var — the browser-supplied
+   * `VITE_ENABLE_MOCKS` flag is intentionally NOT consulted.
    */
   public async ensureSeeded(): Promise<void> {
     if (this.seeded) return;
     if (this.seedPromise) return this.seedPromise;
+
+    // ── PRODUCTION GUARD ────────────────────────────────────────────
+    // Demo data is fictional. Skip silently (with a one-shot
+    // diagnostic log) when the backend is not explicitly opted in.
+    if (!isDemoSeedingEnabled()) {
+      const decision = getDemoSeedingDecision();
+      console.info(
+        `[transaction] demo seeding SKIPPED (${decision.source}). ` +
+          'Farmer Dashboard collections will start empty. ' +
+          'No fictional buyers, logistics, storage, payments, lots, offers or ' +
+          'grievances will be written.',
+      );
+      this.seeded = true;
+      return;
+    }
+
     this.seedPromise = this.doSeed()
       .then(() => {
         this.seeded = true;

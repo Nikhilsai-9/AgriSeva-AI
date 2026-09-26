@@ -57,7 +57,12 @@ const buyer = (
   rating: number,
   deals: number,
   description: string,
-  verificationStatus: BuyerRecord['verificationStatus'] = 'verified',
+  // Demo defaults are HONESTLY 'unverified' — no real KYC has been
+  // performed on these fictional buyers. The frontend's DataStateBadge
+  // already labels every demo record via the `isDemo: true` flag, so
+  // any consumer reading the raw API must also see that the
+  // verification field reflects "no KYC performed", not "KYC passed".
+  verificationStatus: BuyerRecord['verificationStatus'] = 'unverified',
   memberYears = 3,
   preferredPayment = 'NEFT / RTGS',
   phone = '+91 98000 00000',

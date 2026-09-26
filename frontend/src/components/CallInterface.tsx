@@ -56,6 +56,7 @@ import Plivo from "plivo-browser-sdk";
 import type { ExtractDataResponse } from "@/hooks/services/accAgentService";
 import { UserService } from "@/hooks/services/userService";
 import SarvamTranslatePairDropdown from "@/components/SarvamTranslatePairDropdown";
+import { normalizePhoneNumber, formatPhoneNumber } from "@/lib/phoneNumber";
 
 const userService = new UserService();
 
@@ -944,7 +945,11 @@ export const CallInterface = () => {
   let plivoClientRef;
 
   const handleRedial = async (phoneNumber: string) => {
-    // Preserved for redial hook implementation
+    if (!phoneNumber) {
+      toast.error("No phone number provided to redial.");
+      return;
+    }
+    const normalized = normalizePhoneNumber(phoneNumber);
     const options = {
       debug: "DEBUG" as const,
       permOnClick: true,
@@ -955,10 +960,10 @@ export const CallInterface = () => {
     plivoClientRef = client;
     try {
       const extraHeaders = {
-        "X-PH-destination": "+919606751041", // e.g. "+919606751041"
+        "X-PH-destination": normalized,
       };
-      const result = plivoClientRef.client.call("+919606751041", extraHeaders);
-      toast.success(`Redialing ${phoneNumber}. Call UUID: ${result}`);
+      const result = plivoClientRef.client.call(normalized, extraHeaders);
+      toast.success(`Redialing ${formatPhoneNumber(normalized)}. Call UUID: ${result}`);
     } catch (error: any) {
       toast.error(error.message || "Failed to initiate call");
     }

@@ -1,11 +1,16 @@
-import { useState } from "react";
-import { User, MapPin, Save } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, MapPin, Save, Phone } from "lucide-react";
 import { useTranslation } from "@/locales";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   useFarmerProfile,
   useUpdateFarmerProfile,
 } from "@/features/farmerDashboard/hooks/data";
+import {
+  isValidPhoneNumber,
+  normalizePhoneNumber,
+  formatPhoneNumber,
+} from "@/lib/phoneNumber";
 import {
   FarmerCard,
   FarmerPageContainer,
@@ -19,8 +24,8 @@ export function ProfilePage() {
   const { data: profile } = useFarmerProfile();
   const update = useUpdateFarmerProfile();
 
-  const [name, setName] = useState(user?.name ?? "");
-  const [phone, setPhone] = useState(profile?.phone ?? "");
+  const [name, setName] = useState(profile?.name ?? user?.name ?? "");
+  const [phone, setPhone] = useState(profile?.phone ?? user?.phone ?? "");
   const [stateName, setStateName] = useState(profile?.state ?? "");
   const [district, setDistrict] = useState(profile?.district ?? "");
   const [village, setVillage] = useState(profile?.village ?? "");
@@ -30,11 +35,16 @@ export function ProfilePage() {
   const [savedHint, setSavedHint] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function validatePhone(value: string): boolean {
-    if (!value) return true;
-    const digits = value.replace(/\D/g, "");
-    return digits.length === 10 || digits.length === 12 || digits.length === 13;
-  }
+  useEffect(() => {
+    if (profile) {
+      if (profile.name) setName(profile.name);
+      if (profile.phone) setPhone(profile.phone);
+      if (profile.state) setStateName(profile.state);
+      if (profile.district) setDistrict(profile.district);
+      if (profile.village) setVillage(profile.village);
+      if (profile.primaryCrops?.[0]) setPrimaryCrop(profile.primaryCrops[0]);
+    }
+  }, [profile]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,8 +53,9 @@ export function ProfilePage() {
       setError(t("farmer.profile.errName", "Name is required."));
       return;
     }
-    if (!validatePhone(phone)) {
-      setError(t("farmer.profile.errPhone", "Phone must be 10 digits (with optional 91 prefix)."));
+    const cleanPhone = phone.trim();
+    if (cleanPhone && !isValidPhoneNumber(cleanPhone)) {
+      setError(t("farmer.profile.errPhone", "Phone must be a valid 10-digit mobile number."));
       return;
     }
     if (!stateName) {
@@ -56,14 +67,18 @@ export function ProfilePage() {
       return;
     }
     try {
+      const normalizedPhone = cleanPhone ? normalizePhoneNumber(cleanPhone) : "";
       await update.mutateAsync({
         name: name.trim(),
-        phone: phone.trim(),
+        phone: normalizedPhone,
         state: stateName,
         district: district.trim(),
         village: village.trim(),
         primaryCrop: primaryCrop.trim(),
       });
+      if (normalizedPhone) {
+        useAuthStore.getState().updateUser({ phone: normalizedPhone });
+      }
       setSavedHint(true);
       setTimeout(() => setSavedHint(false), 2500);
     } catch (err) {
@@ -93,7 +108,7 @@ export function ProfilePage() {
               {profile?.name ?? user?.name ?? "Farmer"}
             </p>
             <p className="text-xs text-emerald-900/60">
-              {profile?.phone ?? user?.email ?? ""}
+              {profile?.phone ? formatPhoneNumber(profile.phone) : (user?.email ?? "")}
             </p>
           </div>
         </div>
@@ -112,14 +127,20 @@ export function ProfilePage() {
 
           <label className="block">
             <span className="block text-sm font-semibold text-emerald-900 mb-1">
-              {t("farmer.profile.phone", "Phone")}
+              {t("farmer.profile.phone", "Phone Number")}
             </span>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50/50 text-xs font-bold text-emerald-900 select-none">
+                🇮🇳 +91
+              </span>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="9876543210"
+                className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
           </label>
 
           <label className="block">

@@ -501,9 +501,6 @@ export function GlobalCommunicationActions() {
           </Tooltip>
         </TooltipProvider>
       </aside>
-          </Tooltip>
-        </TooltipProvider>
-      </aside>
 
       {/* ─────────────────────────────────────────────────────────────
           1. PHONE HELPLINE & DIALER DIALOG

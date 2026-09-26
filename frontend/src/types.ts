@@ -16,6 +16,8 @@ export interface AuthUser {
   email: string;
   name: string;
   avatar: string;
+  phone?: string;
+  role?: string;
 }
 export interface IMyPreference {
   state: string;

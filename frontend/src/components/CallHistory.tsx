@@ -642,24 +642,22 @@ export const CallHistory = ({ onRedial }: CallHistoryProps) => {
   };
 
   const handleRedial = async (CallHistoryItem: any) => {
-    // const { from, to } = CallHistoryItem;
+    const { from, to } = CallHistoryItem || {};
+    const designatedNumbers = ["918031150392", "sip:annamuser1293525305518427216@phone.plivo.com"];
 
-    // // Designated numbers to check
-    // const designatedNumbers = ["918031150392", "sip:annamuser1293525305518427216@phone.plivo.com"];
+    let numberToCall = to || from || "";
+    if (designatedNumbers.some((dn) => from?.includes(dn))) {
+      numberToCall = to;
+    } else if (designatedNumbers.some((dn) => to?.includes(dn))) {
+      numberToCall = from;
+    }
 
-    // // Determine which number to call
-    let numberToCall = "+919606751041"; // Default to calling the 'to' number
+    if (!numberToCall) {
+      toast.error("No destination phone number found for this call.");
+      return;
+    }
 
-    // // If 'from' contains any of the designated numbers, call the opposite (to)
-    // if (designatedNumbers.some(dn => from?.includes(dn))) {
-    //   numberToCall = to;
-    // }
-    // // If 'to' contains any of the designated numbers, call the opposite (from)
-    // else if (designatedNumbers.some(dn => to?.includes(dn))) {
-    //   numberToCall = from;
-    // }
-
-    // Preserved for redial hook implementation
+    const normalized = normalizePhoneNumber(numberToCall);
 
     let plivoClientRef;
     const options = {
@@ -672,10 +670,10 @@ export const CallHistory = ({ onRedial }: CallHistoryProps) => {
     plivoClientRef = client;
     try {
       const extraHeaders = {
-        "X-PH-destination": "+919606751041",
+        "X-PH-destination": normalized,
       };
-      const result = plivoClientRef.client.call("+919606751041", extraHeaders);
-      toast.success(`Redialing ${numberToCall}. Call UUID: ${result}`);
+      const result = plivoClientRef.client.call(normalized, extraHeaders);
+      toast.success(`Redialing ${formatPhoneNumber(normalized)}. Call UUID: ${result}`);
     } catch (error: any) {
       toast.error(error.message || "Failed to initiate call");
     }
