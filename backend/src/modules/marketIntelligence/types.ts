@@ -41,7 +41,12 @@ export interface MarketPriceRecord {
   modalPrice?: number;
   unit: string;
 
-  /** ISO date (YYYY-MM-DD) the price was reported for. */
+  /** ISO date (YYYY-MM-DD) the price was reported for.
+   *  PHASE 2 §P2.E — this is the calendar date in
+   *  **Asia/Kolkata** (IST), not the UTC date. Use the
+   *  sibling `timezone` field for explicit interpretation
+   *  when ambiguity matters (e.g. between 18:30–24:00 UTC,
+   *  UTC and IST land on different calendar days). */
   arrivalDate: string;
   /** When the upstream reported it (ISO timestamp). */
   reportedAt?: string;
@@ -75,6 +80,15 @@ export interface MarketPriceRecord {
    * not silently render them as if they were a real mandi price.
    */
   isAggregate?: boolean;
+  /**
+   * PHASE 2 §P2.E — Timezone the `arrivalDate` (and `reportedAt`,
+   * when supplied) is anchored to. Always `'Asia/Kolkata'`
+   * (IST = UTC+05:30, no DST) for records produced by the
+   * ingestion layer. Exposed so frontend date pickers and
+   * chart libraries can format the date in the same wall-clock
+   * the farmer reads.
+   */
+  timezone?: 'Asia/Kolkata';
 }
 
 export interface MarketIngestionTarget {
@@ -98,6 +112,15 @@ export interface MarketIngestionResult {
   finishedAt: string;
   /** The full set of normalised records (for testing / response). */
   records?: MarketPriceRecord[];
+  /**
+   * PHASE 2 §P2.D — True when any source in this ingestion
+   * responded with what looks like a captcha / challenge page
+   * (Cloudflare "Just a moment", reCAPTCHA, etc.). Records
+   * will always be empty in that case and `success` will be
+   * false. Operators can monitor this field to detect
+   * upstream rate-limiting.
+   */
+  captchaSuspected: boolean;
 }
 
 export interface MarketReliabilitySnapshot {
@@ -111,6 +134,12 @@ export interface MarketReliabilitySnapshot {
   recentSuccessesLast24h: number;
   recentAttemptsLast24h: number;
   reasons: string[];
+  /**
+   * PHASE 2 §P2.D — Count of fetch attempts in the last 24h
+   * whose response was classified as a captcha / challenge
+   * page (`errorCategory: 'captcha'`). Zero in healthy runs.
+   */
+  captchaIncidentsLast24h: number;
 }
 
 export interface MarketHistoryPoint {

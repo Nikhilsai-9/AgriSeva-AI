@@ -16,6 +16,7 @@ import {
   MarketNormaliser,
   buildRecordKey,
   cleanString,
+  formatIstDate,
   toFiniteNumber,
   toIsoDate,
   todayIso,
@@ -138,7 +139,69 @@ describe('MarketNormaliser - todayIso() (pure-ish helper)', () => {
   it('returns a YYYY-MM-DD string for today', () => {
     const today = todayIso();
     expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(today).toBe(new Date().toISOString().slice(0, 10));
+    // PHASE 2 §P2.E — compare against IST, not UTC.
+    expect(today).toBe(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+        .format(new Date())
+        .replace(/\//g, '-'),
+    );
+  });
+});
+
+describe('MarketNormaliser - todayIso / formatIstDate (PHASE 2 §P2.E)', () => {
+  it('formatIstDate rolls into the next IST day for late UTC instants', () => {
+    // 2025-03-14 18:30 UTC == 2025-03-15 00:00 IST
+    const utcLate = new Date('2025-03-14T18:30:00.000Z');
+    expect(formatIstDate(utcLate)).toBe('2025-03-15');
+  });
+
+  it('formatIstDate keeps the same day for mid-IST instants', () => {
+    // 2025-03-14 09:00 IST == 2025-03-14 03:30 UTC
+    const utcMorning = new Date('2025-03-14T03:30:00.000Z');
+    expect(formatIstDate(utcMorning)).toBe('2025-03-14');
+  });
+
+  it('formatIstDate returns YYYY-MM-DD with zero-padded month and day', () => {
+    // 2025-01-05 05:30 UTC == 2025-01-05 11:00 IST
+    const t = new Date('2025-01-05T05:30:00.000Z');
+    expect(formatIstDate(t)).toBe('2025-01-05');
+  });
+
+  it('todayIso() and Intl-derived IST date always agree', () => {
+    // Run a few times to catch edge cases near the boundary.
+    for (let i = 0; i < 3; i += 1) {
+      const now = new Date(Date.now() + i * 1000);
+      const expected = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+        .format(now)
+        .replace(/\//g, '-');
+      expect(formatIstDate(now)).toBe(expected);
+    }
+  });
+
+  it('buildRecord stamps timezone = Asia/Kolkata', () => {
+    const svc = new MarketNormaliser();
+    const rec = svc.buildRecord({
+      source: 'agmarknet',
+      sourceSystem: 'Agmarknet',
+      commodity: 'Tomato',
+      market: 'Kolar Mandi',
+      state: 'Karnataka',
+      unit: '₹/quintal',
+      arrivalDate: '2026-04-15',
+    });
+    expect(rec).not.toBeNull();
+    expect(rec!.timezone).toBe('Asia/Kolkata');
+    expect(rec!.arrivalDate).toBe('2026-04-15');
   });
 });
 

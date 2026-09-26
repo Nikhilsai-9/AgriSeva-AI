@@ -1,5 +1,5 @@
-/**
- * MarketNormaliser — converts upstream MCP responses into the canonical
+﻿/**
+ * MarketNormaliser â€” converts upstream MCP responses into the canonical
  * `MarketPriceRecord` shape. Pure: no I/O.
  *
  * Determinism:
@@ -15,7 +15,7 @@ import {createHash} from 'crypto';
 import {injectable} from 'inversify';
 import type {MarketPriceRecord, MarketSourceId} from '../types.js';
 
-// ─── helpers ───────────────────────────────────────────────────────────
+// â”€â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function toFiniteNumber(v: unknown): number | undefined {
   if (v === null || v === undefined) return undefined;
@@ -51,8 +51,39 @@ export function toIsoDate(v: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * PHASE 2 Â§P2.E â€” Today's date in **Asia/Kolkata (IST)** as a
+ * YYYY-MM-DD string.
+ *
+ * Previously this used `new Date().toISOString().slice(0,10)`,
+ * which is the *UTC* calendar day. On a server running UTC
+ * (e.g. Cloud Run) that meant between 18:30 and 24:00 UTC
+ * (= 00:00 to 05:30 IST the *next* day) `todayIso()` would
+ * silently return *yesterday's* date â€” pushing every cron
+ * trigger into the wrong mandi day.
+ *
+ * We now format with `Intl.DateTimeFormat` in the
+ * `Asia/Kolkata` timezone, which is what farmers actually
+ * read when they say "today's price". For the (rare)
+ * queries that genuinely need UTC, callers should use
+ * `new Date().toISOString().slice(0,10)` directly.
+ */
 export function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return formatIstDate(new Date());
+}
+
+/** Format the IST (Asia/Kolkata) calendar date for `when`. */
+export function formatIstDate(when: Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(when);
+  const y = parts.find((p) => p.type === 'year')?.value ?? '0000';
+  const m = parts.find((p) => p.type === 'month')?.value ?? '01';
+  const d = parts.find((p) => p.type === 'day')?.value ?? '01';
+  return `${y}-${m}-${d}`;
 }
 
 export function cleanString(v: unknown): string | undefined {
@@ -85,7 +116,7 @@ export function buildRecordKey(parts: {
   return createHash('sha256').update(joined).digest('hex').slice(0, 32);
 }
 
-// ─── the service ───────────────────────────────────────────────────────
+// â”€â”€â”€ the service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @injectable()
 export class MarketNormaliser {
@@ -112,9 +143,9 @@ export class MarketNormaliser {
     reportedAt?: string;
     arrivalQty?: number;
     /**
-     * Provenance flag — true when this record was produced from an
+     * Provenance flag â€” true when this record was produced from an
      * Agmarknet dashboard/aggregate response and we cannot guarantee
-     * it maps to a single mandi. See PHASE_1_CHECKLIST.md §P1.2.
+     * it maps to a single mandi. See PHASE_1_CHECKLIST.md Â§P1.2.
      */
     isAggregate?: boolean;
   }): MarketPriceRecord | null {
@@ -149,7 +180,7 @@ export class MarketNormaliser {
       minPrice: toFiniteNumber(input.minPrice),
       maxPrice: toFiniteNumber(input.maxPrice),
       modalPrice: toFiniteNumber(input.modalPrice),
-      unit: input.unit || '₹/quintal',
+      unit: input.unit || 'â‚¹/quintal',
       arrivalDate,
       reportedAt: toIsoDate(input.reportedAt) ?? new Date().toISOString(),
       ingestedAt: new Date().toISOString(),
@@ -158,6 +189,7 @@ export class MarketNormaliser {
       trendPct: null,
       fetchStatus: 'live',
       isAggregate: input.isAggregate === true ? true : undefined,
+      timezone: 'Asia/Kolkata',
     };
   }
 
@@ -191,7 +223,7 @@ export class MarketNormaliser {
       // sets `isAggregate: true` on rows it produces from a state-level
       // dashboard response. We preserve that provenance tag here so the
       // downstream pipeline can distinguish per-mandi rows from
-      // state-aggregate roll-ups. PHASE_1_CHECKLIST.md §P1.2.
+      // state-aggregate roll-ups. PHASE_1_CHECKLIST.md Â§P1.2.
       const isAggregate = (raw as any)?.isAggregate === true;
 
       const record = this.buildRecord({
@@ -209,7 +241,7 @@ export class MarketNormaliser {
         minPrice: toFiniteNumber(raw.min_price ?? raw.minPrice),
         maxPrice: toFiniteNumber(raw.max_price ?? raw.maxPrice),
         modalPrice: toFiniteNumber(raw.modal_price ?? raw.modalPrice),
-        unit: '₹/quintal',
+        unit: 'â‚¹/quintal',
         arrivalDate,
         reportedAt: toIsoDate(raw.arrival_date ?? raw.reported_at),
         arrivalQty: toFiniteNumber(
@@ -258,7 +290,7 @@ export class MarketNormaliser {
         minPrice: toFiniteNumber(raw['Min Price'] ?? raw.min_price),
         maxPrice: toFiniteNumber(raw['Max Price'] ?? raw.max_price),
         modalPrice: toFiniteNumber(raw['Modal Price'] ?? raw.modal_price),
-        unit: cleanString(raw.Unit ?? raw.unit) ?? '₹/quintal',
+        unit: cleanString(raw.Unit ?? raw.unit) ?? 'â‚¹/quintal',
         arrivalDate,
         reportedAt: toIsoDate(raw['Price Date'] ?? raw.reported_at),
         arrivalQty: toFiniteNumber(
