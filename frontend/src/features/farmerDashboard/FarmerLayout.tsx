@@ -1,21 +1,36 @@
 /**
- * FarmerLayout ΓÇö the shell for the new Farmer Market Intelligence
- * Dashboard.
+ * FarmerLayout — Farmer Dashboard surface, decomposed into:
  *
- * This is the FIRST component the user sees when they navigate to
- * /farmer/*. It provides:
- *   - top header with greeting + language switcher + sign-out
- *   - left side navigation (desktop / tablet)
- *   - bottom navigation (mobile, large touch targets)
- *   - demo-data banner (visible whenever any data on the page is demo)
+ *   - <FarmerContent/> : the farmer-specific chrome (left sidebar + bottom
+ *     nav + outlet). NO application-level header. Designed to render INSIDE
+ *     the existing global AgriSeva-AI application shell so that there is
+ *     exactly ONE top-of-page header / language selector / notification bell
+ *     / profile / sign-out / hamburger across the whole app.
  *
- * The shell is fully isolated from the existing /home dashboard.
- * It reuses ONLY the existing useTranslation() + useAuthStore() + the
- * LanguageSwitcher, which are intentionally framework-level.
+ *   - <FarmerLayout/>  : legacy standalone shell kept exported for
+ *     backwards-compat (no production route currently mounts it). New
+ *     consumers should use <FarmerDashboardShell/> from
+ *     `@/features/farmerDashboard/FarmerDashboardShell` which composes
+ *     FarmerContent with the existing global <PlaygroundHeader/>.
+ *
+ * Architecture contract:
+ *
+ *     GlobalAppShell    (mounted at /home via PlaygroundPage)
+ *       ├── Dashboard
+ *       ├── Farmer Dashboard        ─── clicks navigate to /farmer/* ───┐
+ *       ├── All Questions                                                  │
+ *       └── Agents Interface                                               ▼
+ *                                                                GlobalAppShell' (same shell, mounted at /farmer)
+ *                                                                  ├── FarmerContent
+ *                                                                  │     ├── left SideNav (Home/Prices/Buyers/...)
+ *                                                                  │     └── <Outlet />  (sub-route content)
+ *                                                                  └── BottomNav (mobile)
+ *
+ * i.e. /farmer is just ANOTHER page inside the same global shell, not a
+ * separate application.
  */
 
-import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import {
   Home,
   TrendingUp,
@@ -27,21 +42,11 @@ import {
   Wallet,
   MessageCircleWarning,
   User,
-  Bell,
-  LogOut,
-  ChevronLeft,
   Scale,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { useAuthStore } from "@/stores/auth-store";
 import { env } from "@/config/env";
 import { cn } from "@/lib/utils";
-import {
-  useNotifications,
-  useMarkAllNotificationsRead,
-} from "@/features/farmerDashboard/hooks/data";
-import { PageMeta } from "@/components/PageMeta";
 import type { ReactNode } from "react";
 
 interface NavItem {
@@ -76,42 +81,71 @@ const BOTTOM_NAV: NavItem[] = [
   { to: "/farmer/offers", labelKey: "farmer.nav.offers", icon: Handshake },
 ];
 
+/**
+ * FarmerContent — the farmer-specific chrome (sidebar + outlet + bottom
+ * nav). It is rendered INSIDE the global AgriSeva-AI application shell,
+ * not as a standalone application. It deliberately does NOT include any
+ * application-level controls (logo/header, language switcher,
+ * notifications bell, theme toggle, profile chip, sign-out button or
+ * hamburger). Those live in <PlaygroundHeader/> which sits above this
+ * component in the route tree.
+ *
+ * Used by:
+ *   - <FarmerDashboardShell/> (`features/farmerDashboard/FarmerDashboardShell.tsx`)
+ *     which composes FarmerContent with <PlaygroundHeader/> for the
+ *     /farmer/* route.
+ *   - <FarmerLayout/> below (legacy standalone shell, not used by any
+ *     production route).
+ */
+export function FarmerContent() {
+  const { t } = useTranslation();
+  const location = useLocation();
+
+  return (
+    <>
+      {/*
+        Demo-mode banner lives here (not in the application header) so the
+        truthful per-feature source badges remain the source of truth for
+        data provenance on production builds (VITE_ENABLE_MOCKS=false).
+        When MSW is intercepting every API call (VITE_ENABLE_MOCKS=true)
+        the whole stack is mock and the global "Demo Mode" banner is
+        honest.
+      */}
+      {env.enableMocks() && <DemoBanner t={t} />}
+      <div className="flex w-full">
+        <SideNav
+          t={t}
+          pathname={location.pathname}
+          primary={PRIMARY_NAV}
+          secondary={SECONDARY_NAV}
+        />
+        <main className="flex-1 min-w-0 pb-28 lg:pb-10">
+          <Outlet />
+        </main>
+      </div>
+      <BottomNav t={t} pathname={location.pathname} items={BOTTOM_NAV} />
+    </>
+  );
+}
+
+/**
+ * FarmerLayout — LEGACY standalone shell.
+ *
+ * Wraps <FarmerContent/> with its own application header. Kept exported
+ * for backwards-compat (no production route currently mounts it). Use
+ * <FarmerDashboardShell/> (which composes <FarmerContent/> with the
+ * shared <PlaygroundHeader/>) instead.
+ *
+ * The legacy shell duplicates the application-level chrome (its own
+ * logo, language switcher, notification bell, profile chip, sign-out
+ * and back button) and therefore is no longer wired into the route tree.
+ */
 export function FarmerLayout() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const location = useLocation();
-  const auth = useAuthStore();
-
-  const handleSignOut = async () => {
-    await auth.logout();
-    navigate({ to: "/auth" });
-  };
 
   return (
     <div className="farmer-shell min-h-screen w-full bg-gradient-to-b from-emerald-50 via-white to-amber-50 text-foreground">
-      <PageMeta
-        title="Farmer Dashboard"
-        description="AgriSeva-AI Farmer Dashboard — live Agmarknet mandi prices, lots, storage, logistics, payments, and buyer offers."
-      />
-      {/*
-        Blanket "Demo Data" banner was misleading: it rendered unconditionally
-        even when live Agmarknet/eNAM data was already flowing from the
-        production backend, and the fallback copy asserted "Live mandi feeds
-        will be enabled when the production backend is connected" while the
-        backend was, in fact, connected. The truthful contract is now:
-
-          * When VITE_ENABLE_MOCKS=true  → MSW intercepts every API call, the
-            whole stack is mock → a single global "Demo Mode" banner is honest.
-          * When VITE_ENABLE_MOCKS=false (default / production) → per-feature
-            source badges (Market Prices, Market Comparison) are the source
-            of truth for data provenance. No blanket banner.
-      */}
-      {env.enableMocks() && <DemoBanner t={t} />}
-      <Header
-        t={t}
-        userName={auth.user?.name || "Farmer"}
-        onSignOut={handleSignOut}
-      />
       <div className="flex w-full">
         <SideNav
           t={t}
@@ -141,68 +175,6 @@ function DemoBanner({ t }: { t: (k: string, fb: string) => string }) {
         </p>
       </div>
     </div>
-  );
-}
-
-function Header({
-  t,
-  userName,
-  onSignOut,
-}: {
-  t: (k: string, fb: string) => string;
-  userName: string;
-  onSignOut: () => void;
-}) {
-  return (
-    <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-emerald-100">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <button
-            type="button"
-            onClick={() => window.history.back()}
-            className="hidden sm:inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-emerald-50 text-emerald-700"
-            aria-label="Back"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <Link to="/farmer" className="flex items-center gap-2 min-w-0">
-            <span className="inline-flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow">
-              <Sprout className="h-4 w-4 sm:h-5 sm:w-5" />
-            </span>
-            <div className="flex flex-col leading-tight min-w-0">
-              <span className="text-[11px] uppercase tracking-wider text-emerald-700 font-semibold truncate">
-                {t("farmer.brand.kicker", "AgriSeva ΓÇó Farmer")}
-              </span>
-              <span className="text-base sm:text-lg font-bold text-emerald-900 truncate">
-                {t("farmer.brand.title", "Market Intelligence")}
-              </span>
-            </div>
-          </Link>
-        </div>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <LanguageSwitcher variant="light" />
-          <NotificationsDropdown t={t} />
-          <div className="hidden md:flex items-center gap-2 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100">
-            <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-emerald-600 text-white text-xs font-semibold">
-              {(userName || "F").charAt(0).toUpperCase()}
-            </span>
-            <span className="text-sm font-medium text-emerald-900 truncate max-w-[120px]">
-              {userName}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={onSignOut}
-            className="inline-flex items-center gap-1 px-2 sm:px-3 h-9 rounded-md text-sm text-rose-700 hover:bg-rose-50"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">
-              {t("farmer.header.signOut", "Sign out")}
-            </span>
-          </button>
-        </div>
-      </div>
-    </header>
   );
 }
 
@@ -437,86 +409,7 @@ export function FarmerPageContainer({
 
 
 
-function NotificationsDropdown({
-  t,
-}: {
-  t: (k: string, fb: string) => string;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
-  const { data: items } = useNotifications();
-  const markAllRead = useMarkAllNotificationsRead();
-
-  useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (!ref.current) return;
-      if (!ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    if (open) {
-      document.addEventListener("mousedown", onClick);
-      return () => document.removeEventListener("mousedown", onClick);
-    }
-  }, [open]);
-
-  const list = items ?? [];
-  const unread = list.length;
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="relative inline-flex h-9 w-9 rounded-md items-center justify-center hover:bg-emerald-50 text-emerald-700"
-        aria-label={t("farmer.header.notifications", "Notifications")}
-      >
-        <Bell className="h-5 w-5" />
-        {unread > 0 && (
-          <span className="absolute top-1 right-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-rose-600 text-white text-[10px] font-bold">
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
-      </button>
-      {open && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-xl border border-emerald-100 z-40">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-emerald-100">
-            <p className="text-sm font-bold text-emerald-900">
-              {t("farmer.header.notificationsTitle", "Notifications")}
-            </p>
-            {unread > 0 && (
-              <button
-                type="button"
-                onClick={() => markAllRead()}
-                className="text-xs font-semibold text-emerald-700 hover:underline"
-              >
-                {t("farmer.header.markAllRead", "Mark all read")}
-              </button>
-            )}
-          </div>
-          {list.length === 0 ? (
-            <div className="p-6 text-center text-sm text-emerald-900/60">
-              {t("farmer.header.emptyNotifications", "No new notifications.")}
-            </div>
-          ) : (
-            <ul className="divide-y divide-emerald-50">
-              {list.slice(0, 12).map((n) => (
-                <li key={n.id}>
-                  <Link
-                    to={n.href}
-                    onClick={() => setOpen(false)}
-                    className="block px-3 py-2 hover:bg-emerald-50/60"
-                  >
-                    <p className="text-xs font-bold text-emerald-900">{n.title}</p>
-                    <p className="text-xs text-emerald-900/70 line-clamp-2">{n.body}</p>
-                    <p className="text-[10px] text-emerald-900/40 mt-0.5">
-                      {new Date(n.createdAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
-                    </p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+// ── NotificationsDropdown was REMOVED ──
+// The duplicate in-shell notification button is gone; the global
+// notification bell in <PlaygroundHeader/> is the single notification
+// UI for the whole app. See git history for the removed component.
