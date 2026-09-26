@@ -223,7 +223,7 @@ export class QuestionController {
   async getQuestionFromRawContext(
     @Body() body: GenerateQuestionsBody,
   ): Promise<GeneratedQuestionResponse[]> {
-    return this.questionService.getQuestionFromRawContext(body.query);
+    return this.questionService.getQuestionFromRawContext(body.query, body.language);
   }
 
   @Post('/generate-by-call-context')
@@ -234,7 +234,7 @@ export class QuestionController {
   async getQuestionFromCallContext(
     @Body() body: GenerateQuestionsBody,
   ): Promise<GeneratedQuestionResponse[]> {
-    return this.questionService.getQuestionFromCallContext(body.query, body.state, body.crop);
+    return this.questionService.getQuestionFromCallContext(body.query, body.state, body.crop, body.language);
   }
 
   @Post('/call-summary')

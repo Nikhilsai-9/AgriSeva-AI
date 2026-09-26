@@ -4,7 +4,7 @@ import { GLOBAL_TYPES } from '#root/types.js';
 import { inject, injectable, optional } from 'inversify';
 import { GROUNDED_ANSWER_TYPES } from '#root/modules/groundedAnswer/types.js';
 import type { IGroundedAnswerService } from '#root/modules/groundedAnswer/interfaces/IGroundedAnswerService.js';
-import { GroundedAnswerService } from '#root/modules/groundedAnswer/services/GroundedAnswerService.js';
+import { GroundedAnswerService, detectLanguageFromText } from '#root/modules/groundedAnswer/services/GroundedAnswerService.js';
 import { ClientSession, ObjectId } from 'mongodb';
 import { startBalanceWorkloadWorkers } from '#root/workers/balanceWorkload.manager.js';
 import { startPaeAllocationWorker } from '#root/workers/paeAllocation.manager.js';
@@ -523,6 +523,7 @@ export class QuestionService extends BaseService implements IQuestionService {
   async getQuestionFromRawContext(
     // While text to speech
     context: string,
+    language?: string,
   ): Promise<GeneratedQuestionResponse[]> {
     const service =
       this.groundedAnswerService ||
@@ -530,6 +531,7 @@ export class QuestionService extends BaseService implements IQuestionService {
 
     const groundedResult = await service.generateGroundedAnswer({
       query: context,
+      language,
     });
 
     const specialistLabel =
@@ -570,11 +572,13 @@ export class QuestionService extends BaseService implements IQuestionService {
     context: string,
     state?: string,
     crop?: string,
+    language?: string,
   ): Promise<GeneratedQuestionResponse[]> {
     try {
       const payload: any = { query: context };
       if (state) payload.state = state;
       if (crop) payload.crop = crop;
+      if (language) payload.language = language;
 
       const agentSearchResponse = await axios.post(
         `${aiConfig.agentSearchUrl}/search`,
@@ -652,6 +656,7 @@ export class QuestionService extends BaseService implements IQuestionService {
         query: context,
         state,
         crop,
+        language,
       });
 
       return [
@@ -1471,6 +1476,7 @@ export class QuestionService extends BaseService implements IQuestionService {
     // 5. Initial status according to existing question workflow (Safe Fix 4)
     // AGRISEVA_AI questions start as 'pending'; AGRI_EXPERT questions start as 'open'
     const status = source === 'AGRISEVA_AI' || source === 'WHATSAPP' ? 'pending' : 'open';
+    const questionLanguage = detectLanguageFromText(trimmedText, options?.language);
 
     const baseQuestion: IQuestion = {
       userId: userId && ObjectId.isValid(userId) ? new ObjectId(userId) : null,
@@ -1489,6 +1495,8 @@ export class QuestionService extends BaseService implements IQuestionService {
       embedding: textEmbedding,
       metrics: null,
       text: formattedText,
+      language: questionLanguage,
+      detectedLanguage: questionLanguage,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

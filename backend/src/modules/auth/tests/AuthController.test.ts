@@ -1,20 +1,34 @@
 import 'reflect-metadata';
 import request from 'supertest';
 import Express from 'express';
-import {useExpressServer} from 'routing-controllers';
+import {useExpressServer, useContainer} from 'routing-controllers';
+import {Container} from 'inversify';
 import {faker} from '@faker-js/faker';
 import {SignUpBody} from '#auth/classes/validators/AuthValidators.js';
-import {setupAuthContainer} from '#auth/index.js';
-import {describe, it, expect, beforeAll, beforeEach} from 'vitest';
+import {AUTH_TYPES} from '#auth/types.js';
+import {describe, it, expect, beforeAll, beforeEach, vi} from 'vitest';
 import {HttpErrorHandler} from '#shared/index.js';
+import {InversifyAdapter} from '#root/inversify-adapter.js';
 import {AuthController} from '../controllers/AuthController.js';
+
+// Mock Firebase-auth-dependent service so we don't initialise Firebase
+// Admin SDK in tests (no service-account JSON available in CI).
+const mockAuthService = {
+  signup: vi.fn().mockResolvedValue({
+    uid: 'mock-firebase-uid',
+    emailVerified: false,
+  }),
+};
 
 describe('Auth Controller Integration Tests', () => {
   const appInstance = Express();
   let app;
 
   beforeAll(async () => {
-    await setupAuthContainer();
+    const container = new Container();
+    container.bind(AUTH_TYPES.AuthService).toConstantValue(mockAuthService);
+    container.bind(HttpErrorHandler).toSelf().inSingletonScope();
+    useContainer(new InversifyAdapter(container));
     app = useExpressServer(appInstance, {
       controllers: [AuthController],
       validation: true,
@@ -34,6 +48,12 @@ describe('Auth Controller Integration Tests', () => {
       const response = await request(app)
         .post('/auth/signup/')
         .send(signUpBody);
+      if (response.status !== 201) {
+        // Surface the failure body so future readers don't have to
+        // instrument HttpErrorHandler manually.
+        // eslint-disable-next-line no-console
+        console.log('signup failure body:', response.body);
+      }
       expect(response.status).toBe(201);
     }, 30000); // <-- timeout for this test
 

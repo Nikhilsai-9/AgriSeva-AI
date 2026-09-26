@@ -499,6 +499,10 @@ class GenerateQuestionsBody {
   @IsOptional()
   @IsString()
   crop?: string;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
 }
 class ExpertInput {
   @IsString()

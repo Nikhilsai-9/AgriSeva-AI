@@ -356,6 +356,7 @@ export interface IQuestionService {
   /** Generate questions from raw context (AI) */
   getQuestionFromRawContext(
     context: string,
+    language?: string,
   ): Promise<GeneratedQuestionResponse[]>;
 
   /** Generate questions from call context (AI) */
@@ -363,6 +364,7 @@ export interface IQuestionService {
     context: string,
     state?: string,
     crop?: string,
+    language?: string,
   ): Promise<GeneratedQuestionResponse[]>;
 
   getCallSummary(

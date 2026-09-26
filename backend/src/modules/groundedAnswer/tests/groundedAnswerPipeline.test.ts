@@ -234,4 +234,149 @@ describe('Production Grounded Answer-Generation Pipeline Tests', () => {
     expect(buyerResult.answer).toContain('Surat Grain Traders Syndicate');
     expect(buyerResult.sources[0].type).toBe('buyers');
   });
+
+  describe('Multilingual Language Preservation & Translation Tests (Telugu, Tamil, Hindi, Urdu, English)', () => {
+    it('Telugu: Market price query returns Telugu localized response and te-IN language tag', async () => {
+      const teluguMarket = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_TELUGU_007',
+        query: 'గుజరాత్‌లో బజ్రా ప్రస్తుత మార్కెట్ ధర ఎంత?',
+        language: 'te-IN',
+        state: 'Gujarat',
+        crop: 'Bajra',
+      });
+
+      expect(teluguMarket.status).toBe('calculated');
+      expect(teluguMarket.language).toBe('te-IN');
+      expect(teluguMarket.answer).toContain('2371.48');
+      expect(teluguMarket.answer).toContain('మార్కెట్ ధరలు');
+      expect(teluguMarket.answer).toContain('Agmarknet అధికారిక నివేదిక');
+    });
+
+    it('Telugu: Unknown crop/query routes to expert review with Telugu message', async () => {
+      const teluguExpert = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_TELUGU_008',
+        query: 'వరిలో అగ్గితెగులు నివారణకు రసాయన మందు మోతాదు ఎంత?',
+        language: 'te-IN',
+      });
+
+      expect(teluguExpert.status).toBe('expert_review');
+      expect(teluguExpert.language).toBe('te-IN');
+      expect(teluguExpert.answer).toContain('వ్యవసాయ నిపుణుల (PAE) సమీక్షకు పంపబడింది');
+      // Must NOT contain English fallback
+      expect(teluguExpert.answer).not.toContain('Verified information is not available');
+    });
+
+    it('Tamil: Market price query returns Tamil localized response', async () => {
+      const tamilMarket = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_TAMIL_009',
+        query: 'குஜராத்தில் பஜ்ராவின் தற்போதைய சந்தை விலை என்ன?',
+        language: 'ta-IN',
+        state: 'Gujarat',
+        crop: 'Bajra',
+      });
+
+      expect(tamilMarket.status).toBe('calculated');
+      expect(tamilMarket.language).toBe('ta-IN');
+      expect(tamilMarket.answer).toContain('2371.48');
+      expect(tamilMarket.answer).toContain('சமீபத்திய விலை');
+      expect(tamilMarket.answer).toContain('Agmarknet அதிகாரப்பூர்வ அறிக்கை');
+    });
+
+    it('Tamil: Expert review query returns Tamil fallback message', async () => {
+      const tamilExpert = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_TAMIL_010',
+        query: 'நெல் பயிரில் பூச்சி மேலாண்மை எவ்வாறு செய்வது?',
+        language: 'ta-IN',
+      });
+
+      expect(tamilExpert.status).toBe('expert_review');
+      expect(tamilExpert.language).toBe('ta-IN');
+      expect(tamilExpert.answer).toContain('வேளாண் நிபுணர் (PAE) மறுஆய்வுக்கு அனுப்பப்பட்டுள்ளது');
+      expect(tamilExpert.answer).not.toContain('Verified information is not available');
+    });
+
+    it('Hindi: Market price query returns Hindi localized response', async () => {
+      const hindiMarket = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_HINDI_011',
+        query: 'गुजरात में बाजरे का वर्तमान मंडी भाव क्या है?',
+        language: 'hi-IN',
+        state: 'Gujarat',
+        crop: 'Bajra',
+      });
+
+      expect(hindiMarket.status).toBe('calculated');
+      expect(hindiMarket.language).toBe('hi-IN');
+      expect(hindiMarket.answer).toContain('2371.48');
+      expect(hindiMarket.answer).toContain('मंडी भाव');
+      expect(hindiMarket.answer).toContain('Agmarknet आधिकारिक डेटा');
+    });
+
+    it('Hindi: Expert review query returns Hindi fallback message', async () => {
+      const hindiExpert = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_HINDI_012',
+        query: 'गेहूं में पीला रतुआ का नियंत्रण कैसे करें?',
+        language: 'hi-IN',
+      });
+
+      expect(hindiExpert.status).toBe('expert_review');
+      expect(hindiExpert.language).toBe('hi-IN');
+      expect(hindiExpert.answer).toContain('कृषि विशेषज्ञ (PAE) समीक्षा के लिए भेजा गया है');
+      expect(hindiExpert.answer).not.toContain('Verified information is not available');
+    });
+
+    it('Urdu: Market price query returns Urdu localized response', async () => {
+      const urduMarket = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_URDU_013',
+        query: 'گجرات میں باجرے کی موجودہ مارکیٹ قیمت کیا ہے؟',
+        language: 'ur-IN',
+        state: 'Gujarat',
+        crop: 'Bajra',
+      });
+
+      expect(urduMarket.status).toBe('calculated');
+      expect(urduMarket.language).toBe('ur-IN');
+      expect(urduMarket.answer).toContain('2371.48');
+      expect(urduMarket.answer).toContain('تازہ ترین منڈی ریٹ');
+      expect(urduMarket.answer).toContain('سرکاری ڈیٹا');
+    });
+
+    it('Urdu: Expert review query returns Urdu fallback message', async () => {
+      const urduExpert = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_URDU_014',
+        query: 'گندم میں بیماری کا علاج کیا ہے؟',
+        language: 'ur-IN',
+      });
+
+      expect(urduExpert.status).toBe('expert_review');
+      expect(urduExpert.language).toBe('ur-IN');
+      expect(urduExpert.answer).toContain('زرعی ماہر (PAE) کے جائزے کے لیے بھیج دیا گیا ہے');
+      expect(urduExpert.answer).not.toContain('Verified information is not available');
+    });
+
+    it('Script Auto-Detection correctly identifies Telugu, Tamil, Hindi, and Urdu when language is "auto" or undefined', async () => {
+      const teluguAuto = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_AUTO_TE',
+        query: 'వరి పంటలో ఎరువుల యాజమాన్యం ఎలా చేయాలి?',
+      });
+      expect(teluguAuto.language).toBe('te-IN');
+
+      const tamilAuto = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_AUTO_TA',
+        query: 'நெல் பயிரில் உர மேலாண்மை எவ்வாறு செய்வது?',
+      });
+      expect(tamilAuto.language).toBe('ta-IN');
+
+      const hindiAuto = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_AUTO_HI',
+        query: 'धान की फसल में खाद का प्रबंधन कैसे करें?',
+      });
+      expect(hindiAuto.language).toBe('hi-IN');
+
+      const urduAuto = await groundedService.generateGroundedAnswer({
+        questionId: 'Q_ID_AUTO_UR',
+        query: 'چاول کی فصل میں کھاد کا استعمال کیسے کریں؟',
+      });
+      expect(urduAuto.language).toBe('ur-IN');
+    });
+  });
 });

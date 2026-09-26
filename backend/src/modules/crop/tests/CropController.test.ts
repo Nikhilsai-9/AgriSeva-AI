@@ -7,6 +7,7 @@ import {InversifyAdapter} from '#root/inversify-adapter.js';
 import {describe, it, expect, beforeAll, vi} from 'vitest';
 import {HttpErrorHandler} from '#shared/index.js';
 import {GLOBAL_TYPES} from '#root/types.js';
+import {AUDIT_TRAILS_TYPES} from '#root/modules/auditTrails/types.js';
 import {ICrop} from '#root/shared/interfaces/models.js';
 import {CropController} from '../controllers/CropController.js';
 
@@ -42,6 +43,14 @@ const mockCropService = {
   updateCrop: vi.fn().mockResolvedValue(mockCrop),
 };
 
+// CropController's constructor needs an audit-trail service binding;
+// without it `useExpressServer` fails to instantiate the controller and
+// every request returns 500. The controller only calls
+// `createAuditTrail(payload)`, so a no-op mock is sufficient.
+const mockAuditTrailsService = {
+  createAuditTrail: vi.fn().mockResolvedValue(undefined),
+};
+
 // ── App setup ─────────────────────────────────────────────────────────────────
 
 describe('CropController', () => {
@@ -51,6 +60,7 @@ describe('CropController', () => {
     const container = new Container();
     container.bind(CropController).toSelf().inSingletonScope();
     container.bind(GLOBAL_TYPES.CropService).toConstantValue(mockCropService);
+    container.bind(AUDIT_TRAILS_TYPES.AuditTrailsService).toConstantValue(mockAuditTrailsService);
     container.bind(HttpErrorHandler).toSelf().inSingletonScope();
 
     useContainer(new InversifyAdapter(container));
