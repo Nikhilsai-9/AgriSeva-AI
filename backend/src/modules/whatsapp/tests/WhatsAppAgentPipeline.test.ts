@@ -328,7 +328,7 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
         '919999999999',
         '104239857281928',
         expect.objectContaining({
-          button: 'Select Language 🌐',
+          button: 'Select Language',
         }),
       );
 
@@ -398,7 +398,7 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
         '919876543210',
         '104239857281928',
         expect.objectContaining({
-          button: 'Select Language 🌐',
+          button: 'Select Language',
         }),
       );
     });

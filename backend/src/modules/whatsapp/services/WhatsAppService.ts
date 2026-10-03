@@ -508,11 +508,11 @@ export class WhatsAppService implements IWhatsAppService {
       ];
 
       await this.sendInteractiveListMessage(to, phoneNumberId, {
-        header: '🌾 AgriSeva-AI',
+        header: 'AgriSeva-AI',
         body: 'నమస్తే! దయచేసి మీ భాషను ఎంచుకోండి.\nनमस्ते! कृपया अपनी भाषा चुनें.\nPlease select your preferred language:',
-        footer: '🌾 AgriSeva-AI • 23 Languages',
-        button: 'Select Language 🌐',
-        sections: [{ title: 'Popular Languages / భాషలు', rows }],
+        footer: 'AgriSeva-AI • 23 Languages',
+        button: 'Select Language',
+        sections: [{ title: 'Popular Languages', rows }],
       });
     } else {
       const rows = [
@@ -525,15 +525,15 @@ export class WhatsAppService implements IWhatsAppService {
         { id: 'lang_ne-IN', title: 'नेपाली (Nepali)', description: 'सिक्किम & प. बंगाल' },
         { id: 'lang_ks-IN', title: 'کٲشُر (Kashmiri)', description: 'جموں و کشمیر' },
         { id: 'lang_doi-IN', title: 'डोगरी (Dogri)', description: 'जम्मू' },
-        { id: 'lang_page_1', title: '⬅️ Back / వెనుకకు (Page 1)', description: 'Telugu, Hindi, Tamil, English...' },
+        { id: 'lang_page_1', title: '⬅️ Back to Page 1', description: 'Telugu, Hindi, Tamil, English...' },
       ];
 
       await this.sendInteractiveListMessage(to, phoneNumberId, {
-        header: '🌾 AgriSeva-AI',
+        header: 'AgriSeva-AI',
         body: 'Additional official Indian languages / మరిన్ని అధికారిక భాషలు:',
-        footer: '🌾 AgriSeva-AI • 23 Languages',
-        button: 'Choose Language 🌐',
-        sections: [{ title: 'Regional Languages / ప్రాంతీయ భాషలు', rows }],
+        footer: 'AgriSeva-AI • 23 Languages',
+        button: 'Choose Language',
+        sections: [{ title: 'Regional Languages', rows }],
       });
     }
   }
