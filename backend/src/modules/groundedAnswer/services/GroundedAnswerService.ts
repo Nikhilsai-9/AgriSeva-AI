@@ -879,7 +879,8 @@ export class GroundedAnswerService implements IGroundedAnswerService {
         const questionsCol = await this.db.getCollection<any>('questions');
 
         // Search questions collection for matching closed / verified answers
-        const terms = query.split(/\s+/).filter(t => t.length > 3).slice(0, 4);
+        const cleanQuery = query.replace(/[.*+?^${}()|[\]\\]/g, ' ');
+        const terms = cleanQuery.split(/\s+/).filter(t => t.length > 2).slice(0, 4);
         if (terms.length > 0) {
           const regexQuery = terms.map(t => `(?=.*${t})`).join('');
           const mongoMatches = await questionsCol.find({

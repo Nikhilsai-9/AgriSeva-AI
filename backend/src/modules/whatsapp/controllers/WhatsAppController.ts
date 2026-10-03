@@ -78,11 +78,12 @@ export class WhatsAppController {
     description: 'Receives incoming messages from WhatsApp users and dispatches automated AI advisory replies.',
   })
   @Post('/webhook')
-  @HttpCode(200)
   async handleIncomingWebhook(@Body() body: any, @Res() response: any) {
-    // Acknowledge immediately to Meta so webhook does not retry
-    response.status(200).send('EVENT_RECEIVED');
+    this.processIncomingEvent(body);
+    return response.status(200).send('EVENT_RECEIVED');
+  }
 
+  private processIncomingEvent(body: any): void {
     try {
       if (body?.object && body?.entry && body.entry[0]?.changes && body.entry[0].changes[0]?.value) {
         const change = body.entry[0].changes[0].value;

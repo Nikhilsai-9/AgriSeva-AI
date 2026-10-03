@@ -1117,6 +1117,7 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
 
     // Step 6: Core Agricultural Advisory Pipeline (Grounded / RAG / POP / Market / Safety)
     let aiAnswer = '';
+    let isEscalatedToPAE = false;
 
     if (this.groundedAnswerService) {
       try {
@@ -1130,7 +1131,14 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
         });
 
         if (groundedRes?.answer?.trim()) {
-          aiAnswer = groundedRes.answer.trim();
+          const isGenericBoilerplate =
+            groundedRes.status === 'expert_review' && groundedRes.confidence === 'low';
+
+          if (!isGenericBoilerplate) {
+            aiAnswer = groundedRes.answer.trim();
+          } else {
+            isEscalatedToPAE = true;
+          }
         }
       } catch (err: any) {
         console.warn('[WhatsAppService] GroundedAnswerService error, falling back to direct AI generation:', err.message);
@@ -1139,6 +1147,16 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
 
     if (!aiAnswer) {
       aiAnswer = await this.generateDirectAgriculturalAnswer(userQuery, currentLang, session.history);
+      if (isEscalatedToPAE) {
+        const paeNotes: Record<string, string> = {
+          'te-IN': '\n\n📌 _గమనిక: మీ ప్రశ్నకు వివరణాత్మక సలహా పైన ఇవ్వబడింది. అదనపు పరిశీలన కోసం ఇది వ్యవసాయ నిపుణుల (PAE) సమీక్షకు కూడా నమోదు చేయబడింది._',
+          'hi-IN': '\n\n📌 _नोट: आपके प्रश्न के लिए विस्तृत सलाह ऊपर दी गई है। अतिरिक्त सत्यापन के लिए इसे कृषि विशेषज्ञ (PAE) समीक्षा हेतु भी दर्ज किया गया है।_',
+          'ta-IN': '\n\n📌 _குறிப்பு: உங்கள் கேள்விக்கான ஆலோசனை மேலே கொடுக்கப்பட்டுள்ளது. மேலதிக உறுதிப்படுத்தலுக்கு இது வேளாண் நிபுணர் (PAE) பார்வைக்கு அனுப்பப்பட்டுள்ளது._',
+          'kn-IN': '\n\n📌 _ಸೂಚನೆ: ನಿಮ್ಮ ಪ್ರಶ್ನೆಗೆ ವಿವರವಾದ ಸಲಹೆಯನ್ನು ಮೇಲೆ ನೀಡಲಾಗಿದೆ. ಹೆಚ್ಚಿನ ಪರಿಶೀಲನೆಗಾಗಿ ಇದನ್ನು ಕೃಷಿ ತಜ್ಞರ (PAE) ಪರಿಶೀಲನೆಗೆ ದಾಖಲಿಸಲಾಗಿದೆ._',
+          'en-IN': '\n\n📌 _Note: Comprehensive advisory is provided above. This query has also been registered for Agricultural Expert (PAE) review._',
+        };
+        aiAnswer += paeNotes[currentLang] || paeNotes['en-IN'];
+      }
     }
 
     // Step 7: Final Translation into User's Selected Language (Requirements 11, 12, 44)
