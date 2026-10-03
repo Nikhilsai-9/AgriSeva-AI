@@ -1,6 +1,8 @@
 import { UserProfileActions } from "@/components/atoms/user-profile-actions";
 import { ThemeToggleCompact } from "./atoms/ThemeToggle";
-import { BellIcon, Sprout } from "lucide-react";
+import { BellIcon, PanelLeft, Sprout } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useSidebarStore } from "@/stores/sidebar-store";
 import { MobileSidebar } from "./mobile-sidebar";
 import { HoverCard } from "./atoms/hover-card";
 import { NotificationModal } from "./NotificationModal";
@@ -25,10 +27,11 @@ export function PlaygroundHeader({
   setChatbotSource: (value: "whatsapp" | "annam" | "acc") => void;
 }) {
   const { t } = useTranslation();
+  const { isCollapsed, toggleSidebar } = useSidebarStore();
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex items-center justify-between gap-1.5 xxs:gap-2 sm:gap-3 lg:gap-4 px-2 xxs:px-3 sm:px-4 py-1.5 sm:py-2 min-h-[52px] sm:min-h-[60px]">
-        {/* AgriSeva Brand Logo & Tagline */}
+        {/* AgriSeva Brand Logo & Tagline + Desktop Sidebar Toggle */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer min-w-0">
           <MobileSidebar
             user={user!}
@@ -37,6 +40,18 @@ export function PlaygroundHeader({
             setChatbotSource={setChatbotSource}
           />
           <AgriSevaBrand size="sm" showSlogan={false} compactBelowSm={true} />
+
+          {/* Desktop sidebar collapse / expand toggle */}
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            data-slot="sidebar-toggle"
+            aria-label={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
+            title={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
+            className="hidden lg:flex p-1.5 rounded-lg hover:bg-accent transition-colors items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground shrink-0 select-none min-w-[34px] min-h-[34px]"
+          >
+            <PanelLeft className={cn("w-5 h-5 transition-transform duration-200", isCollapsed && "rotate-180")} />
+          </button>
         </div>
 
         <div className="flex-1 lg:flex justify-center min-w-0 hidden ">

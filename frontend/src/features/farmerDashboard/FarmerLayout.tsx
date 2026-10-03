@@ -43,10 +43,13 @@ import {
   MessageCircleWarning,
   User,
   Scale,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import { env } from "@/config/env";
 import { cn } from "@/lib/utils";
+import { useSidebarStore } from "@/stores/sidebar-store";
 import type { ReactNode } from "react";
 
 interface NavItem {
@@ -189,19 +192,41 @@ function SideNav({
   primary: NavItem[];
   secondary: NavItem[];
 }) {
+  const { isCollapsed, toggleSidebar } = useSidebarStore();
+
   return (
-    <aside className="hidden md:flex flex-col md:w-16 lg:w-60 xl:w-64 shrink-0 border-r border-emerald-100 bg-white/70 backdrop-blur-sm h-[calc(100vh-7rem)] sticky top-16 overflow-y-auto py-4 transition-all duration-200">
+    <aside
+      className={cn(
+        "hidden md:flex flex-col shrink-0 border-r border-emerald-100 bg-white/70 backdrop-blur-sm h-[calc(100vh-7rem)] sticky top-16 overflow-y-auto py-3 transition-all duration-200",
+        isCollapsed ? "w-16" : "md:w-16 lg:w-60 xl:w-64"
+      )}
+    >
+      {/* Desktop collapse toggle button inside SideNav */}
+      <div className="hidden lg:flex items-center justify-end px-3 mb-2">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
+          title={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
+          className="p-1 rounded-md text-emerald-800 hover:bg-emerald-100/70 transition-colors"
+        >
+          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
+      </div>
+
       <NavGroup
         title={t("farmer.nav.marketGroup", "Market")}
         items={primary}
         pathname={pathname}
         t={t}
+        collapsed={isCollapsed}
       />
       <NavGroup
         title={t("farmer.nav.supportGroup", "Operations")}
         items={secondary}
         pathname={pathname}
         t={t}
+        collapsed={isCollapsed}
       />
     </aside>
   );
@@ -212,15 +237,22 @@ function NavGroup({
   items,
   pathname,
   t,
+  collapsed = false,
 }: {
   title: string;
   items: NavItem[];
   pathname: string;
   t: (k: string, fb: string) => string;
+  collapsed?: boolean;
 }) {
   return (
     <div className="px-1.5 md:px-2 lg:px-3 mb-4">
-      <p className="px-1 lg:px-3 text-[11px] uppercase tracking-wider text-emerald-700/70 font-semibold mb-2 hidden lg:block">
+      <p
+        className={cn(
+          "px-1 lg:px-3 text-[11px] uppercase tracking-wider text-emerald-700/70 font-semibold mb-2",
+          collapsed ? "hidden" : "hidden lg:block"
+        )}
+      >
         {title}
       </p>
       <div className="flex flex-col gap-1">
@@ -230,6 +262,7 @@ function NavGroup({
             item={item}
             active={isActive(pathname, item)}
             t={t}
+            collapsed={collapsed}
           />
         ))}
       </div>
@@ -241,10 +274,12 @@ function NavLink({
   item,
   active,
   t,
+  collapsed = false,
 }: {
   item: NavItem;
   active: boolean;
   t: (k: string, fb: string) => string;
+  collapsed?: boolean;
 }) {
   const Icon = item.icon;
   const label = t(item.labelKey, fallbackFor(item));
@@ -253,14 +288,17 @@ function NavLink({
       to={item.to}
       title={label}
       className={cn(
-        "flex items-center gap-3 px-2 lg:px-3 py-2 rounded-lg text-sm font-medium transition-colors md:justify-center lg:justify-start",
+        "flex items-center gap-3 px-2 lg:px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+        collapsed ? "justify-center" : "md:justify-center lg:justify-start",
         active
           ? "bg-emerald-600 text-white shadow"
           : "text-emerald-900 hover:bg-emerald-50"
       )}
     >
       <Icon className="h-5 w-5 shrink-0" />
-      <span className="truncate hidden lg:inline">{label}</span>
+      <span className={cn("truncate", collapsed ? "hidden" : "hidden lg:inline")}>
+        {label}
+      </span>
     </Link>
   );
 }
