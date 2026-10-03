@@ -31,27 +31,9 @@ export function PlaygroundHeader({
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex items-center justify-between gap-1.5 xxs:gap-2 sm:gap-3 lg:gap-4 px-2 xxs:px-3 sm:px-4 py-1.5 sm:py-2 min-h-[52px] sm:min-h-[60px]">
-        {/* AgriSeva Brand Logo & Tagline + Desktop Sidebar Toggle */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer min-w-0">
-          <MobileSidebar
-            user={user!}
-            activeTab={activeTab}
-            setTab={setTab}
-            setChatbotSource={setChatbotSource}
-          />
+        {/* AgriSeva Brand Logo & Tagline */}
+        <div className="flex items-center shrink-0 cursor-pointer min-w-0">
           <AgriSevaBrand size="sm" showSlogan={false} compactBelowSm={true} />
-
-          {/* Desktop sidebar collapse / expand toggle */}
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            data-slot="sidebar-toggle"
-            aria-label={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
-            title={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
-            className="hidden lg:flex p-1.5 rounded-lg hover:bg-accent transition-colors items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground shrink-0 select-none min-w-[34px] min-h-[34px]"
-          >
-            <PanelLeft className={cn("w-5 h-5 transition-transform duration-200", isCollapsed && "rotate-180")} />
-          </button>
         </div>
 
         <div className="flex-1 lg:flex justify-center min-w-0 hidden ">
@@ -248,6 +230,26 @@ export function PlaygroundHeader({
 
           {/* Profile chip visible across mobile, tablet, and desktop */}
           <UserProfileActions />
+
+          {/* Desktop sidebar collapse / expand toggle — placed beside Profile in the top-right header */}
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            data-slot="sidebar-toggle"
+            aria-label={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
+            title={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
+            className="hidden lg:flex p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-colors items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground shrink-0 select-none min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px]"
+          >
+            <PanelLeft className={cn("w-5 h-5 transition-transform duration-200", isCollapsed && "rotate-180")} />
+          </button>
+
+          {/* Mobile hamburger navigation drawer (< lg) */}
+          <MobileSidebar
+            user={user!}
+            activeTab={activeTab}
+            setTab={setTab}
+            setChatbotSource={setChatbotSource}
+          />
         </div>
       </div>
     </header>

@@ -43,8 +43,6 @@ import {
   MessageCircleWarning,
   User,
   Scale,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import { env } from "@/config/env";
@@ -201,19 +199,6 @@ function SideNav({
         isCollapsed ? "w-16" : "md:w-16 lg:w-60 xl:w-64"
       )}
     >
-      {/* Desktop collapse toggle button inside SideNav */}
-      <div className="hidden lg:flex items-center justify-end px-3 mb-2">
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          aria-label={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
-          title={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
-          className="p-1 rounded-md text-emerald-800 hover:bg-emerald-100/70 transition-colors"
-        >
-          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
-      </div>
-
       <NavGroup
         title={t("farmer.nav.marketGroup", "Market")}
         items={primary}
