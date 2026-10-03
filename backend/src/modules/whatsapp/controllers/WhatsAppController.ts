@@ -31,6 +31,24 @@ export class WhatsAppController {
     private readonly whatsappService: IWhatsAppService,
   ) { }
 
+  // Simple in-memory deduplication cache for Meta webhook message IDs (10 min TTL)
+  private static readonly processedMsgIds = new Map<string, number>();
+
+  private isDuplicate(msgId?: string): boolean {
+    if (!msgId) return false;
+    const now = Date.now();
+    for (const [id, ts] of WhatsAppController.processedMsgIds) {
+      if (now - ts > 10 * 60 * 1000) {
+        WhatsAppController.processedMsgIds.delete(id);
+      }
+    }
+    if (WhatsAppController.processedMsgIds.has(msgId)) {
+      return true;
+    }
+    WhatsAppController.processedMsgIds.set(msgId, now);
+    return false;
+  }
+
   @OpenAPI({
     summary: 'Meta WhatsApp Cloud API Webhook Verification',
     description: 'Verifies the webhook endpoint for Meta WhatsApp Cloud API',
@@ -42,11 +60,16 @@ export class WhatsAppController {
     @QueryParam('hub.challenge') challenge: string,
     @Res() response: any,
   ) {
-    const expectedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'agriseva_webhook_token_2026';
+    const expectedToken =
+      process.env.META_WA_WEBHOOK_VERIFY_TOKEN ||
+      process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN ||
+      'agriseva_webhook_token_2026';
+
     if (mode === 'subscribe' && verifyToken === expectedToken) {
       console.log('[WhatsAppController] Webhook verified successfully');
       return response.status(200).send(challenge);
     }
+    console.warn('[WhatsAppController] Verification token mismatch. Received:', verifyToken);
     return response.status(403).send('Verification token mismatch');
   }
 
@@ -57,6 +80,7 @@ export class WhatsAppController {
   @Post('/webhook')
   @HttpCode(200)
   async handleIncomingWebhook(@Body() body: any, @Res() response: any) {
+    // Acknowledge immediately to Meta so webhook does not retry
     response.status(200).send('EVENT_RECEIVED');
 
     try {
@@ -64,19 +88,46 @@ export class WhatsAppController {
         const change = body.entry[0].changes[0].value;
         const messages = change.messages;
         const metadata = change.metadata;
-        const phoneNumberId = metadata?.phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID;
+        const phoneNumberId =
+          metadata?.phone_number_id ||
+          process.env.META_WA_PHONE_NUMBER_ID ||
+          process.env.WHATSAPP_PHONE_NUMBER_ID;
 
         if (messages && messages.length > 0) {
           const incomingMsg = messages[0];
           const from = incomingMsg.from;
-          const text = incomingMsg.text?.body;
           const msgType = incomingMsg.type;
+          const msgId = incomingMsg.id;
 
-          console.log(`[WhatsAppController] Incoming message from ${from}: ${text || `[type: ${msgType}]`}`);
-
-          if (text) {
-            await this.whatsappService.handleIncomingWhatsAppCloudMessage(from, text, phoneNumberId);
+          if (this.isDuplicate(msgId)) {
+            console.log(`[WhatsAppController] Duplicate webhook event for message ${msgId} ignored.`);
+            return;
           }
+
+          const textBody =
+            incomingMsg.text?.body ||
+            incomingMsg.interactive?.button_reply?.title ||
+            incomingMsg.interactive?.list_reply?.title ||
+            '';
+
+          console.log(`[WhatsAppController] Incoming ${msgType} message ${msgId || ''} from ${from}: "${textBody}"`);
+
+          // Process asynchronously without blocking the webhook acknowledgment
+          this.whatsappService.handleIncomingWhatsAppCloudMessage(
+            from,
+            textBody,
+            phoneNumberId,
+            {
+              msgId,
+              msgType,
+              interactive: incomingMsg.interactive,
+              audio: incomingMsg.audio,
+              voice: incomingMsg.voice,
+              image: incomingMsg.image,
+            },
+          ).catch((err: any) => {
+            console.error('[WhatsAppController] Asynchronous WhatsApp handling error:', err);
+          });
         }
       }
     } catch (err) {

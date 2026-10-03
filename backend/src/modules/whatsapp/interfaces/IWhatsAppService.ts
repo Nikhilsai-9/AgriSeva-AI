@@ -24,6 +24,19 @@ export interface Thread {
   unreadCount?: number;
 }
 
+export interface IncomingWhatsAppMessageExtra {
+  msgId?: string;
+  msgType?: string;
+  interactive?: {
+    type?: string;
+    button_reply?: { id: string; title: string };
+    list_reply?: { id: string; title: string; description?: string };
+  };
+  audio?: { id: string; mime_type?: string };
+  voice?: { id: string; mime_type?: string };
+  image?: { id: string; mime_type?: string; caption?: string };
+}
+
 export interface IWhatsAppService {
   getThreads(): Promise<Thread[]>;
   getThreadDetails(phoneNumber: string, date: string): Promise<Message[]>;
@@ -35,5 +48,10 @@ export interface IWhatsAppService {
   getInactiveUsers(skip: number, limit: number): Promise<WhatsappUsersResponse>;
   getAllUsers(): Promise<WhatsappUsersResponse>;
   getUniqueUsers(): Promise<number>;
-  handleIncomingWhatsAppCloudMessage(from: string, text: string, phoneNumberId?: string): Promise<void>;
+  handleIncomingWhatsAppCloudMessage(
+    from: string,
+    text: string,
+    phoneNumberId?: string,
+    extra?: IncomingWhatsAppMessageExtra,
+  ): Promise<void>;
 }
