@@ -2,6 +2,7 @@ import {
   Tabs,
   TabsContent,
 } from "@/components/atoms/tabs";
+import { cn } from "@/lib/utils";
 import { QAInterface } from "../features/qa-interface-page/QA-interface";
 // import { FullSubmissionHistory } from "./submission-history";
 import { VoiceRecorderCard } from "./voice-recorder-card";
