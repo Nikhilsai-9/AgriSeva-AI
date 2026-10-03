@@ -5,7 +5,7 @@ import { loginWithEmail } from "@/lib/firebase";
 import { useSignup } from "@/hooks/api/auth/useSignup";
 import { useForgotPassword } from "@/hooks/api/auth/useForgotPassword";
 import { AuthService } from "@/hooks/services/authService";
-import { isCoordinatorRole } from "@/lib/roles";
+import { getRoleLandingRoute } from "@/lib/roles";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -122,18 +122,11 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
             avatar: result.user.photoURL || "",
           });
 
-          if (isCoordinatorRole(result.appUser?.role)) {
-            navigate({
-              to: "/user/$userId",
-              params: { userId: result.appUser?._id || result.user.uid },
-            });
-          } else if (result.appUser?.role === "pae_expert") {
-            navigate({ to: "/pae-expert" });
-          } else if (result.appUser?.role === "farmer") {
-            navigate({ to: "/farmer" });
-          } else {
-            navigate({ to: "/home" });
-          }
+          const landing = getRoleLandingRoute(
+            result.appUser?.role,
+            result.appUser?._id || result.user.uid
+          );
+          navigate(landing as any);
         }
       } catch (err: any) {
         let msg = err?.message || "Incorrect email or password.";
@@ -185,18 +178,11 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
             throw backendSyncErr;
           }
         }
-        if (isCoordinatorRole(appUser?.role)) {
-          navigate({
-            to: "/user/$userId",
-            params: { userId: appUser?._id || result.user.uid },
-          });
-        } else if (appUser?.role === "pae_expert") {
-          navigate({ to: "/pae-expert" });
-        } else if (appUser?.role === "farmer") {
-          navigate({ to: "/farmer" });
-        } else {
-          navigate({ to: "/home" });
-        }
+        const landing = getRoleLandingRoute(
+          appUser?.role,
+          appUser?._id || result.user.uid
+        );
+        navigate(landing as any);
       }
     } catch (err: any) {
       const msg = err?.message || "Failed to sign in with Google.";

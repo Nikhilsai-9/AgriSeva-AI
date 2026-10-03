@@ -13,7 +13,7 @@ import {
 } from "../utils/validate";
 import type { AuthError, AuthFormData, UseAuthFormReturn } from "../types";
 import { isDevelopment } from "@/shared/app";
-import { isCoordinatorRole } from "@/lib/roles";
+import { getRoleLandingRoute } from "@/lib/roles";
 
 /**
  * Custom hook to manage the state and behavior of an Auth form
@@ -147,18 +147,11 @@ export const useAuthForm = (
         avatar: result!.user.photoURL || "",
       });
 
-      if (isCoordinatorRole(result?.appUser?.role)) {
-        navigate({
-          to: "/user/$userId",
-          params: { userId: result?.appUser?._id || result!.user.uid } as any,
-        });
-      } else if (result?.appUser?.role === "pae_expert") {
-        navigate({ to: "/pae-expert" });
-      } else if (result?.appUser?.role === "farmer") {
-        navigate({ to: "/farmer" });
-      } else {
-        navigate({ to: "/home" });
-      }
+      const landing = getRoleLandingRoute(
+        result?.appUser?.role,
+        result?.appUser?._id || result!.user.uid
+      );
+      navigate(landing as any);
     } catch (error: unknown) {
       const authError = error as AuthError;
       console.error("Auth failed", error);

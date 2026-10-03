@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatsappHistoryRouteImport } from './routes/whatsapp-history'
+import { Route as ModeratorRouteImport } from './routes/moderator'
 import { Route as FarmerRouteImport } from './routes/farmer'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TermsIndexRouteImport } from './routes/terms/index'
@@ -45,6 +46,11 @@ import { Route as FarmerBuyersBuyerIdRouteImport } from './routes/farmer.buyers.
 const WhatsappHistoryRoute = WhatsappHistoryRouteImport.update({
   id: '/whatsapp-history',
   path: '/whatsapp-history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModeratorRoute = ModeratorRouteImport.update({
+  id: '/moderator',
+  path: '/moderator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FarmerRoute = FarmerRouteImport.update({
@@ -206,6 +212,7 @@ const FarmerBuyersBuyerIdRoute = FarmerBuyersBuyerIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/farmer': typeof FarmerRouteWithChildren
+  '/moderator': typeof ModeratorRoute
   '/whatsapp-history': typeof WhatsappHistoryRoute
   '/coordinator/profile': typeof CoordinatorProfileRoute
   '/farmer/buyers': typeof FarmerBuyersRouteWithChildren
@@ -239,6 +246,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/moderator': typeof ModeratorRoute
   '/whatsapp-history': typeof WhatsappHistoryRoute
   '/coordinator/profile': typeof CoordinatorProfileRoute
   '/farmer/buyers': typeof FarmerBuyersRouteWithChildren
@@ -274,6 +282,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/farmer': typeof FarmerRouteWithChildren
+  '/moderator': typeof ModeratorRoute
   '/whatsapp-history': typeof WhatsappHistoryRoute
   '/coordinator/profile': typeof CoordinatorProfileRoute
   '/farmer/buyers': typeof FarmerBuyersRouteWithChildren
@@ -310,6 +319,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/farmer'
+    | '/moderator'
     | '/whatsapp-history'
     | '/coordinator/profile'
     | '/farmer/buyers'
@@ -343,6 +353,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/moderator'
     | '/whatsapp-history'
     | '/coordinator/profile'
     | '/farmer/buyers'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/farmer'
+    | '/moderator'
     | '/whatsapp-history'
     | '/coordinator/profile'
     | '/farmer/buyers'
@@ -412,6 +424,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FarmerRoute: typeof FarmerRouteWithChildren
+  ModeratorRoute: typeof ModeratorRoute
   WhatsappHistoryRoute: typeof WhatsappHistoryRoute
   CoordinatorProfileRoute: typeof CoordinatorProfileRoute
   UserHistoryUserIdRoute: typeof UserHistoryUserIdRoute
@@ -437,6 +450,13 @@ declare module '@tanstack/react-router' {
       path: '/whatsapp-history'
       fullPath: '/whatsapp-history'
       preLoaderRoute: typeof WhatsappHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/moderator': {
+      id: '/moderator'
+      path: '/moderator'
+      fullPath: '/moderator'
+      preLoaderRoute: typeof ModeratorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/farmer': {
@@ -719,6 +739,7 @@ const FarmerRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FarmerRoute: FarmerRouteWithChildren,
+  ModeratorRoute: ModeratorRoute,
   WhatsappHistoryRoute: WhatsappHistoryRoute,
   CoordinatorProfileRoute: CoordinatorProfileRoute,
   UserHistoryUserIdRoute: UserHistoryUserIdRoute,

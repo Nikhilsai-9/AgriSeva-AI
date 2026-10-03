@@ -8,6 +8,7 @@ import { UserProfileActions } from "@/components/atoms/user-profile-actions";
 import { NotificationModal } from "@/components/NotificationModal";
 import { BellIcon } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
+import { getRoleLandingRoute } from "@/lib/roles";
 
 export const Route = createFileRoute("/pae-expert/")({
   component: RouteComponent,
@@ -24,7 +25,8 @@ function RouteComponent() {
       return;
     }
     if (currentUser && currentUser.role !== "pae_expert") {
-      navigate({ to: "/home" });
+      const landing = getRoleLandingRoute(currentUser.role, currentUser._id);
+      navigate(landing as any);
     }
   }, [user, currentUser, navigate]);
 

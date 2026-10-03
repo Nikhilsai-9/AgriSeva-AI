@@ -27,6 +27,59 @@ export const isCoordinatorRole = (
   return COORDINATOR_ROLES.includes(role as CoordinatorRole);
 };
 
+export const MODERATOR_ROLES = [
+  "admin",
+  "moderator",
+  "tester",
+] as const;
+
+export type ModeratorRole = (typeof MODERATOR_ROLES)[number];
+
+export const isModeratorRole = (
+  role?: string | UserRole | null,
+): role is ModeratorRole => {
+  return MODERATOR_ROLES.includes(role as ModeratorRole);
+};
+
+export const isFarmerOrUserRole = (
+  role?: string | UserRole | null,
+): boolean => {
+  return !role || role === "user" || role === "farmer";
+};
+
+export interface RoleLandingRoute {
+  to: string;
+  params?: Record<string, string>;
+}
+
+export const getRoleLandingRoute = (
+  role?: string | UserRole | null,
+  userId?: string,
+): RoleLandingRoute => {
+  if (isCoordinatorRole(role)) {
+    return {
+      to: "/user/$userId",
+      params: { userId: userId || "" },
+    };
+  }
+  if (role === "pae_expert") {
+    return { to: "/pae-expert" };
+  }
+  if (isModeratorRole(role)) {
+    return { to: "/home" };
+  }
+  if (
+    role === "expert" ||
+    role === "call_agent" ||
+    role === "gate_keeper" ||
+    role === "auditor"
+  ) {
+    return { to: "/home" };
+  }
+  // Default to farmer dashboard for user, farmer, or any unassigned/regular role
+  return { to: "/farmer" };
+};
+
 /** Roles allowed to open the User / Expert Management page. */
 export const USER_MANAGEMENT_ROLES = [
   "admin",
@@ -55,3 +108,4 @@ export const QUEUE_DETAILS_ROLES = [
 /** Whether this role sees the queue tools in the Management Tools drawer. */
 export const canViewQueueDetails = (role?: string | UserRole | null): boolean =>
   QUEUE_DETAILS_ROLES.includes(role as (typeof QUEUE_DETAILS_ROLES)[number]);
+

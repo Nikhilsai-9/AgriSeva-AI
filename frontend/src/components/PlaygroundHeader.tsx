@@ -5,7 +5,7 @@ import { MobileSidebar } from "./mobile-sidebar";
 import { HoverCard } from "./atoms/hover-card";
 import { NotificationModal } from "./NotificationModal";
 import { TabsList, TabsTrigger } from "@/components/atoms/tabs";
-import { canManageUsers } from "@/lib/roles";
+import { canManageUsers, isModeratorRole } from "@/lib/roles";
 import { AgriSevaBrand } from "./AgriSevaBrand";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useTranslation } from "@/locales";
@@ -35,11 +35,7 @@ export function PlaygroundHeader({
 
         <div className="flex-1 lg:flex justify-center min-w-0 hidden ">
           <TabsList className="flex gap-2 overflow-x-auto whitespace-nowrap bg-transparent p-0 no-scrollbar">
-            {user &&
-              user.role !== "expert" &&
-              user.role !== "call_agent" &&
-              user.role !== "gate_keeper" &&
-              user.role !== "auditor" && (
+            {user && isModeratorRole(user.role) && (
                 <TabsTrigger
                   value="performance"
                   className="px-2 md:px-3 py-1.5 rounded-lg font-medium text-sm md:text-base transition-all duration-150 flex-shrink-0"

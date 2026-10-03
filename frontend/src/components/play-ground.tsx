@@ -19,8 +19,7 @@ import { ExpertDashboard } from "./ExpertDashboard";
 import { GateKeeperAuditorDashboard } from "./GateKeeperAuditorDashboard";
 import { NotificationModal } from "./NotificationModal";
 import { AnnamDashboard_dev as AnnamDashboard } from "../features/chatbotDashboard/AnnamDashboard_dev";
-import { cn } from "@/lib/utils";
-import { canManageUsers } from "@/lib/roles";
+import { canManageUsers, isModeratorRole } from "@/lib/roles";
 import { CallInterface } from "./CallInterface";
 import { CallHistory } from "./CallHistory";
 import { ManageCallAgents } from "./ManageCallAgents";
@@ -29,7 +28,7 @@ import { DataProcessingDashboard } from "../features/faq-pop/DataProcessingDashb
 import { CallAgentDashboard } from "./CallAgentDashboard";
 import { UserService } from "@/hooks/services/userService";
 
-export const PlaygroundPage = () => {
+export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => {
   const { data: user } = useGetCurrentUser({});
   const navigate = useNavigate();
   const userId = user?._id?.toString();
@@ -67,17 +66,19 @@ export const PlaygroundPage = () => {
     if (!user?.email) return null;
     return `playground_active_tab_${user.email}`;
   };
-  const explicitSelectionTab = selectedRequestId
-    ? "request_queue"
-    : selectedHistoryId
-      ? "history"
-      : selectedQuestionId
-        ? user?.role === "expert"
-          ? "questions"
-          : "all_questions"
-        : selectedCommentId
-          ? "all_questions"
-          : null;
+  const explicitSelectionTab = initialTab
+    ? initialTab
+    : selectedRequestId
+      ? "request_queue"
+      : selectedHistoryId
+        ? "history"
+        : selectedQuestionId
+          ? user?.role === "expert"
+            ? "questions"
+            : "all_questions"
+          : selectedCommentId
+            ? "all_questions"
+            : null;
 
   // Guards the default-tab effect so it initialises once per user (and re-runs only when
   // an explicit selection changes). react-query gives `user` a new identity on every
@@ -108,16 +109,20 @@ export const PlaygroundPage = () => {
           ? "call_interface"
           : user.role === "gate_keeper" || user.role === "auditor"
             ? "roleDashboard"
-            : "performance";
+            : isModeratorRole(user.role)
+              ? "performance"
+              : "all_questions";
 
     // A tab saved before the role changed (or before roleDashboard existed) can point at
     // content this role no longer renders, leaving a blank page. Drop it in that case.
     const savedTab = localStorage.getItem(storageKey);
     const isGateKeeperOrAuditor =
       user.role === "gate_keeper" || user.role === "auditor";
+    const isModerator = isModeratorRole(user.role);
     const savedTabValid =
       !!savedTab &&
-      (isGateKeeperOrAuditor ? savedTab !== "performance" : savedTab !== "roleDashboard");
+      (isGateKeeperOrAuditor ? savedTab !== "performance" : savedTab !== "roleDashboard") &&
+      (isModerator || savedTab !== "performance");
 
     if (savedTab && savedTabValid) {
       setActiveTab(savedTab);
@@ -281,11 +286,7 @@ export const PlaygroundPage = () => {
         <div className="h-full py-4 sm:py-6 min-w-0 max-w-[1920px] mx-auto w-full">
           <div className="grid h-full items-stretch gap-6 min-w-0">
             <div className="md:order-1 w-full min-w-0">
-              {user &&
-                user.role !== "expert" &&
-                user.role !== "call_agent" &&
-                user.role !== "gate_keeper" &&
-                user.role !== "auditor" && (
+              {user && isModeratorRole(user.role) && (
                 <TabsContent
                   value="performance"
                   className={cn(

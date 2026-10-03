@@ -4,7 +4,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useEffect } from "react";
 import { z } from "zod";
 import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
-import { isCoordinatorRole } from "@/lib/roles";
+import { isCoordinatorRole, isFarmerOrUserRole } from "@/lib/roles";
 import { useTranslation } from "@/locales";
 import { PageMeta } from "@/components/PageMeta";
 export const Route = createFileRoute("/home/")({
@@ -30,6 +30,8 @@ function RouteComponent() {
       navigate({ to: "/auth" });
       return;
     }
+    if (isLoading) return;
+
     if (currentUser?.role === "pae_expert") {
       navigate({ to: "/pae-expert" });
       return;
@@ -41,10 +43,21 @@ function RouteComponent() {
       });
       return;
     }
-  }, [user, currentUser, navigate]);
+    // Normal users and farmers MUST land on /farmer — never on internal staff /home
+    if (isFarmerOrUserRole(currentUser?.role)) {
+      navigate({ to: "/farmer" });
+      return;
+    }
+  }, [user, currentUser, isLoading, navigate]);
 
   // While loading user auth state or redirecting
-  if (!user || isLoading || currentUser?.role === "pae_expert" || isCoordinatorRole(currentUser?.role)) {
+  if (
+    !user ||
+    isLoading ||
+    currentUser?.role === "pae_expert" ||
+    isCoordinatorRole(currentUser?.role) ||
+    isFarmerOrUserRole(currentUser?.role)
+  ) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground gap-4">
         <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />

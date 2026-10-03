@@ -2,7 +2,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
-import { isCoordinatorRole } from "@/lib/roles";
+import { isCoordinatorRole, isFarmerOrUserRole } from "@/lib/roles";
 import { AnnamDashboard_dev as AnnamDashboard } from "@/features/chatbotDashboard/AnnamDashboard_dev";
 import { Tabs } from "@/components/atoms/tabs";
 import { PlaygroundHeader } from "@/components/PlaygroundHeader";
@@ -102,6 +102,10 @@ function RouteComponent() {
       });
       return;
     }
+    if (isFarmerOrUserRole(currentUser?.role)) {
+      navigate({ to: "/farmer" });
+      return;
+    }
     // Chatbot Analytics was only ever shown to non-expert, non-call-agent
     // roles as an in-home tab — preserve that same access rule now that it
     // has a direct URL.
@@ -109,7 +113,7 @@ function RouteComponent() {
       navigate({ to: "/home" });
       return;
     }
-  }, [user, currentUser, navigate]);
+  }, [user, currentUser, isLoading, navigate]);
 
   const blocked =
     !user ||
@@ -117,7 +121,8 @@ function RouteComponent() {
     currentUser?.role === "pae_expert" ||
     isCoordinatorRole(currentUser?.role) ||
     currentUser?.role === "expert" ||
-    currentUser?.role === "call_agent";
+    currentUser?.role === "call_agent" ||
+    isFarmerOrUserRole(currentUser?.role);
 
   // Any *other* tab picked from this same header should behave exactly like
   // clicking it does on /home: persist it under the same per-user storage

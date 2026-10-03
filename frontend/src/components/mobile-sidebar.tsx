@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { canManageUsers, isCoordinatorRole } from "@/lib/roles";
+import { canManageUsers, isCoordinatorRole, isModeratorRole } from "@/lib/roles";
 import { Sheet, SheetContent, SheetTrigger } from "./atoms/sheet";
 import { AgriSevaBrand } from "./AgriSevaBrand";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -79,9 +79,11 @@ export const MobileSidebar = ({
       ? "call_interface"
       : user?.role === "gate_keeper" || user?.role === "auditor"
         ? "roleDashboard"
-        : user?.role !== "expert"
+        : isModeratorRole(user?.role)
           ? "performance"
-          : "questions",
+          : user?.role === "expert"
+            ? "questions"
+            : "farmer",
   );
   const isCoordinator = isCoordinatorRole(user?.role);
   const handleClick = (value: string) => {
@@ -102,13 +104,8 @@ export const MobileSidebar = ({
   };
 
   const menuItems = [
-    // Gate keepers and auditors get their own role dashboard; every other non-expert,
-    // non-call-agent role gets the standard performance dashboard.
-    ...(user &&
-    user.role !== "expert" &&
-    user.role !== "call_agent" &&
-    user.role !== "gate_keeper" &&
-    user.role !== "auditor"
+    // Only moderators, admins, and testers get the performance dashboard
+    ...(user && isModeratorRole(user.role)
       ? [{ id: "performance", label: t("sidebar.dashboard", "Dashboard"), icon: BarChart3 }]
       : []),
 

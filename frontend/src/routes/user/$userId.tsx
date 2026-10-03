@@ -42,7 +42,7 @@ import {
 } from "@/components/atoms/alert-dialog";
 import { Input } from "@/components/atoms/input";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { isCoordinatorRole } from "@/lib/roles";
+import { isCoordinatorRole, getRoleLandingRoute } from "@/lib/roles";
 import { NotificationModal } from "@/components/NotificationModal";
 import { apiFetch } from "@/hooks/api/api-fetch";
 import { env } from "@/config/env";
@@ -99,7 +99,8 @@ function RouteComponent() {
         params: { userId: currentUser?._id || "" },
       });
     } else {
-      navigate({ to: "/home" });
+      const landing = getRoleLandingRoute(currentUser?.role, currentUser?._id || user?.uid);
+      navigate(landing as any);
     }
   };
   const { userId } = Route.useParams();
@@ -144,7 +145,8 @@ function RouteComponent() {
 
         if (userProfile?.userId) return;
       }
-      navigate({ to: "/home" });
+      const landing = getRoleLandingRoute(currentUser?.role, currentUser?._id || user?.uid);
+      navigate(landing as any);
       return;
     }
   }, [user, currentUser, navigate, userProfile, userProfileLoading]);

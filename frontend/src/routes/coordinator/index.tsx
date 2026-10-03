@@ -1,7 +1,7 @@
 import { UserProfileActions } from "@/components/atoms/user-profile-actions";
 import { ThemeToggleCompact } from "@/components/atoms/ThemeToggle";
 import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
-import { isCoordinatorRole } from "@/lib/roles";
+import { isCoordinatorRole, getRoleLandingRoute } from "@/lib/roles";
 import { useAuthStore } from "@/stores/auth-store";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
@@ -24,7 +24,8 @@ function RouteComponent() {
     }
 
     if (currentUser && !isCoordinatorRole(currentUser.role)) {
-      navigate({ to: "/home" });
+      const landing = getRoleLandingRoute(currentUser.role, currentUser._id);
+      navigate(landing as any);
     }
   }, [user, currentUser, navigate]);
 

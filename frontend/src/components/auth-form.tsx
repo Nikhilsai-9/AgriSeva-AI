@@ -13,7 +13,7 @@ import { useSignup } from "@/hooks/api/auth/useSignup";
 import { isDevelopment } from "@/shared/app";
 import { useToast } from "@/shared/components/toast";
 import { AgriSevaBrand } from "./AgriSevaBrand";
-import { isCoordinatorRole } from "@/lib/roles";
+import { getRoleLandingRoute } from "@/lib/roles";
 
 interface AuthFormProps extends React.ComponentProps<"div"> {
   mode?: "login" | "signup";
@@ -165,18 +165,11 @@ export const AuthForm = ({
         name: result!.user.displayName || firstName,
         avatar: result!.user.photoURL || "",
       });
-      if (isCoordinatorRole(result?.appUser?.role)) {
-        navigate({
-          to: "/user/$userId",
-          params: { userId: result?.appUser?._id || result!.user.uid } as any,
-        });
-      } else if (result?.appUser?.role === "pae_expert") {
-        navigate({ to: "/pae-expert" });
-      } else if (result?.appUser?.role === "farmer") {
-        navigate({ to: "/farmer" });
-      } else {
-        navigate({ to: "/home" });
-      }
+      const landing = getRoleLandingRoute(
+        result?.appUser?.role,
+        result?.appUser?._id || result!.user.uid
+      );
+      navigate(landing as any);
     } catch (error: any) {
       console.error("Auth failed", error);
 

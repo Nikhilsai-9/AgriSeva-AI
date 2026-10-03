@@ -47,6 +47,12 @@ export const useAuthStore = create<AuthStore>()(
           localStorage.removeItem("user-email");
           localStorage.removeItem("user-firstName");
           localStorage.removeItem("user-lastName");
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith("activeTab_") || key.startsWith("playground_active_tab_"))) {
+              localStorage.removeItem(key);
+            }
+          }
           set({ user: null, isAuthenticated: false });
         },
         updateUser: (data) =>
@@ -113,7 +119,18 @@ export const useAuthStore = create<AuthStore>()(
           try {
             await signOut(auth);
             queryClient.clear();
+            localStorage.removeItem("firebase-auth-token");
+            localStorage.removeItem("user-id");
+            localStorage.removeItem("user-email");
+            localStorage.removeItem("user-firstName");
+            localStorage.removeItem("user-lastName");
             localStorage.removeItem("questionDrafts");
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const key = localStorage.key(i);
+              if (key && (key.startsWith("activeTab_") || key.startsWith("playground_active_tab_"))) {
+                localStorage.removeItem(key);
+              }
+            }
             set(
               { user: null, firebaseUser: null, loading: false, isAuthenticated: false },
               undefined,
