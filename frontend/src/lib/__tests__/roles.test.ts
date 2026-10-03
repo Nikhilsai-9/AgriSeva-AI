@@ -107,4 +107,22 @@ describe("Role and Permission Architecture Audit Tests", () => {
       expect(canManageUsers(undefined)).toBe(false);
     });
   });
+
+  describe("Role-to-Route Permission Matrix", () => {
+    it("ensures normal users are permitted to access user-facing areas but not staff tools", () => {
+      const normalUserRole = "farmer";
+      expect(isFarmerOrUserRole(normalUserRole)).toBe(true);
+      expect(isModeratorRole(normalUserRole)).toBe(false);
+      expect(isCoordinatorRole(normalUserRole)).toBe(false);
+      expect(canManageUsers(normalUserRole)).toBe(false);
+    });
+
+    it("ensures moderator role preserves access to staff tools while restricted from coordinator profile redirect", () => {
+      const moderatorRole = "moderator";
+      expect(isModeratorRole(moderatorRole)).toBe(true);
+      expect(isFarmerOrUserRole(moderatorRole)).toBe(false);
+      expect(isCoordinatorRole(moderatorRole)).toBe(false);
+      expect(canManageUsers(moderatorRole)).toBe(true);
+    });
+  });
 });

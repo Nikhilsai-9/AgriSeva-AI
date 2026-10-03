@@ -19,7 +19,7 @@ import { ExpertDashboard } from "./ExpertDashboard";
 import { GateKeeperAuditorDashboard } from "./GateKeeperAuditorDashboard";
 import { NotificationModal } from "./NotificationModal";
 import { AnnamDashboard_dev as AnnamDashboard } from "../features/chatbotDashboard/AnnamDashboard_dev";
-import { canManageUsers, isModeratorRole } from "@/lib/roles";
+import { canManageUsers, isFarmerOrUserRole, isModeratorRole } from "@/lib/roles";
 import { CallInterface } from "./CallInterface";
 import { CallHistory } from "./CallHistory";
 import { ManageCallAgents } from "./ManageCallAgents";
@@ -111,7 +111,9 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
             ? "roleDashboard"
             : isModeratorRole(user.role)
               ? "performance"
-              : "all_questions";
+              : isFarmerOrUserRole(user.role)
+                ? "dashboard"
+                : "all_questions";
 
     // A tab saved before the role changed (or before roleDashboard existed) can point at
     // content this role no longer renders, leaving a blank page. Drop it in that case.
@@ -131,6 +133,12 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
       localStorage.setItem(storageKey, defaultTab);
     }
   }, [user?.role, user?.email, explicitSelectionTab]);
+
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Heartbeat for Call Agents
   useEffect(() => {
@@ -228,7 +236,7 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
     }
 
     // Farmer Dashboard is its own route (/farmer/*).
-    if (value === "farmer_dashboard") {
+    if (value === "farmer_dashboard" || value === "farmer") {
       navigate({ to: "/farmer" });
       return;
     }
@@ -237,6 +245,7 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
     if (!storageKey) return;
     setActiveTab(value);
     localStorage.setItem(storageKey, value);
+    navigate({ to: "/home", search: (prev: any) => ({ ...prev, tab: value }) });
 
     if (value !== "questions") {
       setSelectedQuestionId(null);
@@ -247,7 +256,7 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
       setSelectedRequestId(null);
     }
 
-    if (value !== "all_questions") {
+    if (value !== "all_questions" && value !== "dashboard") {
       setSelectedCommentId(null);
     }
     if (value !== "history") {
@@ -286,6 +295,24 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
         <div className="h-full py-4 sm:py-6 min-w-0 max-w-[1920px] mx-auto w-full">
           <div className="grid h-full items-stretch gap-6 min-w-0">
             <div className="md:order-1 w-full min-w-0">
+              {user && isFarmerOrUserRole(user.role) && (
+                <TabsContent
+                  value="dashboard"
+                  className={cn(
+                    "mt-0 border-0 md:px-8 outline-none",
+                    "data-[state=active]:animate-in",
+                    "data-[state=active]:fade-in-0",
+                    "data-[state=active]:zoom-in-[0.98]",
+                    "data-[state=active]:slide-in-from-bottom-3",
+                    "duration-500 ease-out",
+                  )}
+                >
+                  <QuestionsPage
+                    currentUser={user!}
+                    autoOpenQuestionId={selectedCommentId || selectedQuestionId}
+                  />
+                </TabsContent>
+              )}
               {user && isModeratorRole(user.role) && (
                 <TabsContent
                   value="performance"

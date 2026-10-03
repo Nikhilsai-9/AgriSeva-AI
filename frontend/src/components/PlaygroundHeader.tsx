@@ -5,7 +5,7 @@ import { MobileSidebar } from "./mobile-sidebar";
 import { HoverCard } from "./atoms/hover-card";
 import { NotificationModal } from "./NotificationModal";
 import { TabsList, TabsTrigger } from "@/components/atoms/tabs";
-import { canManageUsers, isModeratorRole } from "@/lib/roles";
+import { canManageUsers, isFarmerOrUserRole, isModeratorRole } from "@/lib/roles";
 import { AgriSevaBrand } from "./AgriSevaBrand";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useTranslation } from "@/locales";
@@ -29,12 +29,28 @@ export function PlaygroundHeader({
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex items-center justify-between gap-1.5 xxs:gap-2 sm:gap-3 lg:gap-4 px-2 xxs:px-3 sm:px-4 py-1.5 sm:py-2 min-h-[52px] sm:min-h-[60px]">
         {/* AgriSeva Brand Logo & Tagline */}
-        <div className="flex items-center shrink-0 cursor-pointer min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer min-w-0">
+          <MobileSidebar
+            user={user!}
+            activeTab={activeTab}
+            setTab={setTab}
+            setChatbotSource={setChatbotSource}
+          />
           <AgriSevaBrand size="sm" showSlogan={false} compactBelowSm={true} />
         </div>
 
         <div className="flex-1 lg:flex justify-center min-w-0 hidden ">
           <TabsList className="flex gap-2 overflow-x-auto whitespace-nowrap bg-transparent p-0 no-scrollbar">
+            {user && isFarmerOrUserRole(user.role) && (
+              <TabsTrigger
+                value="dashboard"
+                className="px-2 md:px-3 py-1.5 rounded-lg font-medium text-sm md:text-base transition-all duration-150 flex-shrink-0"
+              >
+                <HoverCard openDelay={150}>
+                  <span>{t("dashboard.tabsDashboard", "Dashboard")}</span>
+                </HoverCard>
+              </TabsTrigger>
+            )}
             {user && isModeratorRole(user.role) && (
                 <TabsTrigger
                   value="performance"
@@ -215,19 +231,8 @@ export function PlaygroundHeader({
 
           <ThemeToggleCompact />
 
-          {/* Profile — only visible on lg+ so it doesn't crowd 320-480px widths
-           * where the hamburger includes it. */}
-          <div className="hidden lg:block">
-            <UserProfileActions />
-          </div>
-
-          {/* Hamburger is mobile-only. On desktop the role-aware navigation
-           * is reachable through the horizontal tab strip directly above. */}
-          <MobileSidebar
-            user={user!}
-            setTab={setTab}
-            setChatbotSource={setChatbotSource}
-          />
+          {/* Profile chip visible across mobile, tablet, and desktop */}
+          <UserProfileActions />
         </div>
       </div>
     </header>

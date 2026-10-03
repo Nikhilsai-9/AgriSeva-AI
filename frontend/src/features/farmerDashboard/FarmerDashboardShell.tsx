@@ -89,13 +89,11 @@ export function FarmerDashboardShell() {
    * regardless of which tab they clicked.
    */
   const handleTabChange = (value: string) => {
-    if (value === FARMER_DASHBOARD_TAB) return; // already here
-    navigate({ to: "/home" });
-    // We deliberately do NOT set any local activeTab — PlaygroundPage
-    // owns the active-tab state on /home. Browser history + a fresh
-    // render inside PlaygroundPage re-derives the active tab from
-    // localStorage / explicit selection just like any other navigation
-    // to /home does.
+    if (value === FARMER_DASHBOARD_TAB || value === "farmer") return; // already here
+    if (user?.email) {
+      localStorage.setItem(`playground_active_tab_${user.email}`, value);
+    }
+    navigate({ to: "/home", search: { tab: value } });
   };
 
   // setTab is required by <PlaygroundHeader/> (the MobileSidebar uses it

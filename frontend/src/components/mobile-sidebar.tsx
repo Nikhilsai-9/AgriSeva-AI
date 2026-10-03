@@ -16,8 +16,8 @@ import {
   Users,
 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { canManageUsers, isCoordinatorRole, isModeratorRole } from "@/lib/roles";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { canManageUsers, isCoordinatorRole, isFarmerOrUserRole, isModeratorRole } from "@/lib/roles";
 import { Sheet, SheetContent, SheetTrigger } from "./atoms/sheet";
 import { AgriSevaBrand } from "./AgriSevaBrand";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -64,27 +64,41 @@ const SidebarButton = ({
 
 export const MobileSidebar = ({
   user,
+  activeTab: activeTabProp,
   setTab,
   setChatbotSource,
 }: {
   user: IUser;
+  activeTab?: string;
   setTab: (value: string) => void;
   setChatbotSource: (value: "whatsapp" | "annam" | "acc") => void;
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState(
-    user?.role === "call_agent"
-      ? "call_interface"
-      : user?.role === "gate_keeper" || user?.role === "auditor"
-        ? "roleDashboard"
-        : isModeratorRole(user?.role)
-          ? "performance"
-          : user?.role === "expert"
-            ? "questions"
-            : "farmer",
-  );
+  const routerState = useRouterState();
+  const pathname = routerState?.location?.pathname || "";
+  const search = (routerState?.location?.search || {}) as Record<string, string>;
+
+  const getComputedActiveTab = () => {
+    if (pathname.startsWith("/farmer")) return "farmer";
+    if (pathname === "/chatbot") return "chatbotanalytics";
+    if (pathname === "/whatsapp-history") return "whatsapp_history";
+    if (pathname === "/home" || pathname === "/") {
+      if (search?.tab) {
+        if (search.tab === "upload") return "upload";
+        if (search.tab === "all_questions") return "all_questions";
+        if (search.tab === "dashboard") return "dashboard";
+        return search.tab;
+      }
+      if (user && isFarmerOrUserRole(user.role)) return "dashboard";
+      if (user && isModeratorRole(user.role)) return "performance";
+      if (user?.role === "expert") return "questions";
+    }
+    return activeTabProp || (user && isFarmerOrUserRole(user.role) ? "dashboard" : "farmer");
+  };
+
+  const activeTab = getComputedActiveTab();
   const isCoordinator = isCoordinatorRole(user?.role);
   const handleClick = (value: string) => {
     if (value === "chatbotanalytics") {
@@ -92,18 +106,26 @@ export const MobileSidebar = ({
       navigate({ to: "/chatbot" });
     } else if (value === "whatsapp_history") {
       navigate({ to: "/whatsapp-history" });
-    } else if (value === "farmer") {
+    } else if (value === "farmer" || value === "farmer_dashboard") {
       // Farmer Dashboard lives at its own route.
       navigate({ to: "/farmer" });
     } else {
       setTab(value);
-      setActiveTab(value);
+      if (user?.email) {
+        localStorage.setItem(`playground_active_tab_${user.email}`, value);
+      }
+      navigate({ to: "/home", search: { tab: value } });
     }
 
     setOpen(false);
   };
 
   const menuItems = [
+    // Dashboard for normal users (farmer or regular user)
+    ...(user && isFarmerOrUserRole(user.role)
+      ? [{ id: "dashboard", label: t("sidebar.dashboard", "Dashboard"), icon: BarChart3 }]
+      : []),
+
     // Only moderators, admins, and testers get the performance dashboard
     ...(user && isModeratorRole(user.role)
       ? [{ id: "performance", label: t("sidebar.dashboard", "Dashboard"), icon: BarChart3 }]
@@ -223,7 +245,10 @@ export const MobileSidebar = ({
               label={item.label}
               icon={item.icon}
               onClick={() => handleClick(item.id)}
-              isActive={item.id === activeTab}
+              isActive={
+                item.id === activeTab ||
+                (item.id === "farmer" && activeTab === "farmer_dashboard")
+              }
             />
           ))}
         </nav>

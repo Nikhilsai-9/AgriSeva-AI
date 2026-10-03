@@ -119,7 +119,7 @@ export function FarmerContent() {
           primary={PRIMARY_NAV}
           secondary={SECONDARY_NAV}
         />
-        <main className="flex-1 min-w-0 pb-28 lg:pb-10 pb-safe">
+        <main className="flex-1 min-w-0 pb-28 md:pb-10 pb-safe">
           <Outlet />
         </main>
       </div>
@@ -153,7 +153,7 @@ export function FarmerLayout() {
           primary={PRIMARY_NAV}
           secondary={SECONDARY_NAV}
         />
-        <main className="flex-1 min-w-0 pb-28 lg:pb-10">
+        <main className="flex-1 min-w-0 pb-28 md:pb-10">
           <Outlet />
         </main>
       </div>
@@ -190,7 +190,7 @@ function SideNav({
   secondary: NavItem[];
 }) {
   return (
-    <aside className="hidden lg:flex flex-col w-60 xl:w-64 shrink-0 border-r border-emerald-100 bg-white/70 backdrop-blur-sm h-[calc(100vh-7rem)] sticky top-16 overflow-y-auto py-4">
+    <aside className="hidden md:flex flex-col md:w-16 lg:w-60 xl:w-64 shrink-0 border-r border-emerald-100 bg-white/70 backdrop-blur-sm h-[calc(100vh-7rem)] sticky top-16 overflow-y-auto py-4 transition-all duration-200">
       <NavGroup
         title={t("farmer.nav.marketGroup", "Market")}
         items={primary}
@@ -219,8 +219,8 @@ function NavGroup({
   t: (k: string, fb: string) => string;
 }) {
   return (
-    <div className="px-3 mb-4">
-      <p className="px-3 text-[11px] uppercase tracking-wider text-emerald-700/70 font-semibold mb-2">
+    <div className="px-1.5 md:px-2 lg:px-3 mb-4">
+      <p className="px-1 lg:px-3 text-[11px] uppercase tracking-wider text-emerald-700/70 font-semibold mb-2 hidden lg:block">
         {title}
       </p>
       <div className="flex flex-col gap-1">
@@ -247,18 +247,20 @@ function NavLink({
   t: (k: string, fb: string) => string;
 }) {
   const Icon = item.icon;
+  const label = t(item.labelKey, fallbackFor(item));
   return (
     <Link
       to={item.to}
+      title={label}
       className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+        "flex items-center gap-3 px-2 lg:px-3 py-2 rounded-lg text-sm font-medium transition-colors md:justify-center lg:justify-start",
         active
           ? "bg-emerald-600 text-white shadow"
           : "text-emerald-900 hover:bg-emerald-50"
       )}
     >
-      <Icon className="h-4 w-4" />
-      <span>{t(item.labelKey, fallbackFor(item))}</span>
+      <Icon className="h-5 w-5 shrink-0" />
+      <span className="truncate hidden lg:inline">{label}</span>
     </Link>
   );
 }
@@ -273,7 +275,7 @@ function BottomNav({
   items: NavItem[];
 }) {
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-emerald-100 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] pb-safe">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-emerald-100 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] pb-safe">
       <div className="grid grid-cols-5">
         {items.map((item) => {
           const active = isActive(pathname, item);

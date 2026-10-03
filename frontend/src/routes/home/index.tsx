@@ -9,12 +9,13 @@ import { useTranslation } from "@/locales";
 import { PageMeta } from "@/components/PageMeta";
 export const Route = createFileRoute("/home/")({
   validateSearch: z.object({
+    tab: z.string().optional(),
     question: z.string().optional(),
     request: z.string().optional(),
     comment: z.string().optional(),
-    history:z.string().optional(),
-    expertId:z.string().optional(),
-    questionType:z.string().optional()
+    history: z.string().optional(),
+    expertId: z.string().optional(),
+    questionType: z.string().optional(),
   }),
   component: RouteComponent,
 });
@@ -23,6 +24,7 @@ function RouteComponent() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const { data: currentUser, isLoading } = useGetCurrentUser({});
 
   useEffect(() => {
@@ -43,11 +45,6 @@ function RouteComponent() {
       });
       return;
     }
-    // Normal users and farmers MUST land on /farmer — never on internal staff /home
-    if (isFarmerOrUserRole(currentUser?.role)) {
-      navigate({ to: "/farmer" });
-      return;
-    }
   }, [user, currentUser, isLoading, navigate]);
 
   // While loading user auth state or redirecting
@@ -55,8 +52,7 @@ function RouteComponent() {
     !user ||
     isLoading ||
     currentUser?.role === "pae_expert" ||
-    isCoordinatorRole(currentUser?.role) ||
-    isFarmerOrUserRole(currentUser?.role)
+    isCoordinatorRole(currentUser?.role)
   ) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground gap-4">
@@ -72,7 +68,7 @@ function RouteComponent() {
         title="Dashboard"
         description="AgriSeva-AI Multilingual AI Agricultural Advisory, Mandi Market Intelligence, and Expert Support."
       />
-      <PlaygroundPage />
+      <PlaygroundPage initialTab={search.tab} />
     </div>
   );
 }
