@@ -6,6 +6,12 @@ import { useAuthStore } from "@/stores/auth-store";
 const userService = new UserService();
 
 export const useGetCurrentUser = (options?: { enabled?: boolean }) => {
+  const { user: authUser, isAuthenticated } = useAuthStore();
+  const isEnabled =
+    options?.enabled !== undefined
+      ? options.enabled
+      : Boolean(authUser || isAuthenticated);
+
   const { data, isLoading, error, refetch } = useQuery<IUser | null, Error>({
     queryKey: ["user"],
     queryFn: async () => {
@@ -23,7 +29,7 @@ export const useGetCurrentUser = (options?: { enabled?: boolean }) => {
       }
       return user;
     },
-    enabled: options?.enabled,
+    enabled: isEnabled,
   });
 
   return { data, isLoading, error, refetch };

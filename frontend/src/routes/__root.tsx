@@ -9,13 +9,35 @@ import { ContactOnboardingModal } from "@/components/ContactOnboardingModal";
 import { useAuthStore } from "@/stores/auth-store";
 import { useEffect } from "react";
 
-export const queryClient = new QueryClient();
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: (failureCount, error: any) => {
+        if (
+          error?.message?.includes("401") ||
+          error?.message?.includes("Unauthorized") ||
+          error?.status === 401 ||
+          error?.status === 403
+        ) {
+          return false;
+        }
+        return failureCount < 2;
+      },
+    },
+  },
+});
 
 function RootComponent() {
   const { initAuthListener } = useAuthStore();
 
   useEffect(() => {
-    initAuthListener();
+    const unsub = initAuthListener();
+    return () => {
+      if (typeof unsub === "function") {
+        unsub();
+      }
+    };
   }, [initAuthListener]);
 
   return (

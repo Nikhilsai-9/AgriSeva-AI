@@ -33,11 +33,12 @@
  */
 
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PlaygroundHeader } from "@/components/PlaygroundHeader";
 import { Tabs } from "@/components/atoms/tabs";
 import { FarmerContent } from "@/features/farmerDashboard/FarmerLayout";
 import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
+import { useAuthStore } from "@/stores/auth-store";
 import { PageMeta } from "@/components/PageMeta";
 
 /**
@@ -50,7 +51,14 @@ export const FARMER_DASHBOARD_TAB = "farmer_dashboard";
 
 export function FarmerDashboardShell() {
   const navigate = useNavigate();
-  const { data: user } = useGetCurrentUser({});
+  const { user: authUser, isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { data: user } = useGetCurrentUser({ enabled: Boolean(authUser || isAuthenticated) });
+
+  useEffect(() => {
+    if (!authLoading && !authUser && !isAuthenticated) {
+      navigate({ to: "/auth" });
+    }
+  }, [authLoading, authUser, isAuthenticated, navigate]);
 
   // Local chatbot-source state — the farmer surface does not consume
   // it, but <PlaygroundHeader/> requires both a setter and a value.
@@ -99,6 +107,14 @@ export function FarmerDashboardShell() {
   // Both setTab and onTabChange funnel through handleTabChange; the parent
   // <Tabs> below wires its own onValueChange to the same handler so the
   // desktop TabsTrigger clicks behave identically.
+
+  if (authLoading || (!authUser && !isAuthenticated)) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground gap-4">
+        <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-emerald-50 via-white to-amber-50 text-foreground flex flex-col">

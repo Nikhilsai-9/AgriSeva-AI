@@ -155,7 +155,7 @@ export const useFarmerDashboardStore = create<FarmerDashboardState>(
 );
 
 // Core queries.
-export const useFarmerProfile = () =>
+export const useFarmerProfile = (options?: { enabled?: boolean }) =>
   useQuery<FarmerProfile>({
     queryKey: ["farmer", "profile"],
     queryFn: async () => {
@@ -169,6 +169,7 @@ export const useFarmerProfile = () =>
       }
       return remote;
     },
+    enabled: options?.enabled,
     staleTime: 60_000,
   });
 

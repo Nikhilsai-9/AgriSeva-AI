@@ -3,6 +3,9 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getIdToken, type User } from "firebase/auth";
 
 export const getCurrentUser = (): Promise<User | null> => {
+  if (auth.currentUser) {
+    return Promise.resolve(auth.currentUser);
+  }
   return new Promise((resolve) => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       unsubscribe();
@@ -39,11 +42,6 @@ export const apiFetch = async <T>(
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
   };
-  // const headers = {
-  //   ...(options.headers || {}),
-  //   Authorization: token ? `Bearer ${token}` : "",
-  //   "Content-Type": "application/json",
-  // };
 
   // Add timeout to prevent hanging requests
   const controller = new AbortController();
@@ -73,11 +71,20 @@ export const apiFetch = async <T>(
 
     if (!res.ok) {
       if (res.status === 401) {
-        console.warn("Unauthorized request, clearing user and redirecting to login");
+        console.warn("Unauthorized request (401), clearing user session");
         const { clearUser } = useAuthStore.getState();
         clearUser();
-        window.location.href = "/auth";
-        return null;
+        // NEVER perform a hard reload if the user is already on an auth page!
+        if (typeof window !== "undefined") {
+          const isAuthPage =
+            window.location.pathname === "/auth" ||
+            window.location.pathname === "/auth/" ||
+            window.location.pathname.startsWith("/auth");
+          if (!isAuthPage) {
+            window.location.replace("/auth");
+          }
+        }
+        throw new Error("Unauthorized (401)");
       }
       let errorMessage = `Request failed with status ${res.status}`;
       if (data?.message) {

@@ -26,8 +26,9 @@ import { useTranslation } from "@/locales";
 export function ContactOnboardingModal() {
   const { t } = useTranslation();
   const { user, isAuthenticated } = useAuthStore();
-  const { data: profile, isLoading: isProfileLoading } = useFarmerProfile();
-  const { data: userProfile, isLoading: isUserLoading } = useGetCurrentUser({ enabled: isAuthenticated });
+  const isAuth = Boolean(isAuthenticated && user);
+  const { data: profile, isLoading: isProfileLoading } = useFarmerProfile({ enabled: isAuth });
+  const { data: userProfile, isLoading: isUserLoading } = useGetCurrentUser({ enabled: isAuth });
   const updateProfile = useUpdateFarmerProfile();
 
   const [phoneNumber, setPhoneNumber] = useState("");

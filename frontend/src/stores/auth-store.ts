@@ -20,12 +20,14 @@ interface AuthStore {
   updateUser: (data: Partial<AuthUser>) => void;
   loginWithGoogle: () => Promise<ExtendedUserCredential | null>;
   logout: () => Promise<void>;
-  initAuthListener: () => void;
+  initAuthListener: () => (() => void) | void;
   setUser: (user: AuthUser | null) => void;
   isAuthenticated: boolean;
   clearUser: () => void;
   setFirebaseUser: (user: User | null) => void;
 }
+
+let authListenerUnsubscribe: (() => void) | null = null;
 
 export const useAuthStore = create<AuthStore>()(
   devtools(
@@ -47,6 +49,7 @@ export const useAuthStore = create<AuthStore>()(
           localStorage.removeItem("user-email");
           localStorage.removeItem("user-firstName");
           localStorage.removeItem("user-lastName");
+          localStorage.removeItem("auth-storage");
           for (let i = localStorage.length - 1; i >= 0; i--) {
             const key = localStorage.key(i);
             if (key && (key.startsWith("activeTab_") || key.startsWith("playground_active_tab_"))) {
@@ -57,10 +60,14 @@ export const useAuthStore = create<AuthStore>()(
         },
         updateUser: (data) =>
           set(
-            (state) =>
-              state.user
-                ? { user: { ...state.user, ...data } }
-                : state,
+            (state) => {
+              if (!state.user) return state;
+              const hasDiff = Object.entries(data).some(
+                ([k, v]) => (state.user as any)[k] !== v
+              );
+              if (!hasDiff) return state;
+              return { user: { ...state.user, ...data } };
+            },
             undefined,
             "updateUser"
           ),
@@ -125,6 +132,7 @@ export const useAuthStore = create<AuthStore>()(
             localStorage.removeItem("user-firstName");
             localStorage.removeItem("user-lastName");
             localStorage.removeItem("questionDrafts");
+            localStorage.removeItem("auth-storage");
             for (let i = localStorage.length - 1; i >= 0; i--) {
               const key = localStorage.key(i);
               if (key && (key.startsWith("activeTab_") || key.startsWith("playground_active_tab_"))) {
@@ -143,8 +151,11 @@ export const useAuthStore = create<AuthStore>()(
         },
 
         initAuthListener: () => {
+          if (authListenerUnsubscribe) {
+            return authListenerUnsubscribe;
+          }
           set({ loading: true });
-          onAuthStateChanged(auth, async (firebaseUser) => {
+          authListenerUnsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
               const existingUser = useAuthStore.getState().user;
               const authUser: AuthUser = {
@@ -174,16 +185,11 @@ export const useAuthStore = create<AuthStore>()(
                   const backendUser = await res.json();
                   const resolvedPhone = backendUser?.farmerProfile?.phone || backendUser?.mobile || "";
                   const resolvedName = [backendUser?.firstName, backendUser?.lastName].filter(Boolean).join(" ").trim();
-                  set((state) => ({
-                    user: state.user
-                      ? {
-                          ...state.user,
-                          name: resolvedName || state.user.name,
-                          phone: resolvedPhone || state.user.phone,
-                          role: backendUser.role || state.user.role,
-                        }
-                      : state.user,
-                  }));
+                  useAuthStore.getState().updateUser({
+                    name: resolvedName || undefined,
+                    phone: resolvedPhone || undefined,
+                    role: backendUser.role || undefined,
+                  });
                 }
               } catch (profileErr) {
                 console.warn("[auth-store] Failed to fetch backend profile on init:", profileErr);
@@ -192,6 +198,7 @@ export const useAuthStore = create<AuthStore>()(
               set({ user: null, firebaseUser: null, loading: false, isAuthenticated: false });
             }
           });
+          return authListenerUnsubscribe;
         },
       }),
       {
