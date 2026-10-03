@@ -214,7 +214,7 @@ export const MobileSidebar = ({
       <SheetTrigger asChild>
         <button
           type="button"
-          className="p-2 rounded-lg hover:bg-accent transition-colors flex items-center justify-center cursor-pointer text-foreground shrink-0 select-none min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] lg:hidden"
+          className="p-2 rounded-lg hover:bg-accent transition-colors flex items-center justify-center cursor-pointer text-foreground shrink-0 select-none min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px]"
           aria-label={t("sidebar.menu", "Open navigation menu")}
           title={t("sidebar.menu", "Menu")}
         >
