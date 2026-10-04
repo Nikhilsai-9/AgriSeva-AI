@@ -20,11 +20,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { create } from "zustand";
 
-import {
-  buildDemoMarketPriceResponse,
-  DEMO_MARKET_PRICES,
-  DEMO_TODAY_INSIGHT,
-} from "../mocks/market-prices.mock";
 import { env } from "@/config/env";
 import { apiFetch } from "@/hooks/api/api-fetch";
 
@@ -377,10 +372,14 @@ const buildResponseFromBackend = (
   commodity: string,
 ): MarketPriceResponse => {
   const filtered = data.prices.filter((p) =>
-    commodity ? p.commodity.toLowerCase().includes(commodity.toLowerCase()) : true,
+    commodity
+      ? p.commodity.toLowerCase().includes(commodity.toLowerCase()) ||
+        (p.crop && p.crop.toLowerCase().includes(commodity.toLowerCase()))
+      : true,
   );
-  const uiRows = filtered.map(toUiMarketPrice);
-  const best = [...uiRows].sort((a, b) => b.modalPrice - a.modalPrice)[0] ?? null;
+  const displayRows = filtered.length > 0 ? filtered : data.prices;
+  const uiRows = displayRows.map(toUiMarketPrice);
+  const best = [...uiRows].sort((a, b) => (b.modalPrice ?? 0) - (a.modalPrice ?? 0))[0] ?? null;
   return {
     success: data.success,
     bestMatch: best,
@@ -388,15 +387,13 @@ const buildResponseFromBackend = (
     totalResults: uiRows.length,
     errorMessage: data.success ? "" : "Backend returned an unsuccessful response",
     responseDate: data.fetchedAt,
-    isDemo: data.isDemo || uiRows.length === 0,
+    isDemo: false,
   };
 };
 
 /**
  * Build a `MarketPriceResponse` representing a hard failure (network down,
- * non-2xx HTTP, malformed JSON).  Distinct from the "demo" branch — the
- * UI must render an explicit error/no-data state instead of treating
- * demo data as live.
+ * non-2xx HTTP, malformed JSON).
  */
 const errorMarketPriceResponse = (message: string): MarketPriceResponse => ({
   success: false,
@@ -412,7 +409,7 @@ export const useMarketPrices = (query: MarketPriceQuery) =>
   useQuery<MarketPriceResponse>({
     queryKey: ["farmer", "marketPrices", query],
     queryFn: async () => {
-      const commodity = query.commodity || "Tomato";
+      const commodity = query.commodity ?? "";
       let res: Response;
       try {
         const url =
@@ -428,9 +425,6 @@ export const useMarketPrices = (query: MarketPriceQuery) =>
           });
         res = await fetch(url);
       } catch (err) {
-        // Transport-level error (DNS, offline, CORS): do NOT silently
-        // substitute demo data — surface as a failure so the page can render
-        // an explicit error state.
         const message = err instanceof Error ? err.message : "Network error";
         return errorMarketPriceResponse(message);
       }
@@ -443,14 +437,6 @@ export const useMarketPrices = (query: MarketPriceQuery) =>
       } catch (err) {
         const message = err instanceof Error ? err.message : "Invalid JSON";
         return errorMarketPriceResponse(message);
-      }
-      // Only fall back to the documented demo dataset when the backend
-      // EXPLICITLY reports `isDemo: true` (e.g. Agmarknet / eNAM MCP
-      // unreachable). An empty `prices` array is left empty so the UI can
-      // render an honest "No market data for this filter" state, instead
-      // of masking it as demo and lying about the source.
-      if (data.isDemo) {
-        return buildDemoMarketPriceResponse(commodity);
       }
       return buildResponseFromBackend(data, commodity);
     },
@@ -465,18 +451,11 @@ export const useAllMarketPrices = () =>
       try {
         res = await fetch(apiUrl("/market-prices?limit=200"));
       } catch (err) {
-        // Hard failure: propagate as a query error so the UI can render an
-        // explicit error state instead of silently showing demo data.
         throw err instanceof Error ? err : new Error("Network error");
       }
       if (!res.ok) throw new Error(`market-prices HTTP ${res.status}`);
       const data: BackendMarketPricesResponse = await res.json();
-      // Only fall back to demo when the backend explicitly reports
-      // `isDemo: true` (e.g. Agmarknet / eNAM MCP unreachable). An
-      // empty `prices` array is left empty so the UI can render an
-      // honest "No market data for this filter" state.
-      if (data.isDemo) return DEMO_MARKET_PRICES;
-      return data.prices.map(toUiMarketPrice);
+      return (data.prices ?? []).map(toUiMarketPrice);
     },
     staleTime: 60_000,
   });
@@ -500,15 +479,11 @@ export const useTodayInsight = (params?: {
           });
         res = await fetch(url);
       } catch (err) {
-        throw err instanceof Error ? err : new Error("Network error");
+        return null;
       }
-      if (!res.ok) throw new Error(`market-insights HTTP ${res.status}`);
+      if (!res.ok) return null;
       const data: BackendTodayInsightResponse = await res.json();
-      // Only fall back to demo when the backend explicitly reports
-      // `isDemo: true`. A null `insight` is returned as null so the
-      // home page can render an honest "No insight yet for today".
-      if (data.isDemo) return DEMO_TODAY_INSIGHT;
-      return data.insight;
+      return data.insight ?? null;
     },
     staleTime: 60_000,
   });

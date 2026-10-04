@@ -143,7 +143,7 @@ export class LotController {
       harvestDate: body.harvestDate,
       images: body.images ?? [],
       notes: body.notes,
-      status: (body.status ?? 'draft') as LotStatus,
+      status: (body.status ?? 'active') as LotStatus,
       isDemo: false,
       createdAt: now,
       updatedAt: now,

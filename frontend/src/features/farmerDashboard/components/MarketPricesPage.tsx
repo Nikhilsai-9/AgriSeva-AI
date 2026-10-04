@@ -13,6 +13,8 @@ import { useTranslation } from "@/locales";
 import {
   useMarketPrices,
   useRefreshMarketPrices,
+  useFarmerProfile,
+  useMyLots,
   type MarketPriceQuery,
 } from "@/features/farmerDashboard/hooks/data";
 import {
@@ -67,9 +69,34 @@ const hoursAgo = (iso?: string): number | null => {
 
 export function MarketPricesPage() {
   const { t } = useTranslation();
+  const profile = useFarmerProfile();
+  const { data: lots } = useMyLots();
+
+  const profileCrop = (profile.data as any)?.primaryCrops?.[0] ?? (profile.data as any)?.primaryCrop;
+  const activeLotCrop = lots?.find((l) => l.status === "active")?.crop;
+  const initialCrop = profileCrop || activeLotCrop || "Tomato";
+  const initialState = (profile.data as any)?.state;
+
   const [filters, setFilters] = useState<MarketPriceQuery>({
-    commodity: "Tomato",
+    commodity: initialCrop,
+    state: initialState,
   });
+
+  useEffect(() => {
+    if (profile.data) {
+      const pCrop = (profile.data as any)?.primaryCrops?.[0] ?? (profile.data as any)?.primaryCrop;
+      const pState = (profile.data as any)?.state;
+      if (pCrop || pState) {
+        setFilters((prev) => ({
+          commodity: prev.commodity === "Tomato" && pCrop ? pCrop : prev.commodity,
+          state: prev.state === undefined && pState ? pState : prev.state,
+          district: prev.district,
+          market: prev.market,
+        }));
+      }
+    }
+  }, [profile.data]);
+
   const { data: prices, isLoading } = useMarketPrices(filters);
   const refresh = useRefreshMarketPrices();
 
@@ -102,7 +129,7 @@ export function MarketPricesPage() {
       <FarmerSectionTitle
         hint={t(
           "farmer.prices.hint",
-          "Live prices from government & private mandis across India. Demo dataset."
+          "Live verified mandi prices from Agmarknet & eNAM government registries across India."
         )}
         action={
           <div className="flex items-center gap-2">
@@ -110,11 +137,11 @@ export function MarketPricesPage() {
               data-testid="market-source-badge"
               className={cn(
                 "text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                sourceBadgeClass(prices?.isDemo ? "demo" : "agmarknet"),
+                sourceBadgeClass(prices?.bestMatch?.source || prices?.alternatives?.[0]?.source || "agmarknet"),
               )}
             >
               {sourceLabel(
-                prices?.isDemo ? "demo" : "agmarknet",
+                prices?.bestMatch?.source || prices?.alternatives?.[0]?.source || "agmarknet",
                 Boolean(prices?.isDemo),
                 t,
               )}
@@ -274,8 +301,23 @@ export function MarketPricesPage() {
           </div>
         </FarmerCard>
       ) : filtered.length === 0 ? (
-        <FarmerCard className="p-6 text-center text-emerald-900/70">
-          {t("farmer.prices.empty", "No prices match these filters yet.")}
+        <FarmerCard className="p-8 text-center text-emerald-900/70">
+          <p className="font-semibold text-emerald-900">
+            {t("farmer.prices.empty", "No mandi prices recorded for these filters today.")}
+          </p>
+          <p className="text-xs text-emerald-900/60 mt-1 max-w-md mx-auto">
+            {t(
+              "farmer.prices.emptyHint",
+              "Try selecting 'All States' to see national market rates for this commodity, or choose another crop."
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={() => setFilters((f) => ({ ...f, state: undefined, district: undefined }))}
+            className="mt-3 inline-flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl transition-colors"
+          >
+            {t("farmer.prices.clearLocation", "Clear State / District filter")}
+          </button>
         </FarmerCard>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">

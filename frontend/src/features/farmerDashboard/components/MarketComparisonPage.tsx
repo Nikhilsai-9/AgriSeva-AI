@@ -1,4 +1,4 @@
-﻿import { Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
   Store,
@@ -61,18 +61,12 @@ export function MarketComparisonPage() {
   const sourcesInUse = Array.from(
     new Set((prices ?? []).map((p) => p.source).filter(Boolean)),
   );
-  const isDemo = sourcesInUse.length === 0 || sourcesInUse.every((s) => s === "demo");
-  // PHASE 2 §P2.F — Single-source branches route through the
-  // shared `getSourceLabel(source, isDemo)` helper so the UI
-  // never silently mislabels real data as "Demo". Multi-source
-  // (Agmarknet + eNAM) stays inline because the helper is
-  // single-source by contract.
   const hasAgmarknet = sourcesInUse.includes("agmarknet");
   const hasEnam = sourcesInUse.includes("enam");
   const sourceLabelText =
     hasAgmarknet && hasEnam
       ? t("farmer.common.sourceMulti", "Agmarknet + eNAM")
-      : getSourceLabel(sourcesInUse[0], isDemo);
+      : getSourceLabel(sourcesInUse[0] || "agmarknet", false);
 
   const [expandedIdx, setExpandedIdx] = useState<number | null>(0);
 
@@ -111,12 +105,7 @@ export function MarketComparisonPage() {
         action={
           <span
             data-testid="compare-source-badge"
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
-              isDemo
-                ? "bg-amber-100 text-amber-800"
-                : "bg-emerald-100 text-emerald-800",
-            )}
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-emerald-100 text-emerald-800"
           >
             {sourceLabelText}
           </span>

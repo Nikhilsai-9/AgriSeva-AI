@@ -111,9 +111,10 @@ class GetMarketComparisonQuery {
 }
 
 class GetTodayInsightQuery {
-  @JSONSchema({description: 'Commodity', example: 'Tomato'})
+  @JSONSchema({description: 'Commodity (optional; defaults to most relevant active crop)', example: 'Tomato'})
+  @IsOptional()
   @IsString()
-  commodity!: string;
+  commodity?: string;
 
   @JSONSchema({description: 'State', example: 'Karnataka'})
   @IsOptional()

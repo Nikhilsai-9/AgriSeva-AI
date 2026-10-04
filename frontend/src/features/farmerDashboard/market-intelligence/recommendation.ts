@@ -143,9 +143,20 @@ export function recommendBestMarketForLot({
   costPerKm,
   logistics,
 }: RecommendBestMarketInput): MarketCandidate[] {
-  const filtered = prices.filter(
-    (p) => p.commodity.toLowerCase() === lot.crop.toLowerCase(),
-  );
+  const lotCrop = lot.crop.toLowerCase().trim();
+  const filtered = prices.filter((p) => {
+    const c = p.commodity.toLowerCase().trim();
+    if (c === lotCrop) return true;
+    if (c.includes(lotCrop) || lotCrop.includes(c)) return true;
+    if (lotCrop === "rice" && c.includes("paddy")) return true;
+    if (lotCrop === "paddy" && c.includes("rice")) return true;
+    if (lotCrop === "chana" && c.includes("gram")) return true;
+    if (lotCrop === "moong" && (c.includes("green gram") || c.includes("moong"))) return true;
+    if (lotCrop === "urad" && (c.includes("black gram") || c.includes("urd"))) return true;
+    if ((lotCrop === "tur" || lotCrop === "arhar") && (c.includes("arhar") || c.includes("tur") || c.includes("red gram"))) return true;
+    if (lotCrop === "til" && (c.includes("sesame") || c.includes("til") || c.includes("gingelly"))) return true;
+    return false;
+  });
   if (filtered.length === 0) return [];
 
   // First pass: compute realisable for every candidate so we know the max.

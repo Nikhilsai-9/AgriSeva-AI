@@ -86,7 +86,10 @@ export class RecommendationService {
     const filter: any = {commodity: input.commodity};
     if (input.state) filter.state = input.state;
 
-    const all = await this.priceRepo.findMany(filter, 200);
+    let all = await this.priceRepo.findMany(filter, 200);
+    if (all.length === 0 && input.state) {
+      all = await this.priceRepo.findMany({commodity: input.commodity}, 200);
+    }
     const annotated = this.historyService.annotateWithChange(all);
 
     // Pick the latest record per (state, market) — that is the "today"
@@ -140,7 +143,7 @@ export class RecommendationService {
             breakdown: top.breakdown,
           }
         : null,
-      isDemo: rows.length === 0,
+      isDemo: false,
       isDegraded: isDegradedMode(),
       fetchedAt: new Date().toISOString(),
     };

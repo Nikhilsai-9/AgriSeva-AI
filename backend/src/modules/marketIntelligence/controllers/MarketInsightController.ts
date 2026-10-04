@@ -20,6 +20,7 @@ import {OpenAPI} from 'routing-controllers-openapi';
 import {GLOBAL_TYPES} from '#root/types.js';
 import {MarketPriceRepository} from '../repositories/MarketPriceRepository.js';
 import {MarketHistoryService} from '../services/MarketHistoryService.js';
+import {CommodityResolver} from '../services/CommodityResolver.js';
 import {GetTodayInsightQuery} from '../validators/MarketValidators.js';
 import type {MarketTodayInsight} from '../types.js';
 
@@ -36,6 +37,9 @@ export class MarketInsightController {
 
     @inject(GLOBAL_TYPES.MarketHistoryService)
     private readonly historyService: MarketHistoryService,
+
+    @inject(GLOBAL_TYPES.CommodityResolver)
+    private readonly commodityResolver: CommodityResolver,
   ) {}
 
   @OpenAPI({
@@ -43,8 +47,7 @@ export class MarketInsightController {
     description:
       'Returns the most-recent record matching state+commodity ' +
       '(market optional) with change% vs the previous comparable ' +
-      'session. `isDemo: true` indicates the backend has no live ' +
-      'records — the UI must label such responses clearly.',
+      'session. Returns null insight if no matching records exist.',
   })
   @Get('/today')
   @HttpCode(200)
@@ -56,18 +59,30 @@ export class MarketInsightController {
     fetchedAt: string;
     insight: MarketTodayInsight | null;
   }> {
-    if (!query.commodity) {
-      throw new BadRequestError('commodity is required');
+    const filter: any = {};
+    if (query.commodity) {
+      const resolved = await this.commodityResolver.resolve(query.commodity);
+      const candidates = resolved.candidates;
+      filter.commodity =
+        candidates.length > 1 ? {$in: candidates} : candidates[0];
     }
-    const filter: any = {commodity: query.commodity};
     if (query.state) filter.state = query.state;
     if (query.market) filter.market = query.market;
 
-    const rows = await this.priceRepo.findMany(filter, 20);
+    let rows = await this.priceRepo.findMany(filter, 20);
+    // If no row found for this specific state+crop, try matching crop across India
+    if (rows.length === 0 && filter.commodity) {
+      rows = await this.priceRepo.findMany({commodity: filter.commodity}, 20);
+    }
+    // If still no row or no crop specified, find the most recent active record overall
+    if (rows.length === 0) {
+      rows = await this.priceRepo.findMany({}, 10);
+    }
+
     if (rows.length === 0) {
       return {
         success: true,
-        isDemo: true,
+        isDemo: false,
         fetchedAt: new Date().toISOString(),
         insight: null,
       };

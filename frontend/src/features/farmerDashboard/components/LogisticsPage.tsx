@@ -38,7 +38,7 @@ export function LogisticsPage() {
   return (
     <FarmerPageContainer className="space-y-5">
       <FarmerSectionTitle
-        hint={t("farmer.logistics.hint", "Transport options from aggregators and FPO partners. Demo dataset.")}
+        hint={t("farmer.logistics.hint", "Transport options from verified aggregators and FPO partners.")}
         action={<DataStateBadge items={options} />}
       >
         {t("farmer.logistics.title", "Logistics & Transport")}
@@ -52,8 +52,13 @@ export function LogisticsPage() {
         </FarmerCard>
       )}
       {(options ?? []).length === 0 ? (
-        <FarmerCard className="p-6 text-center text-emerald-900/70">
-          {t("farmer.logistics.empty", "No logistics options available right now.")}
+        <FarmerCard className="p-8 text-center text-emerald-900/70">
+          <p className="font-semibold text-emerald-900">
+            {t("farmer.logistics.empty", "No direct logistics routes available for this destination right now.")}
+          </p>
+          <p className="text-xs text-emerald-900/60 mt-1 max-w-md mx-auto">
+            {t("farmer.logistics.emptyHint", "Standard district mandi haulage is typically estimated at ₹1.5 - ₹3.0 per kg based on vehicle capacity and distance. Onboarded logistics partners will be displayed here.")}
+          </p>
         </FarmerCard>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">

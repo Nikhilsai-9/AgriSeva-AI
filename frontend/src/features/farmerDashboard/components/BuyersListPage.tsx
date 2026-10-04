@@ -74,8 +74,16 @@ export function BuyersListPage() {
       </FarmerCard>
 
       {ranked.length === 0 ? (
-        <FarmerCard className="p-6 text-center text-emerald-900/70">
-          {t("farmer.buyers.empty", "No buyers match your search yet.")}
+        <FarmerCard className="p-8 text-center text-emerald-900/70">
+          <p className="font-semibold text-emerald-900">
+            {t("farmer.buyers.empty", "No registered commercial buyers found in your district yet.")}
+          </p>
+          <p className="text-xs text-emerald-900/60 mt-1 max-w-md mx-auto">
+            {t(
+              "farmer.buyers.emptyHint",
+              "As licensed traders, institutional buyers, and food processing units register on AgriSeva, their verified profiles and procurement demand will appear here."
+            )}
+          </p>
         </FarmerCard>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">

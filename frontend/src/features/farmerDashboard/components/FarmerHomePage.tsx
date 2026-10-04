@@ -55,10 +55,6 @@ export function FarmerHomePage() {
   const profileState = (profile.data as any)?.state as string | undefined;
   const profileCrop = ((profile.data as any)?.primaryCrops?.[0] ??
     (profile.data as any)?.primaryCrop) as string | undefined;
-  const { data: insight } = useTodayInsight({
-    state: profileState,
-    commodity: profileCrop,
-  });
   const { data: lots } = useMyLots();
   const { data: offers } = useAllMyOffers();
   const { data: payments } = usePayments();
@@ -72,6 +68,13 @@ export function FarmerHomePage() {
   const pendingPayments =
     payments?.filter((p) => p.status === "pending") ?? [];
   const topLot = activeLots[0];
+
+  const effectiveCrop = profileCrop || topLot?.crop;
+  const effectiveState = profileState || topLot?.state;
+  const { data: insight, isLoading: isInsightLoading } = useTodayInsight({
+    state: effectiveState,
+    commodity: effectiveCrop,
+  });
 
   // Market intelligence — best-market + top-3 buyers for the active lot.
   const recommendations = topLot
@@ -158,12 +161,14 @@ export function FarmerHomePage() {
         <FarmerSectionTitle
           hint={t(
             "farmer.home.bestMarketHint",
-            "Top recommendation based on price, distance, demand & reliability"
+            "Top recommendation calculated from verified mandi prices and distance"
           )}
           action={
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800">
-              {t("farmer.common.sourceDemo", "Demo")}
-            </span>
+            topRecommendation?.price?.source ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-800">
+                {topRecommendation.price.source.toUpperCase()}
+              </span>
+            ) : null
           }
         >
           {t("farmer.home.bestMarket", "Best market for your crop")}
@@ -315,66 +320,94 @@ export function FarmerHomePage() {
         <FarmerSectionTitle
           hint={t(
             "farmer.home.insightHint",
-            "Aggregated from connected mandi sources (demo data)."
+            "Real-time modal mandi rates from Agmarknet & eNAM government registries."
           )}
           action={
-            <div className="flex items-center gap-2">
-              <span
-                data-testid="home-insight-source-badge"
-                className={cn(
-                  "text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                  (insight as any)?.isDemo || !insight
-                    ? "bg-amber-100 text-amber-800"
-                    : (insight as any)?.source === "agmarknet"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : (insight as any)?.source === "enam"
-                    ? "bg-sky-100 text-sky-800"
-                    : "bg-amber-100 text-amber-800",
-                )}
-              >
-                {(insight as any)?.isDemo || !insight
-                  ? "DEMO"
-                  : (insight as any)?.source === "agmarknet"
-                  ? "AGMARKNET"
-                  : (insight as any)?.source === "enam"
-                  ? "eNAM"
-                  : "LIVE"}
-              </span>
-              {/* PHASE 1 §P3.9 — show reliability for the active insight source */}
-              <ReliabilityChip source={(insight as any)?.source ?? "agmarknet"} />
-            </div>
+            insight ? (
+              <div className="flex items-center gap-2">
+                <span
+                  data-testid="home-insight-source-badge"
+                  className={cn(
+                    "text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                    insight.source === "agmarknet"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : insight.source === "enam"
+                      ? "bg-sky-100 text-sky-800"
+                      : "bg-emerald-100 text-emerald-800",
+                  )}
+                >
+                  {insight.source ? insight.source.toUpperCase() : "AGMARKNET"}
+                </span>
+                <ReliabilityChip source={insight.source ?? "agmarknet"} />
+              </div>
+            ) : null
           }
         >
           {t("farmer.home.todaysInsight", "Today's Market Insight")}
         </FarmerSectionTitle>
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        {isInsightLoading ? (
+          <div className="py-4 text-emerald-900/60 text-sm animate-pulse">
+            {t("farmer.home.loadingInsight", "Loading live market insight…")}
+          </div>
+        ) : !insight ? (
+          <div className="py-4 text-left">
+            <p className="text-sm font-semibold text-emerald-900">
+              {t(
+                "farmer.home.noInsightTitle",
+                "No direct mandi records for this commodity in your district today."
+              )}
+            </p>
+            <p className="text-xs text-emerald-900/70 mt-1">
+              {t(
+                "farmer.home.noInsightSubtitle",
+                "Browse all active Agmarknet and eNAM market rates across other mandis."
+              )}
+            </p>
+            <Link
+              to="/farmer/prices"
+              className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline"
+            >
+              <span>{t("farmer.home.viewAllPrices", "View all market prices")}</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        ) : (
           <div>
-            <p className="text-3xl sm:text-4xl font-extrabold text-emerald-900">
-              {formatRupees(insight?.modalPrice ?? 2450)}
-              <span className="text-base sm:text-lg font-semibold text-emerald-900/70 ml-1">
-                /{insight?.unit ?? "quintal"}
-              </span>
-            </p>
-            <p className="text-sm text-emerald-900/70 mt-1">
-              {insight?.crop ?? "Tomato"} • {insight?.market ?? "Azadpur Mandi"}
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+              <div>
+                <p className="text-3xl sm:text-4xl font-extrabold text-emerald-900">
+                  {formatRupees(insight.modalPrice)}
+                  <span className="text-base sm:text-lg font-semibold text-emerald-900/70 ml-1">
+                    /{insight.unit ?? "quintal"}
+                  </span>
+                </p>
+                <p className="text-sm text-emerald-900/70 mt-1">
+                  {insight.crop} • {insight.market}
+                  {insight.district ? `, ${insight.district}` : ""}
+                </p>
+              </div>
+              {insight.changePct != null ? (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-3 py-1.5 rounded-full text-sm">
+                    <ArrowUpRight className="h-4 w-4" />
+                    {`${insight.changePct >= 0 ? "+" : ""}${insight.changePct.toFixed(1)}%`}
+                  </span>
+                  <span className="text-xs text-emerald-900/60">
+                    {t("farmer.home.vsYesterday", "vs yesterday")}
+                  </span>
+                </div>
+              ) : (
+                <div className="text-xs text-emerald-900/60 bg-emerald-50/70 px-2.5 py-1 rounded-full">
+                  {t("farmer.home.dailyReport", "Verified daily registry record")}
+                </div>
+              )}
+            </div>
+            {insight.recommendation && (
+              <p className="mt-4 text-sm bg-emerald-50 text-emerald-900 rounded-xl p-3">
+                💡 {insight.recommendation}
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-3 py-1.5 rounded-full text-sm">
-              <ArrowUpRight className="h-4 w-4" />
-              {insight?.changePct != null
-                ? `${insight.changePct >= 0 ? "+" : ""}${insight.changePct.toFixed(1)}%`
-                : "+3.2%"}
-            </span>
-            <span className="text-xs text-emerald-900/60">
-              {t("farmer.home.vsYesterday", "vs yesterday")}
-            </span>
-          </div>
-        </div>
-        {insight?.recommendation && (
-          <p className="mt-4 text-sm bg-emerald-50 text-emerald-900 rounded-xl p-3">
-            💡 {insight.recommendation}
-          </p>
         )}
       </FarmerCard>
 

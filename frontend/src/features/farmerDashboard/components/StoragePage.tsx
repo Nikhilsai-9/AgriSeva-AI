@@ -90,8 +90,13 @@ export function StoragePage() {
       </FarmerSectionTitle>
 
       {(options ?? []).length === 0 ? (
-        <FarmerCard className="p-6 text-center text-emerald-900/70">
-          {t("farmer.storage.empty", "No storage options available right now.")}
+        <FarmerCard className="p-8 text-center text-emerald-900/70">
+          <p className="font-semibold text-emerald-900">
+            {t("farmer.storage.empty", "No accredited warehouse or cold storage facilities registered in your district yet.")}
+          </p>
+          <p className="text-xs text-emerald-900/60 mt-1 max-w-md mx-auto">
+            {t("farmer.storage.emptyHint", "WDRA-registered warehouses and State Warehousing Corporation (SWC) cold storage hubs will appear here once linked with your district.")}
+          </p>
         </FarmerCard>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">

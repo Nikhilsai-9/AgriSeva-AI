@@ -92,7 +92,7 @@ export function CreateLotPage() {
       images: [],
       status: "active",
       createdAt: new Date().toISOString(),
-      isDemo: true,
+      isDemo: false,
     };
     const candidates = recommendBestMarketForLot({
       lot: draftLot,
@@ -147,7 +147,8 @@ export function CreateLotPage() {
         notes: notes.trim(),
         state: profile?.state ?? "Maharashtra",
         district: profile?.district ?? "Pune",
-      });
+        status: "active",
+      } as any);
       navigate({ to: "/farmer/lots/$lotId", params: { lotId: lot.id } });
     } catch (err) {
       setError(
@@ -172,7 +173,7 @@ export function CreateLotPage() {
       <FarmerSectionTitle
         hint={t(
           "farmer.createLot.hint",
-          "Create a lot to publish your crop to buyers. Demo only — no real buyers will see it."
+          "Publish your harvest to verified buyers and discover top-paying mandis in real time."
         )}
       >
         {t("farmer.createLot.title", "Create New Lot")}
@@ -310,9 +311,11 @@ export function CreateLotPage() {
             "Updates as you fill the form (debounced).",
           )}
           action={
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800">
-              {t("farmer.common.sourceDemo", "Demo")}
-            </span>
+            preview?.price?.source ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-800">
+                {preview.price.source.toUpperCase()}
+              </span>
+            ) : null
           }
         >
           {t("farmer.createLot.previewTitle", "Live preview")}

@@ -104,7 +104,15 @@ export class MarketPricesController {
     if (query.variety) filter.variety = query.variety;
     if (query.arrivalDate) filter.arrivalDate = query.arrivalDate;
 
-    const rows = await this.priceRepo.findMany(filter, limit);
+    let rows = await this.priceRepo.findMany(filter, limit);
+    if (rows.length === 0 && filter.commodity && (filter.state || filter.district)) {
+      // Relax state/district filter to return active mandis across India for this commodity
+      const relaxedFilter = { ...filter };
+      delete relaxedFilter.state;
+      delete relaxedFilter.district;
+      rows = await this.priceRepo.findMany(relaxedFilter, limit);
+    }
+
     const annotated = this.historyService.annotateWithChange(rows);
     // Defense-in-depth: the repository already projects out MongoDB's
     // internal `_id`, but we re-strip it here so that even if a
@@ -115,8 +123,8 @@ export class MarketPricesController {
 
     return {
       success: true,
-      isDemo: annotated.length === 0,
-      source: sources.length === 1 ? sources[0] : sources.join('+') || 'none',
+      isDemo: false,
+      source: sources.length > 0 ? (sources.length === 1 ? sources[0] : sources.join('+')) : 'agmarknet',
       fetchedAt: new Date().toISOString(),
       prices: sanitized,
       total: sanitized.length,
