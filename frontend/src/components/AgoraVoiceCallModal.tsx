@@ -454,7 +454,7 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
       if (!val) endCall();
       onOpenChange(val);
     }}>
-      <DialogContent className="fixed z-[120] p-0 overflow-hidden rounded-3xl border border-emerald-500/20 shadow-2xl bg-zinc-950 text-white max-w-lg w-[calc(100vw-32px)]">
+      <DialogContent className="fixed z-[120] p-0 overflow-hidden rounded-3xl border border-emerald-500/20 shadow-2xl bg-zinc-950 text-white max-w-lg w-[calc(100vw-32px)] max-h-[min(620px,calc(100dvh-40px))] flex flex-col">
         {/* Header */}
         <div className="relative bg-gradient-to-r from-emerald-900 via-teal-900 to-zinc-900 p-5 border-b border-emerald-500/20">
           <div className="flex items-center justify-between">

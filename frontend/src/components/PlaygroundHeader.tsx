@@ -30,7 +30,7 @@ export function PlaygroundHeader({
       <div className="mx-auto flex items-center justify-between gap-1.5 xxs:gap-2 sm:gap-3 lg:gap-4 px-2 xxs:px-3 sm:px-4 py-1.5 sm:py-2 min-h-[52px] sm:min-h-[60px]">
         {/* AgriSeva Brand Logo & Tagline */}
         <div className="flex items-center shrink-0 cursor-pointer min-w-0">
-          <AgriSevaBrand size="sm" showSlogan={false} compactBelowSm={true} />
+          <AgriSevaBrand size="sm" showSlogan={true} />
         </div>
 
         <div className="flex-1 lg:flex justify-center min-w-0 hidden ">

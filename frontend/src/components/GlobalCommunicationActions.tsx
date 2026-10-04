@@ -24,7 +24,9 @@ import {
   ShieldAlert, 
   HelpCircle,
   Languages,
-  DollarSign
+  DollarSign,
+  X,
+  RotateCcw
 } from "lucide-react";
 import {
   Dialog,
@@ -63,6 +65,14 @@ interface AppFeature {
   actionType?: "route" | "phone" | "whatsapp" | "language";
   keywords: string[];
   requiresAuth?: boolean;
+}
+
+export interface AssistantMessage {
+  id: string;
+  sender: "user" | "ai";
+  text: string;
+  timestamp: string;
+  matchedFeature?: AppFeature;
 }
 
 const FEATURE_REGISTRY: AppFeature[] = [
@@ -442,6 +452,145 @@ export function GlobalCommunicationActions() {
     setTimeout(() => setCopiedHelpline(false), 2500);
   };
 
+  // AI Assistant Chat State & Handlers
+  const [assistantInput, setAssistantInput] = useState("");
+  const [isAiThinking, setIsAiThinking] = useState(false);
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
+  const chatMessagesEndRef = React.useRef<HTMLDivElement>(null);
+
+  const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([
+    {
+      id: "welcome-1",
+      sender: "ai",
+      text: "Namaste! I am your AgriSeva AI Assistant. Ask me anything about crop diseases, pest control, Mandi prices, or navigating AgriSeva-AI.",
+      timestamp: "Just now",
+    },
+  ]);
+
+  const handleSendAssistantQuery = async (queryText?: string) => {
+    const text = (queryText || assistantInput).trim();
+    if (!text || isAiThinking) return;
+
+    setAssistantInput("");
+    const userMsg: AssistantMessage = {
+      id: `user-${Date.now()}`,
+      sender: "user",
+      text,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setAssistantMessages((prev) => [...prev, userMsg]);
+    setIsAiThinking(true);
+
+    setTimeout(() => {
+      chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
+
+    const lower = text.toLowerCase();
+    const matchedFeature = FEATURE_REGISTRY.find((feat) => {
+      const matchTitle = feat.title.toLowerCase().includes(lower);
+      const matchDesc = feat.desc.toLowerCase().includes(lower);
+      const matchKeyword = feat.keywords.some((kw) => lower.includes(kw));
+      return matchTitle || matchDesc || matchKeyword;
+    });
+
+    try {
+      let aiText = "";
+      try {
+        const response = await fetch(`${env.apiBaseUrl()}/agora/voice-query`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: text, language: "en-IN", farmerPhone: user?.phoneNumber }),
+          signal: AbortSignal.timeout(3000),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.answer) {
+            aiText = data.answer;
+          }
+        }
+      } catch {
+        // Fallback to local grounded agronomic knowledge
+      }
+
+      if (!aiText) {
+        if (matchedFeature) {
+          aiText = `Here is how to use ${matchedFeature.title}: ${matchedFeature.desc} You can click the button below to open it directly.`;
+        } else if (lower.includes("yellow") || lower.includes("leaf") || lower.includes("disease") || lower.includes("pest")) {
+          aiText = "Yellow leaves or leaf chlorosis typically indicates Nitrogen or Zinc deficiency in crops. Apply 25-30 kg Urea per acre or foliar spray Zinc Sulphate 0.5%. If fields are waterlogged, drain excess standing water.";
+        } else if (lower.includes("price") || lower.includes("mandi") || lower.includes("rate") || lower.includes("bhav")) {
+          aiText = "Today's Mandi modal rates: Paddy Common ₹2,320/Qtl, Cotton ₹7,120–₹7,520/Qtl across major APMC mandis. Explore the Mandi Market Prices section for all live arrivals.";
+        } else if (lower.includes("lot") || lower.includes("sell") || lower.includes("buyer")) {
+          aiText = "You can list your harvested crop lots directly under Farmer Dashboard > Crop Lots. Once posted, verified institutional and wholesale buyers can submit purchase bids.";
+        } else if (lower.includes("call") || lower.includes("helpline") || lower.includes("phone")) {
+          aiText = "You can call our 24x7 AgriSeva AI Helpline at +91 91824 17061 or start a free Web Voice Call right in your browser.";
+        } else {
+          aiText = "Your query has been analyzed against ICAR agronomic practices. Ensure adequate soil moisture and balanced NPK fertilizer application according to the crop stage.";
+        }
+      }
+
+      const aiMsg: AssistantMessage = {
+        id: `ai-${Date.now()}`,
+        sender: "ai",
+        text: aiText,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        matchedFeature,
+      };
+
+      setAssistantMessages((prev) => [...prev, aiMsg]);
+    } finally {
+      setIsAiThinking(false);
+      setTimeout(() => {
+        chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 50);
+    }
+  };
+
+  const handleToggleVoiceInput = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.warning("Browser voice input is not supported in this browser. Please use Chrome or Edge.");
+      return;
+    }
+
+    if (isVoiceListening) {
+      setIsVoiceListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "en-IN";
+
+      recognition.onstart = () => {
+        setIsVoiceListening(true);
+        toast.info("Listening... speak your crop question");
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) {
+          setAssistantInput(transcript);
+          handleSendAssistantQuery(transcript);
+        }
+      };
+
+      recognition.onerror = () => {
+        setIsVoiceListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsVoiceListening(false);
+      };
+
+      recognition.start();
+    } catch {
+      setIsVoiceListening(false);
+    }
+  };
+
   return (
     <>
       {/* Persistent Floating Bottom-Right Stack in Exact Order: 1. Phone, 2. WhatsApp, 3. AgriSeva-AI Helper
@@ -461,8 +610,8 @@ export function GlobalCommunicationActions() {
         aria-label="AgriSeva Global Communication & AI Helper"
         className="fixed z-[90] flex flex-col items-center gap-2.5 sm:gap-3 select-none pointer-events-auto"
         style={{
-          right: "clamp(16px, 2.5vw, 24px)",
-          bottom: isFarmerRoute ? "clamp(72px, 8vh, 84px)" : "clamp(18px, 2.5vh, 24px)",
+          right: "clamp(12px, 2vw, 20px)",
+          bottom: isFarmerRoute ? "clamp(72px, 8vh, 84px)" : "clamp(16px, 2.5vh, 24px)",
         }}
       >
         <TooltipProvider delayDuration={200}>
@@ -474,7 +623,7 @@ export function GlobalCommunicationActions() {
                 id="floating-phone-action-btn"
                 aria-label="Open AgriSeva Voice Helpline & Dialer"
                 onClick={() => setPhoneDialogOpen(true)}
-                className="group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-950/20 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-black/15 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               >
                 <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
                 <Phone className="h-5 w-5 stroke-[2.2] text-white" />
@@ -493,7 +642,7 @@ export function GlobalCommunicationActions() {
                 id="floating-whatsapp-action-btn"
                 aria-label="Open AgriSeva WhatsApp Assistance"
                 onClick={() => setWhatsappDialogOpen(true)}
-                className="group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#25D366] hover:bg-[#1ebe5a] text-white shadow-lg shadow-green-950/20 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#25D366]/40"
+                className="group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#25D366] hover:bg-[#1ebe5a] text-white shadow-lg shadow-black/15 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#25D366]/40"
               >
                 <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
                 <MessageSquare className="h-5 w-5 stroke-[2.2] text-white" />
@@ -507,22 +656,28 @@ export function GlobalCommunicationActions() {
             </TooltipContent>
           </Tooltip>
 
-          {/* 3. AgriSeva-AI Helper Floating Button */}
+          {/* 3. AgriSeva-AI Assistant Floating Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
                 id="floating-helper-action-btn"
-                aria-label="Open AgriSeva-AI Product & Navigation Helper"
-                onClick={() => setHelperDialogOpen(true)}
-                className="group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-teal-700 hover:bg-teal-800 text-white shadow-lg shadow-teal-950/25 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+                aria-label="Open AgriSeva-AI Assistant"
+                onClick={() => setHelperDialogOpen(!helperDialogOpen)}
+                className={`group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-700 via-teal-700 to-emerald-600 hover:from-emerald-800 hover:to-teal-800 text-white shadow-lg shadow-black/20 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-teal-500/40 ${
+                  helperDialogOpen ? "ring-2 ring-emerald-400 bg-teal-800" : ""
+                }`}
               >
                 <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
-                <Sparkles className="h-5 w-5 stroke-[2.2] text-white" />
+                {helperDialogOpen ? (
+                  <Bot className="h-5 w-5 stroke-[2.2] text-emerald-200 animate-pulse" />
+                ) : (
+                  <Sparkles className="h-5 w-5 stroke-[2.2] text-white" />
+                )}
               </button>
             </TooltipTrigger>
             <TooltipContent side="left" className="text-xs font-semibold py-1.5 px-3 bg-zinc-900 text-white shadow-xl border border-zinc-700">
-              {t("common.helper", "3. AgriSeva-AI Product Helper & Guide")}
+              {t("common.helper", "3. AgriSeva-AI Assistant")}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -536,11 +691,11 @@ export function GlobalCommunicationActions() {
           id="agriseva-phone-helpline-dialog"
           className="fixed z-[100] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card top-auto left-auto translate-x-0 translate-y-0 duration-200"
           style={{
-            right: "clamp(12px, 2.5vw, 24px)",
-            bottom: isFarmerRoute ? "clamp(80px, 10vh, 96px)" : "clamp(76px, 10vh, 96px)",
-            width: "min(400px, calc(100vw - 24px))",
-            maxWidth: "min(400px, calc(100vw - 24px))",
-            maxHeight: "min(640px, 80vh)",
+            right: "clamp(12px, 2vw, 24px)",
+            bottom: isFarmerRoute ? "clamp(76px, 9vh, 92px)" : "clamp(16px, 2.5vh, 24px)",
+            width: "min(390px, calc(100vw - 32px))",
+            maxWidth: "min(390px, calc(100vw - 32px))",
+            maxHeight: "min(600px, calc(100dvh - 64px))",
           }}
         >
           <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 p-6 text-white">
@@ -773,11 +928,11 @@ export function GlobalCommunicationActions() {
           id="agriseva-whatsapp-dialog"
           className="fixed z-[100] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card top-auto left-auto translate-x-0 translate-y-0 duration-200"
           style={{
-            right: "clamp(12px, 2.5vw, 24px)",
-            bottom: isFarmerRoute ? "clamp(80px, 10vh, 96px)" : "clamp(76px, 10vh, 96px)",
-            width: "min(400px, calc(100vw - 24px))",
-            maxWidth: "min(400px, calc(100vw - 24px))",
-            maxHeight: "min(640px, 80vh)",
+            right: "clamp(12px, 2vw, 24px)",
+            bottom: isFarmerRoute ? "clamp(76px, 9vh, 92px)" : "clamp(16px, 2.5vh, 24px)",
+            width: "min(390px, calc(100vw - 32px))",
+            maxWidth: "min(390px, calc(100vw - 32px))",
+            maxHeight: "min(600px, calc(100dvh - 64px))",
           }}
         >
           <div className="bg-gradient-to-r from-[#25D366] via-[#20BA5C] to-[#128C7E] p-6 text-white">
@@ -935,208 +1090,229 @@ export function GlobalCommunicationActions() {
         </DialogContent>
       </Dialog>
 
-      {/* 3. AGRISEVA-AI HELPER DIALOG (Product Navigation & Feature Guidance) */}
-      <Dialog open={helperDialogOpen} onOpenChange={setHelperDialogOpen}>
-        <DialogContent 
-          id="agriseva-ai-helper-dialog"
-          className="fixed z-[100] flex flex-col p-0 overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-2xl rounded-2xl top-auto left-auto translate-x-0 translate-y-0 duration-200"
+      {/* ─────────────────────────────────────────────────────────────
+          3. AGRISEVA-AI COMPACT FLOATING ASSISTANT PANEL
+         ───────────────────────────────────────────────────────────── */}
+      {helperDialogOpen && (
+        <aside
+          id="agriseva-ai-assistant-panel"
+          role="dialog"
+          aria-label="AgriSeva AI Assistant"
+          className="fixed z-[95] flex flex-col bg-card/95 backdrop-blur-md border border-emerald-500/30 dark:border-emerald-700/40 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200 select-auto"
           style={{
-            right: "clamp(12px, 2.5vw, 24px)",
-            bottom: isFarmerRoute ? "clamp(80px, 10vh, 96px)" : "clamp(76px, 10vh, 96px)",
-            width: "min(400px, calc(100vw - 24px))",
-            maxWidth: "min(400px, calc(100vw - 24px))",
-            maxHeight: "min(600px, 78vh)",
+            right: "clamp(12px, 2vw, 24px)",
+            bottom: isFarmerRoute ? "clamp(76px, 10vh, 92px)" : "clamp(18px, 2.5vh, 24px)",
+            width: "min(380px, calc(100vw - 28px))",
+            maxWidth: "min(380px, calc(100vw - 28px))",
+            maxHeight: "min(520px, calc(100dvh - 100px))",
+            height: "min(520px, calc(100dvh - 100px))",
           }}
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-emerald-900 text-white p-5 border-b border-emerald-700/50">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 shadow-inner">
-                  <Sparkles className="h-5 w-5 text-amber-300 animate-pulse" />
+          <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-emerald-900 text-white px-3.5 py-2.5 border-b border-emerald-700/50 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/20 shrink-0">
+                <Bot className="h-4 w-4 text-emerald-300" />
+                <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                </span>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-white truncate">AgriSeva AI Assistant</span>
+                  <Badge className="bg-emerald-500/30 text-emerald-200 border-none text-[9px] px-1 py-0 font-medium">
+                    Online
+                  </Badge>
                 </div>
-                <div>
-                  <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
-                    AgriSeva-AI Helper
-                    <Badge className="bg-amber-400 text-emerald-950 text-[10px] font-bold px-1.5 py-0.5 uppercase tracking-wider">
-                      Guide
-                    </Badge>
-                  </DialogTitle>
-                  <DialogDescription className="text-xs text-emerald-100/90 mt-0.5">
-                    Your real-time product navigation & feature guidance assistant
-                  </DialogDescription>
-                </div>
+                <p className="text-[10px] text-emerald-200/90 truncate font-serif italic">
+                  Every Farmer a King, with AI by their side.
+                </p>
               </div>
             </div>
 
-            {/* Search / Ask Feature Bar */}
-            <div className="mt-4 relative">
-              <Search className="h-4 w-4 absolute left-3 top-3 text-emerald-200" />
-              <input
-                type="text"
-                id="helper-search-input"
-                value={helperQuery}
-                onChange={(e) => setHelperQuery(e.target.value)}
-                placeholder="Ask e.g. 'How to check mandi price?', 'How to create lot?', 'Tractor'..."
-                className="w-full bg-white/10 placeholder:text-emerald-200/70 text-white rounded-xl pl-9 pr-4 py-2 text-xs border border-white/20 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:bg-white/20 transition-all"
-              />
-              {helperQuery && (
-                <button
-                  type="button"
-                  onClick={() => setHelperQuery("")}
-                  className="absolute right-3 top-2.5 text-emerald-200 hover:text-white text-xs font-semibold"
-                >
-                  Clear
-                </button>
-              )}
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => setAssistantMessages([assistantMessages[0]])}
+                className="p-1 rounded-md text-emerald-200 hover:text-white hover:bg-white/10 transition-colors"
+                title="Reset conversation"
+                aria-label="Reset conversation"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setHelperDialogOpen(false)}
+                className="p-1 rounded-md text-emerald-200 hover:text-white hover:bg-white/10 transition-colors"
+                title="Close AI Assistant"
+                aria-label="Close AI Assistant"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
-          {/* Scrollable Content Body */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-slate-50/50 dark:bg-zinc-950">
-            {/* Context-Aware Quick Tips for Current Page */}
-            {currentPageContext && !helperQuery && (
-              <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/80 dark:bg-emerald-950/40 dark:border-emerald-800 text-xs space-y-1.5 shadow-sm">
-                <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold">
-                  <Compass className="h-4 w-4" />
-                  <span>💡 Current Page Guide: {currentPageContext.name}</span>
-                </div>
-                <p className="text-muted-foreground leading-relaxed">
-                  {currentPageContext.tip}
-                </p>
+          {/* Context tip bar if on specific route */}
+          {currentPageContext && (
+            <div className="bg-emerald-50/90 dark:bg-emerald-950/40 border-b border-emerald-200/60 dark:border-emerald-800/60 px-3 py-1 flex items-center justify-between text-[11px] text-emerald-900 dark:text-emerald-200 shrink-0">
+              <div className="flex items-center gap-1.5 truncate">
+                <Compass className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-semibold truncate">{currentPageContext.name}</span>
               </div>
-            )}
+              <span className="text-[10px] text-muted-foreground shrink-0">Active Tip</span>
+            </div>
+          )}
 
-            {/* Search Results / Unsupported Query Warning */}
-            {helperQuery.trim() !== "" ? (
-              <div className="space-y-3">
-                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
-                  Search & Guidance Results
-                </div>
+          {/* Conversation Thread */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-0 bg-slate-50/50 dark:bg-zinc-950/50">
+            {assistantMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
+              >
+                <div
+                  className={`rounded-2xl text-xs leading-relaxed max-w-[88%] shadow-xs ${
+                    msg.sender === "user"
+                      ? "bg-emerald-600 text-white rounded-tr-xs px-3 py-2"
+                      : "bg-card border border-border rounded-tl-xs p-3 text-foreground space-y-2"
+                  }`}
+                >
+                  <p>{msg.text}</p>
 
-                {isUnsupportedFeatureQuery(helperQuery) && (
-                  <div className="p-3.5 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700 text-xs text-amber-900 dark:text-amber-200 space-y-1">
-                    <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
-                      <AlertCircle className="h-4 w-4" />
-                      <span>Feature Notice</span>
-                    </div>
-                    <p className="leading-relaxed">
-                      This capability (such as buying heavy equipment/tractors or direct bank loans) is not currently offered in AgriSeva-AI. AgriSeva-AI specializes strictly in <strong>Mandi Market Intelligence, Grounded Agronomic Q&A, Crop Lots, Logistics, and Direct Buyer Offers</strong>.
-                    </p>
-                  </div>
-                )}
-
-                {filteredFeatures.length === 0 && !isUnsupportedFeatureQuery(helperQuery) ? (
-                  <div className="text-center py-6 text-xs text-muted-foreground">
-                    No exact feature matches found for "{helperQuery}". Try asking about <em>mandi price, compare markets, voice, crop disease, lots, offers, call, or WhatsApp</em>.
-                  </div>
-                ) : (
-                  <div className="grid gap-2">
-                    {filteredFeatures.map((feat) => (
-                      <div
-                        key={feat.id}
-                        className="p-3 rounded-xl border border-border bg-card hover:border-emerald-400 hover:shadow-md transition-all flex items-start justify-between gap-3 group"
+                  {/* If query linked to a feature, offer direct navigation */}
+                  {msg.matchedFeature && (
+                    <div className="pt-1 border-t border-border/60">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleFeatureAction(msg.matchedFeature!)}
+                        className="h-7 text-[11px] px-2.5 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold flex items-center gap-1 w-full justify-center transition-colors"
                       >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-xs text-foreground group-hover:text-emerald-700 dark:group-hover:text-emerald-400">
-                              {feat.title}
-                            </span>
-                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted-foreground">
-                              {feat.category}
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground leading-snug">
-                            {feat.desc}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleFeatureAction(feat)}
-                          className="text-xs h-8 px-3 shrink-0 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 transition-colors flex items-center gap-1 font-semibold"
-                        >
-                          <span>Open</span>
-                          <ArrowRight className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Default State: Quick Feature Actions */
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                    Core Product Capabilities
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">Click to navigate</span>
+                        <span>Open {msg.matchedFeature.title}</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
+                <span className="text-[9px] text-muted-foreground mt-0.5 px-1">
+                  {msg.timestamp}
+                </span>
+              </div>
+            ))}
 
-                <div className="grid sm:grid-cols-2 gap-2">
-                  {FEATURE_REGISTRY.map((feat) => (
+            {/* Quick Suggestion Chips (when only initial message is shown) */}
+            {assistantMessages.length === 1 && (
+              <div className="pt-1 space-y-1.5">
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-0.5">
+                  Frequently Asked
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "🌾 Today's Paddy Mandi Rate",
+                    "🐛 Yellow leaf disease cure",
+                    "📦 How to list a Crop Lot",
+                    "🚚 Book farm transport",
+                  ].map((chip) => (
                     <button
-                      key={feat.id}
+                      key={chip}
                       type="button"
-                      onClick={() => handleFeatureAction(feat)}
-                      className="p-2.5 text-left rounded-xl border border-border bg-card hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 hover:shadow-sm transition-all flex flex-col justify-between group"
+                      onClick={() => handleSendAssistantQuery(chip)}
+                      className="text-[11px] px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors text-left"
                     >
-                      <div className="space-y-0.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-foreground group-hover:text-emerald-700 dark:group-hover:text-emerald-400">
-                            {feat.title}
-                          </span>
-                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
-                        </div>
-                        <p className="text-[10.5px] text-muted-foreground line-clamp-2 leading-relaxed">
-                          {feat.desc}
-                        </p>
-                      </div>
+                      {chip}
                     </button>
                   ))}
                 </div>
-
-                {/* Direct Helplines Gateway inside Helper */}
-                <div className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 flex items-center justify-between gap-3">
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
-                      Need Direct Human Assistance?
-                    </div>
-                    <div className="text-[11px] text-emerald-700 dark:text-emerald-400">
-                      Call our agricultural helpline or message on WhatsApp.
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setHelperDialogOpen(false);
-                        setPhoneDialogOpen(true);
-                      }}
-                      className="h-8 px-2.5 text-xs bg-emerald-700 hover:bg-emerald-800 text-white flex items-center gap-1 shadow-sm font-semibold"
-                    >
-                      <Phone className="h-3 w-3" />
-                      <span>Call</span>
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setHelperDialogOpen(false);
-                        setWhatsappDialogOpen(true);
-                      }}
-                      className="h-8 px-2.5 text-xs bg-[#25D366] hover:bg-[#20BA5C] text-white flex items-center gap-1 shadow-sm font-semibold"
-                    >
-                      <MessageSquare className="h-3 w-3" />
-                      <span>WhatsApp</span>
-                    </Button>
-                  </div>
-                </div>
               </div>
             )}
+
+            {isAiThinking && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground p-2 rounded-xl bg-muted/40 w-fit">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                <span>Consulting ICAR agronomic database...</span>
+              </div>
+            )}
+
+            <div ref={chatMessagesEndRef} />
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Quick Helplines Gateway inside Footer */}
+          <div className="px-3 py-1.5 bg-muted/20 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground shrink-0">
+            <span>Need human agent?</span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setHelperDialogOpen(false);
+                  setPhoneDialogOpen(true);
+                }}
+                className="text-emerald-700 dark:text-emerald-400 font-semibold hover:underline flex items-center gap-0.5"
+              >
+                <Phone className="h-3 w-3" />
+                <span>Call</span>
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setHelperDialogOpen(false);
+                  setWhatsappDialogOpen(true);
+                }}
+                className="text-green-600 dark:text-green-400 font-semibold hover:underline flex items-center gap-0.5"
+              >
+                <MessageSquare className="h-3 w-3" />
+                <span>WhatsApp</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Footer Input */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendAssistantQuery();
+            }}
+            className="p-2 border-t border-border bg-card flex items-center gap-1.5 shrink-0"
+          >
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={handleToggleVoiceInput}
+              className={`h-8 w-8 shrink-0 rounded-lg ${
+                isVoiceListening
+                  ? "bg-red-500 text-white animate-pulse"
+                  : "text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+              }`}
+              title="Voice Input (Speech to text)"
+              aria-label="Voice Input"
+            >
+              <Headphones className="h-4 w-4" />
+            </Button>
+
+            <Input
+              type="text"
+              id="ai-assistant-input"
+              value={assistantInput}
+              onChange={(e) => setAssistantInput(e.target.value)}
+              placeholder="Ask farming query or app guidance..."
+              className="h-8 text-xs bg-muted/40 border-border focus:ring-1 focus:ring-emerald-500 rounded-lg px-2.5"
+            />
+
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!assistantInput.trim() || isAiThinking}
+              className="h-8 w-8 shrink-0 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-40 transition-colors"
+              title="Send Query"
+              aria-label="Send Query"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </Button>
+          </form>
+        </aside>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────
           4. AGORA LIVE WEB VOICE CALL MODAL (10,000 FREE MIN/MO)

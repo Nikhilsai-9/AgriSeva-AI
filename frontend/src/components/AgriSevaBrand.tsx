@@ -47,14 +47,14 @@ export function AgriSevaBrand({
   };
 
   const sloganSizes = {
-    sm: "text-[11px] font-medium tracking-normal hidden sm:block text-muted-foreground",
+    sm: "text-[9.5px] xs:text-[10.5px] sm:text-[11.5px] font-medium tracking-tight text-muted-foreground leading-tight max-w-[190px] xxs:max-w-[220px] xs:max-w-none line-clamp-1 xs:line-clamp-none",
     md: "text-xs md:text-sm font-serif italic text-muted-foreground",
     lg: "text-sm md:text-base font-serif italic text-muted-foreground",
     banner: "text-sm md:text-lg font-serif italic text-gray-700 dark:text-gray-300",
   };
 
-  // For compactBelowSm the slogan is suppressed entirely regardless of prop.
-  const effectiveShowSlogan = compactBelowSm ? false : showSlogan;
+  // Always honor showSlogan prop so branding slogan displays cleanly across all viewports
+  const effectiveShowSlogan = showSlogan;
 
   return (
     <div
