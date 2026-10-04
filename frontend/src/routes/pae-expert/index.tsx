@@ -31,7 +31,7 @@ function RouteComponent() {
   }, [user, currentUser, navigate]);
 
   return (
-    <div className="min-h-screen min-w-screen relative flex flex-col overflow-hidden">
+    <div className="min-h-screen w-full max-w-full relative flex flex-col overflow-hidden">
       <PageMeta
         title="PAE Expert Portal"
         description="AgriSeva-AI Post-AI Evaluation Expert Portal."

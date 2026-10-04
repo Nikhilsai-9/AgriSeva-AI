@@ -450,7 +450,11 @@ export function GlobalCommunicationActions() {
        */}
       <aside
         aria-label="AgriSeva Global Communication & AI Helper"
-        className={`fixed ${isFarmerRoute ? "bottom-[max(4.25rem,calc(4.25rem+env(safe-area-inset-bottom)))] lg:bottom-[max(1.25rem,env(safe-area-inset-bottom))]" : "bottom-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-[max(1.25rem,env(safe-area-inset-bottom))]"} right-[max(0.75rem,env(safe-area-inset-right))] sm:right-[max(1.25rem,env(safe-area-inset-right))] z-[90] flex flex-col items-center gap-2 sm:gap-2.5 select-none pointer-events-auto`}
+        className="fixed z-[90] flex flex-col items-center gap-2.5 sm:gap-3 select-none pointer-events-auto"
+        style={{
+          right: "clamp(16px, 2.5vw, 24px)",
+          bottom: isFarmerRoute ? "clamp(72px, 8vh, 84px)" : "clamp(18px, 2.5vh, 24px)",
+        }}
       >
         <TooltipProvider delayDuration={200}>
           {/* 1. Phone Helpline Floating Button */}
@@ -461,7 +465,7 @@ export function GlobalCommunicationActions() {
                 id="floating-phone-action-btn"
                 aria-label="Open AgriSeva Voice Helpline & Dialer"
                 onClick={() => setPhoneDialogOpen(true)}
-                className="group relative flex h-12 w-12 sm:h-[48px] sm:w-[48px] items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-900/20 hover:shadow-lg hover:shadow-emerald-900/25 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/15 dark:border-zinc-800/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-950/20 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               >
                 <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
                 <Phone className="h-5 w-5 stroke-[2.2] text-white" />
@@ -480,7 +484,7 @@ export function GlobalCommunicationActions() {
                 id="floating-whatsapp-action-btn"
                 aria-label="Open AgriSeva WhatsApp Assistance"
                 onClick={() => setWhatsappDialogOpen(true)}
-                className="group relative flex h-12 w-12 sm:h-[48px] sm:w-[48px] items-center justify-center rounded-full bg-[#25D366] hover:bg-[#1ebe5a] text-white shadow-md shadow-green-900/20 hover:shadow-lg hover:shadow-green-900/25 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/15 dark:border-zinc-800/40 focus:outline-none focus:ring-2 focus:ring-[#25D366]/30"
+                className="group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#25D366] hover:bg-[#1ebe5a] text-white shadow-lg shadow-green-950/20 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#25D366]/40"
               >
                 <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
                 <MessageSquare className="h-5 w-5 stroke-[2.2] text-white" />
@@ -502,7 +506,7 @@ export function GlobalCommunicationActions() {
                 id="floating-helper-action-btn"
                 aria-label="Open AgriSeva-AI Product & Navigation Helper"
                 onClick={() => setHelperDialogOpen(true)}
-                className="group relative flex h-12 w-12 sm:h-[48px] sm:w-[48px] items-center justify-center rounded-full bg-teal-700 hover:bg-teal-800 text-white shadow-md shadow-teal-900/25 hover:shadow-lg hover:shadow-teal-900/30 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/15 dark:border-zinc-800/40 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-teal-700 hover:bg-teal-800 text-white shadow-lg shadow-teal-950/25 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
               >
                 <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
                 <Sparkles className="h-5 w-5 stroke-[2.2] text-white" />
@@ -521,7 +525,14 @@ export function GlobalCommunicationActions() {
       <Dialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen}>
         <DialogContent
           id="agriseva-phone-helpline-dialog"
-          className={`max-w-md p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card data-[state=open]:slide-in-from-bottom-4 data-[state=closed]:slide-out-to-bottom-4 duration-300 top-auto left-auto translate-x-0 translate-y-0 ${isFarmerRoute ? "bottom-[195px] lg:bottom-44" : "bottom-[160px] sm:bottom-44"} right-3 sm:right-5 w-[calc(100vw-24px)] max-h-[80vh] sm:max-h-[640px]`}
+          className="fixed z-[100] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card top-auto left-auto translate-x-0 translate-y-0 duration-200"
+          style={{
+            right: "clamp(12px, 2.5vw, 24px)",
+            bottom: isFarmerRoute ? "clamp(80px, 10vh, 96px)" : "clamp(76px, 10vh, 96px)",
+            width: "min(400px, calc(100vw - 24px))",
+            maxWidth: "min(400px, calc(100vw - 24px))",
+            maxHeight: "min(640px, 80vh)",
+          }}
         >
           <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 p-6 text-white">
             <div className="flex items-center justify-between">
@@ -710,7 +721,14 @@ export function GlobalCommunicationActions() {
       <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
         <DialogContent
           id="agriseva-whatsapp-dialog"
-          className={`max-w-md p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card data-[state=open]:slide-in-from-bottom-4 data-[state=closed]:slide-out-to-bottom-4 duration-300 top-auto left-auto translate-x-0 translate-y-0 ${isFarmerRoute ? "bottom-[195px] lg:bottom-44" : "bottom-[160px] sm:bottom-44"} right-3 sm:right-5 w-[calc(100vw-24px)] max-h-[80vh] sm:max-h-[640px]`}
+          className="fixed z-[100] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card top-auto left-auto translate-x-0 translate-y-0 duration-200"
+          style={{
+            right: "clamp(12px, 2.5vw, 24px)",
+            bottom: isFarmerRoute ? "clamp(80px, 10vh, 96px)" : "clamp(76px, 10vh, 96px)",
+            width: "min(400px, calc(100vw - 24px))",
+            maxWidth: "min(400px, calc(100vw - 24px))",
+            maxHeight: "min(640px, 80vh)",
+          }}
         >
           <div className="bg-gradient-to-r from-[#25D366] via-[#20BA5C] to-[#128C7E] p-6 text-white">
             <div className="flex items-center justify-between">
@@ -871,7 +889,14 @@ export function GlobalCommunicationActions() {
       <Dialog open={helperDialogOpen} onOpenChange={setHelperDialogOpen}>
         <DialogContent 
           id="agriseva-ai-helper-dialog"
-          className={`sm:max-w-xl flex flex-col p-0 overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-2xl rounded-2xl data-[state=open]:slide-in-from-bottom-4 data-[state=closed]:slide-out-to-bottom-4 duration-300 top-auto left-auto translate-x-0 translate-y-0 ${isFarmerRoute ? "bottom-[195px] lg:bottom-44" : "bottom-[160px] sm:bottom-44"} right-3 sm:right-5 w-[calc(100vw-24px)] max-h-[75vh] sm:w-[380px] sm:max-w-[380px] sm:max-h-[520px]`}
+          className="fixed z-[100] flex flex-col p-0 overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-2xl rounded-2xl top-auto left-auto translate-x-0 translate-y-0 duration-200"
+          style={{
+            right: "clamp(12px, 2.5vw, 24px)",
+            bottom: isFarmerRoute ? "clamp(80px, 10vh, 96px)" : "clamp(76px, 10vh, 96px)",
+            width: "min(400px, calc(100vw - 24px))",
+            maxWidth: "min(400px, calc(100vw - 24px))",
+            maxHeight: "min(600px, 78vh)",
+          }}
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-emerald-900 text-white p-5 border-b border-emerald-700/50">

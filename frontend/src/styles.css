@@ -12,8 +12,9 @@ body {
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
     "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-y: scroll;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 :root {

@@ -192,6 +192,9 @@ export function LandingPage() {
           font-family: 'Inter', system-ui, sans-serif;
           background: var(--paper);
           color: var(--ink);
+          width: 100%;
+          max-width: 100%;
+          overflow-x: clip;
         }
 
         .agriseva-landing-wrapper * {
@@ -201,7 +204,8 @@ export function LandingPage() {
         .agriseva-landing-wrapper .page {
           position: relative;
           width: 100%;
-          overflow: hidden;
+          max-width: 100%;
+          overflow-x: clip;
         }
 
         /* ---------- HERO ---------- */
@@ -966,16 +970,25 @@ export function LandingPage() {
         }
 
         /* ---------- RESPONSIVE ---------- */
+        /* ---------- RESPONSIVE ---------- */
         @media (max-width: 1024px) {
-          .agriseva-landing-wrapper .nav { padding: 32px 40px 0; }
-          .agriseva-landing-wrapper .hero-inner { padding: 48px 40px 0; }
-          .agriseva-landing-wrapper .headline { font-size: 54px; letter-spacing: -1.5px; line-height: 1.12; }
+          .agriseva-landing-wrapper .nav {
+            padding: 28px 32px 0;
+            flex-wrap: wrap;
+            gap: 16px 20px;
+          }
+          .agriseva-landing-wrapper .navlinks {
+            gap: 22px;
+            font-size: 15px;
+          }
+          .agriseva-landing-wrapper .hero-inner { padding: 48px 32px 0; }
+          .agriseva-landing-wrapper .headline { font-size: 50px; letter-spacing: -1.5px; line-height: 1.12; }
           .agriseva-landing-wrapper .products,
           .agriseva-landing-wrapper .values,
           .agriseva-landing-wrapper .categories,
           .agriseva-landing-wrapper .testimonials,
-          .agriseva-landing-wrapper .faq { padding-left: 40px; padding-right: 40px; }
-          .agriseva-landing-wrapper .impact { padding-left: 40px; padding-right: 40px; }
+          .agriseva-landing-wrapper .faq { padding-left: 32px; padding-right: 32px; }
+          .agriseva-landing-wrapper .impact { padding-left: 32px; padding-right: 32px; }
 
           .agriseva-landing-wrapper .grid { grid-template-columns: repeat(2, 1fr); }
           .agriseva-landing-wrapper .values-grid { grid-template-columns: repeat(2, 1fr); }
@@ -983,85 +996,119 @@ export function LandingPage() {
           .agriseva-landing-wrapper .tgrid { grid-template-columns: repeat(2, 1fr); }
           .agriseva-landing-wrapper .impact-stats { grid-template-columns: repeat(2, 1fr); gap: 38px 30px; }
 
-          .agriseva-landing-wrapper .stats { gap: 48px; }
+          .agriseva-landing-wrapper .stats { gap: 36px; }
 
           .agriseva-landing-wrapper .faq-wrap { grid-template-columns: 1fr; gap: 36px; }
           .agriseva-landing-wrapper .sim-grid { grid-template-columns: 1fr; }
         }
 
+        @media (max-width: 820px) {
+          .agriseva-landing-wrapper .nav {
+            padding: 24px 20px 0;
+            flex-wrap: wrap;
+            gap: 14px;
+          }
+          .agriseva-landing-wrapper .navlinks {
+            order: 3;
+            width: 100%;
+            justify-content: center;
+            gap: 20px;
+            font-size: 14.5px;
+          }
+          .agriseva-landing-wrapper .hero-inner { padding: 40px 20px 0; }
+          .agriseva-landing-wrapper .headline { font-size: 42px; letter-spacing: -1px; }
+          .agriseva-landing-wrapper .stats { gap: 24px 32px; flex-wrap: wrap; }
+        }
+
         @media (max-width: 680px) {
           .agriseva-landing-wrapper .nav {
             flex-wrap: wrap;
-            gap: 18px;
-            padding: 26px 22px 0;
+            gap: 14px;
+            padding: 22px 18px 0;
           }
-          .agriseva-landing-wrapper .navlinks { order: 3; width: 100%; justify-content: center; gap: 24px; font-size: 15px; }
-          .agriseva-landing-wrapper .brand { font-size: 24px; }
-          .agriseva-landing-wrapper .cart { padding: 11px 18px; font-size: 14px; }
+          .agriseva-landing-wrapper .navlinks { order: 3; width: 100%; justify-content: center; gap: 16px; font-size: 14px; }
+          .agriseva-landing-wrapper .brand { font-size: 22px; }
+          .agriseva-landing-wrapper .cart { padding: 10px 16px; font-size: 14px; }
 
           .agriseva-landing-wrapper .hero { min-height: 0; padding-bottom: 70px; }
-          .agriseva-landing-wrapper .hero-inner { padding: 36px 22px 0; }
-          .agriseva-landing-wrapper .headline { font-size: 38px; letter-spacing: -1px; line-height: 1.16; margin-top: 22px; }
-          .agriseva-landing-wrapper .subtitle { font-size: 16.5px; margin-top: 18px; }
-          .agriseva-landing-wrapper .eyebrow { font-size: 12px; letter-spacing: 1.2px; text-align: left; }
+          .agriseva-landing-wrapper .hero-inner { padding: 32px 18px 0; }
+          .agriseva-landing-wrapper .headline { font-size: 36px; letter-spacing: -1px; line-height: 1.16; margin-top: 20px; }
+          .agriseva-landing-wrapper .subtitle { font-size: 16px; margin-top: 16px; }
+          .agriseva-landing-wrapper .eyebrow { font-size: 12px; letter-spacing: 1px; text-align: left; }
 
           .agriseva-landing-wrapper .cta-row { flex-direction: column; align-items: center; gap: 12px; }
           .agriseva-landing-wrapper .cta-row button, .agriseva-landing-wrapper .cta-row a { width: 100%; max-width: 320px; text-align: center; }
 
           .agriseva-landing-wrapper .stats {
-            margin-top: 42px;
+            margin-top: 36px;
             flex-wrap: wrap;
-            gap: 28px 40px;
+            gap: 24px 32px;
           }
-          .agriseva-landing-wrapper .stat .num { font-size: 34px; }
+          .agriseva-landing-wrapper .stat .num { font-size: 32px; }
 
           .agriseva-landing-wrapper .products,
           .agriseva-landing-wrapper .values,
           .agriseva-landing-wrapper .categories,
           .agriseva-landing-wrapper .testimonials,
           .agriseva-landing-wrapper .faq {
-            padding-left: 22px;
-            padding-right: 22px;
-            padding-top: 70px;
+            padding-left: 18px;
+            padding-right: 18px;
+            padding-top: 60px;
           }
           .agriseva-landing-wrapper .impact {
-            margin-top: 70px;
-            padding-left: 22px;
-            padding-right: 22px;
+            margin-top: 60px;
+            padding-left: 18px;
+            padding-right: 18px;
           }
-          .agriseva-landing-wrapper .impact-inner { padding: 48px 26px; }
-          .agriseva-landing-wrapper .impact-inner h2 { font-size: 30px; }
+          .agriseva-landing-wrapper .impact-inner { padding: 40px 20px; }
+          .agriseva-landing-wrapper .impact-inner h2 { font-size: 28px; }
 
           .agriseva-landing-wrapper .sec-head {
             flex-direction: column;
             align-items: flex-start;
-            gap: 16px;
+            gap: 14px;
           }
-          .agriseva-landing-wrapper .sec-head h2 { font-size: 36px; }
+          .agriseva-landing-wrapper .sec-head h2 { font-size: 32px; }
           .agriseva-landing-wrapper .sec-head p { max-width: none; }
 
-          .agriseva-landing-wrapper .grid { grid-template-columns: 1fr; gap: 22px; }
-          .agriseva-landing-wrapper .values-grid { grid-template-columns: 1fr; gap: 18px; }
-          .agriseva-landing-wrapper .cat-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
-          .agriseva-landing-wrapper .tgrid { grid-template-columns: 1fr; gap: 20px; }
-          .agriseva-landing-wrapper .impact-stats { grid-template-columns: 1fr; gap: 32px; }
-          .agriseva-landing-wrapper .istat .inum { font-size: 40px; }
+          .agriseva-landing-wrapper .grid { grid-template-columns: 1fr; gap: 20px; }
+          .agriseva-landing-wrapper .values-grid { grid-template-columns: 1fr; gap: 16px; }
+          .agriseva-landing-wrapper .cat-grid { grid-template-columns: 1fr; gap: 14px; }
+          .agriseva-landing-wrapper .tgrid { grid-template-columns: 1fr; gap: 18px; }
+          .agriseva-landing-wrapper .impact-stats { grid-template-columns: 1fr; gap: 28px; }
+          .agriseva-landing-wrapper .istat .inum { font-size: 36px; }
 
           .agriseva-landing-wrapper .footer-inner {
             flex-direction: column;
             align-items: flex-start;
-            padding: 50px 22px;
+            padding: 40px 18px;
           }
-          .agriseva-landing-wrapper .footer h3 { font-size: 30px; }
+          .agriseva-landing-wrapper .footer h3 { font-size: 28px; }
           .agriseva-landing-wrapper .signup { width: 100%; }
           .agriseva-landing-wrapper .signup input { width: 100%; flex: 1; }
           .agriseva-landing-wrapper .footnote {
             flex-direction: column;
             gap: 10px;
-            padding: 28px 22px 40px;
+            padding: 24px 18px 36px;
           }
-          .agriseva-landing-wrapper .demo-body { padding: 20px 18px; }
-          .agriseva-landing-wrapper .demo-header { padding: 18px 20px; }
+          .agriseva-landing-wrapper .demo-body { padding: 18px 16px; }
+          .agriseva-landing-wrapper .demo-header { padding: 16px 18px; }
+        }
+
+        @media (max-width: 480px) {
+          .agriseva-landing-wrapper .nav {
+            padding: 18px 14px 0;
+            gap: 12px;
+          }
+          .agriseva-landing-wrapper .brand { font-size: 19px; gap: 8px; }
+          .agriseva-landing-wrapper .brand .brand-logo-img { width: 30px; height: 30px; }
+          .agriseva-landing-wrapper .navlinks { gap: 12px; font-size: 13px; }
+          .agriseva-landing-wrapper .cart { padding: 8px 14px; font-size: 13px; gap: 6px; }
+          .agriseva-landing-wrapper .headline { font-size: 30px; letter-spacing: -0.5px; line-height: 1.18; }
+          .agriseva-landing-wrapper .subtitle { font-size: 15px; }
+          .agriseva-landing-wrapper .stats { gap: 18px; }
+          .agriseva-landing-wrapper .stat .num { font-size: 28px; }
+          .agriseva-landing-wrapper .stat .lbl { font-size: 11px; }
         }
       `}</style>
 

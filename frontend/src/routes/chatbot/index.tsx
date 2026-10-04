@@ -140,7 +140,7 @@ function RouteComponent() {
   if (blocked) return null;
 
   return (
-    <div className="min-h-screen min-w-screen p-4 relative flex flex-col overflow-hidden">
+    <div className="min-h-screen w-full max-w-full p-4 relative flex flex-col overflow-hidden">
       <Tabs
         value="chatbotanalytics"
         onValueChange={handleOtherTabSelected}
