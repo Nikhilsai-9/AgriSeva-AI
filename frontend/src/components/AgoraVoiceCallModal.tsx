@@ -53,10 +53,6 @@ interface MessageBubble {
   sources?: any[];
 }
 
-// Verified long-lived Agora RTC Dynamic Token for channel 'agriseva-call' with App Certificate 5a5ffb7db6dd438a9ca9f7d0019e7189
-const VERIFIED_AGORA_RTC_TOKEN =
-  "007eJxTYEhrlJgd42y5e/Z81gvL2j8uzDGd5Ba23vNvY7fK4Xf1lx4qMBibGSQmpyUbpialmJiYmJkmWSZZmCaZWxgYGJoaG5uZeKkdymowfsgYyhDCyMjAyMDCwMgA4jOBSWYwyQImeRkS04syi1PLEnWTE3NyGBgAbwco1A==";
-
 const SUPPORTED_LANGUAGES = [
   { code: "te-IN", label: "తెలుగు (Telugu)", welcome: "నమస్కారం! అగ్రిసేవా-AI వాయిస్ హెల్ప్‌లైన్‌కు స్వాగతం. మీ పంట లేదా మార్కెట్ సందేహాన్ని చెప్పండి." },
   { code: "hi-IN", label: "हिन्दी (Hindi)", welcome: "नमस्ते! एग्रीसेवा-AI वॉइस हेल्पलाइन में आपका स्वागत है। अपनी फसल या मंडी का सवाल पूछें।" },
@@ -307,10 +303,9 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
         }
       }
 
-      // If backend network was unreachable, use verified dynamic Agora token
-      // This GUARANTEES Agora never receives null and never throws 'dynamic use static key'
+      // If backend network was unreachable, fallback to environment-configured token
       if (!token) {
-        token = VERIFIED_AGORA_RTC_TOKEN;
+        token = env.agoraRtcToken();
       }
 
       // Initialize Agora RTC Client
