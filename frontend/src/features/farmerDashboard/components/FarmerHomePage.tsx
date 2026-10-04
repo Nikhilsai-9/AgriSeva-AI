@@ -378,7 +378,7 @@ export function FarmerHomePage() {
                 <p className="text-3xl sm:text-4xl font-extrabold text-emerald-900">
                   {formatRupees(insight.modalPrice)}
                   <span className="text-base sm:text-lg font-semibold text-emerald-900/70 ml-1">
-                    /{insight.unit ?? "quintal"}
+                    /{insight.unit ? insight.unit.replace(/^[₹Rs\.\s\/]+/, "").trim() || "quintal" : "quintal"}
                   </span>
                 </p>
                 <p className="text-sm text-emerald-900/70 mt-1">

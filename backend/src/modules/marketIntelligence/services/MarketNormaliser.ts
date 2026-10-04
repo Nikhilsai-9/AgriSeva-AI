@@ -281,7 +281,7 @@ export class MarketNormaliser {
       if (!commodity || !market || !state) continue;
 
       const arrivalDate =
-        toIsoDate(raw.arrival_date ?? raw.date ?? raw.price_date) ??
+        toIsoDate(raw.arrival_date ?? raw.date ?? raw.price_date ?? raw.reported_date) ??
         toIsoDate(fallbackDate) ??
         todayIso();
 
@@ -289,7 +289,7 @@ export class MarketNormaliser {
       // sets `isAggregate: true` on rows it produces from a state-level
       // dashboard response. We preserve that provenance tag here so the
       // downstream pipeline can distinguish per-mandi rows from
-      // state-aggregate roll-ups. PHASE_1_CHECKLIST.md Â§P1.2.
+      // state-aggregate roll-ups. PHASE_1_CHECKLIST.md §P1.2.
       const isAggregate = (raw as any)?.isAggregate === true;
 
       const record = this.buildRecord({
@@ -306,12 +306,12 @@ export class MarketNormaliser {
         state,
         minPrice: toFiniteNumber(raw.min_price ?? raw.minPrice),
         maxPrice: toFiniteNumber(raw.max_price ?? raw.maxPrice),
-        modalPrice: toFiniteNumber(raw.modal_price ?? raw.modalPrice),
+        modalPrice: toFiniteNumber(raw.modal_price ?? raw.modalPrice ?? raw.as_on_price),
         unit: '₹/quintal',
         arrivalDate,
-        reportedAt: toIsoDate(raw.arrival_date ?? raw.reported_at),
+        reportedAt: toIsoDate(raw.arrival_date ?? raw.reported_at ?? raw.reported_date),
         arrivalQty: toFiniteNumber(
-          raw.arrival_qty ?? raw.arrival_quantity ?? raw.arrival,
+          raw.arrival_qty ?? raw.arrival_quantity ?? raw.arrival ?? raw.as_on_arrival,
         ),
         isAggregate,
       });

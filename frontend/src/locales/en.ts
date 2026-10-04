@@ -606,7 +606,7 @@ export const en = {
       pending: "pending",
       todaysInsight: "Today's Market Insight",
       insightHint:
-        "Aggregated from connected mandi sources (demo data).",
+        "Aggregated from connected mandi sources.",
       vsYesterday: "vs yesterday",
       grievances: "Grievances",
       grievancesHint: "Raise and track disputes",
@@ -631,7 +631,7 @@ export const en = {
     prices: {
       title: "Market Prices",
       hint:
-        "Live prices from government & private mandis across India. Demo dataset.",
+        "Live verified prices from Agmarknet & eNAM government mandis across India.",
       filters: "Filters",
       crop: "Crop",
       allCrops: "All crops",

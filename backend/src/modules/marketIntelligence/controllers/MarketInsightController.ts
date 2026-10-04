@@ -71,7 +71,15 @@ export class MarketInsightController {
     if (query.state) filter.state = query.state;
     if (query.market) filter.market = query.market;
 
-    const rows = (await this.priceRepo.findMany(filter, 20)) ?? [];
+    let rows = (await this.priceRepo.findMany(filter, 20)) ?? [];
+
+    if (rows.length === 0 && filter.commodity && (filter.state || filter.market)) {
+      // Relax state/market filter to return active mandis across India for this commodity
+      const relaxedFilter = { ...filter };
+      delete relaxedFilter.state;
+      delete relaxedFilter.market;
+      rows = (await this.priceRepo.findMany(relaxedFilter, 20)) ?? [];
+    }
 
     if (rows.length === 0) {
       return {

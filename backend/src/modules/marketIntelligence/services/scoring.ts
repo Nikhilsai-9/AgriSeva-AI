@@ -107,7 +107,7 @@ export function scoreRow(
         breakdown.netValue * SERVER_RECOMMENDATION_WEIGHTS.netValue,
       text:
         typeof row.modalPrice === 'number'
-          ? `Modal price Rs.${row.modalPrice}/${row.unit} (latest observation)`
+          ? `Modal price ₹${row.modalPrice} / ${row.unit ? row.unit.replace(/^[₹Rs\.\/\s]+/, '') : 'quintal'} (latest observation)`
           : 'No modal price reported — cannot rank net value',
     },
     {

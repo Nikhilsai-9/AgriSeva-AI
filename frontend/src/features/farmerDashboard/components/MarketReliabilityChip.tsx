@@ -104,7 +104,7 @@ export function ReliabilityChip({
       data-testid={`reliability-chip-${source}`}
       data-band={band}
       data-score={snap.score}
-      title={`${bandLabel(band)} — score ${snap.score}`}
+      title={`${bandLabel(band)} — score ${snap.score}/100`}
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
         bandClass(band),
@@ -114,7 +114,7 @@ export function ReliabilityChip({
       <BandIcon band={band} />
       <span>{bandLabel(band)}</span>
       <span className="opacity-60">·</span>
-      <span>{snap.score}</span>
+      <span>{snap.score}/100</span>
     </span>
   );
 }

@@ -571,7 +571,7 @@ export const sat: Partial<TranslationDictionary> = {
       "active": "active",
       "pending": "pending",
       "todaysInsight": "Today's Market Insight",
-      "insightHint": "Aggregated from connected mandi sources (demo data).",
+      "insightHint": "Aggregated from connected mandi sources.",
       "vsYesterday": "vs yesterday",
       "grievances": "Grievances",
       "grievancesHint": "Raise and track disputes",
@@ -594,7 +594,7 @@ export const sat: Partial<TranslationDictionary> = {
     },
     "prices": {
       "title": "Market Prices",
-      "hint": "Live prices from government & private mandis across India. Demo dataset.",
+      "hint": "Live verified prices from Agmarknet & eNAM government mandis across India.",
       "filters": "Filters",
       "crop": "Crop",
       "allCrops": "All crops",
