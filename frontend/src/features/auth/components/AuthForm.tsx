@@ -15,6 +15,7 @@ import {
   Sprout,
   Eye,
   EyeOff,
+  ArrowLeft,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -169,6 +170,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
     try {
       const result = await loginWithGoogle();
       if (result) {
+        let appUser: any = null;
         try {
           const syncRes = await authService.loginWithGoogle(result);
           appUser = syncRes?.user;
@@ -261,42 +263,49 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
 
         {/* Bottom Footer Note */}
         <div className="relative z-20 text-xs text-emerald-300/70">
-          {t("auth.footerCopyright", "┬⌐ 2026 AgriSeva-AI Platform. All rights reserved.")}
+          {t("auth.footerCopyright", "© 2026 AgriSeva-AI Platform. All rights reserved.")}
         </div>
       </div>
 
       {/* RIGHT 52%: Authentication Form */}
-      <div className="flex-1 flex flex-col justify-center py-12 px-6 sm:px-12 lg:px-20 xl:px-28 bg-white">
-        <div className="w-full max-w-md mx-auto space-y-7">
-          {/* Top Bar with Language Switcher and Mobile Logo */}
-          <div className="flex items-center justify-between">
-            <div className="lg:hidden">
-              <Link to="/" className="inline-flex items-center gap-2.5 no-underline">
+      <div className="flex-1 flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-10 lg:px-16 xl:px-24 bg-white min-w-0">
+        <div className="w-full max-w-md mx-auto space-y-6 sm:space-y-7">
+          {/* Top Bar with Back to Home, Mobile Logo, and Language Switcher */}
+          <div className="flex items-center justify-between gap-2 shrink-0">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-emerald-700 transition-colors py-1.5 px-3 rounded-full hover:bg-slate-100 border border-slate-200/90 shadow-2xs group shrink-0"
+              aria-label={t("common.backToHome", "Back to Home")}
+            >
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+              <span>{t("common.backToHome", "Back to Home")}</span>
+            </Link>
+
+            <div className="hidden xs:flex lg:hidden">
+              <Link to="/" className="inline-flex items-center gap-1.5 no-underline">
                 <img
                   src="/favicon.svg"
                   alt="AgriSeva-AI"
-                  className="w-8 h-8 object-contain"
+                  className="w-6 h-6 object-contain"
                 />
-                <span className="font-extrabold text-2xl tracking-tight text-slate-900">
+                <span className="font-extrabold text-base tracking-tight text-slate-900">
                   AgriSeva<span className="text-emerald-600">-AI</span>
                 </span>
               </Link>
             </div>
-            <div className="hidden lg:block">
-              {/* Spacer on desktop */}
-            </div>
+
             <LanguageSwitcher variant="outline" />
           </div>
 
           {/* Header */}
           <div>
             <h1 className="font-extrabold text-3xl text-slate-900 tracking-tight">
-              {mode === "signin" && t("auth.welcomeBack", "Welcome back")}
+              {mode === "signin" && t("auth.welcomeBack", "Welcome to AgriSeva-AI")}
               {mode === "signup" && t("auth.createAccount", "Create your account")}
               {mode === "forgot" && t("auth.forgotPassword", "Reset your password")}
             </h1>
             <p className="mt-2 text-sm text-slate-500">
-              {mode === "signin" && t("auth.signInSub", "Sign in to continue to your farm intelligence dashboard.")}
+              {mode === "signin" && t("auth.signInSub", "Sign in to access your agricultural assistant")}
               {mode === "signup" && t("auth.signUpSub", "Start building smarter, resilient farming decisions.")}
               {mode === "forgot" && t("auth.forgotSub", "Enter your email to receive recovery instructions.")}
             </p>
@@ -337,7 +346,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                {t("auth.emailLabel", "Email Address")}
+                {t("auth.emailLabel", "Email address")}
               </label>
               <input
                 type="email"
@@ -375,13 +384,14 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó"
+                    placeholder={t("auth.passwordPlaceholder", "••••••••")}
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition shadow-2xs pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                    aria-label={showPassword ? t("auth.hidePassword", "Hide password") : t("auth.showPassword", "Show password")}
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -401,13 +411,14 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó"
+                    placeholder={t("auth.passwordPlaceholder", "••••••••")}
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition shadow-2xs pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                    aria-label={showConfirmPassword ? t("auth.hidePassword", "Hide password") : t("auth.showPassword", "Show password")}
                     tabIndex={-1}
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -423,7 +434,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
               className="w-full bg-[#0a8053] hover:bg-[#086c46] disabled:opacity-50 text-white font-bold text-sm py-3 px-4 rounded-xl shadow-xs transition duration-150 cursor-pointer text-center mt-2"
             >
               {isSubmitting
-                ? "Processing..."
+                ? t("auth.processing", "Processing...")
                 : mode === "signin"
                 ? t("auth.signInBtn", "Sign In")
                 : mode === "signup"
@@ -441,7 +452,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                 </div>
                 <div className="relative flex justify-center text-xs">
                   <span className="bg-white px-3 text-slate-400 font-medium">
-                    {t("auth.orDivider", "OR")}
+                    {t("auth.orDivider", "OR CONTINUE WITH")}
                   </span>
                 </div>
               </div>
@@ -453,7 +464,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                 disabled={isSubmitting}
                 className="w-full bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-sm py-3 px-4 rounded-xl shadow-2xs transition flex items-center justify-center gap-3 cursor-pointer"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -490,7 +501,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                   }}
                   className="text-emerald-700 font-bold hover:underline cursor-pointer"
                 >
-                  {t("auth.signUpLink", "Create an account")}
+                  {t("auth.signUpLink", "Sign up")}
                 </button>
               </p>
             )}
@@ -507,7 +518,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                   }}
                   className="text-emerald-700 font-bold hover:underline cursor-pointer"
                 >
-                  {t("auth.signInLink", "Sign In")}
+                  {t("auth.signInLink", "Sign in")}
                 </button>
               </p>
             )}
@@ -523,7 +534,7 @@ export const AuthForm = ({ mode: initialMode = "login" }: AuthFormProps) => {
                   }}
                   className="text-emerald-700 font-bold hover:underline cursor-pointer"
                 >
-                  {t("auth.signInLink", "Back to Sign In")}
+                  {t("auth.backToSignIn", "Back to Sign in")}
                 </button>
               </p>
             )}

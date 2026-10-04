@@ -164,7 +164,7 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
   }, [user?.role, user?.isCallAgentActive]);
 
   // The selection this effect last navigated for. Navigation must happen only when the
-  // selection itself changes ΓÇö NOT when the `user` object merely gets a new identity
+  // selection itself changes — NOT when the `user` object merely gets a new identity
   // (react-query refetches it on window focus and whenever a notification action
   // invalidates ["user"]). Without this guard, switching browser tabs or reviewing an
   // answer re-ran the effect and yanked the moderator back to the question list,
@@ -182,7 +182,7 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
       selectedCommentId,
       selectedQuestionType,
     ].join("|");
-    // Same selection as last time ΓåÆ this run was caused by something else (a user
+    // Same selection as last time → this run was caused by something else (a user
     // refetch). Leave the current tab alone.
     if (lastNavigatedSelection.current === selectionKey) return;
     lastNavigatedSelection.current = selectionKey;

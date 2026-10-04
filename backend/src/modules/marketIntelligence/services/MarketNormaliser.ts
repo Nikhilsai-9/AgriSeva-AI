@@ -1,5 +1,5 @@
-﻿/**
- * MarketNormaliser â€” converts upstream MCP responses into the canonical
+/**
+ * MarketNormaliser — converts upstream MCP responses into the canonical
  * `MarketPriceRecord` shape. Pure: no I/O.
  *
  * Determinism:
@@ -15,7 +15,7 @@ import {createHash} from 'crypto';
 import {injectable} from 'inversify';
 import type {MarketPriceRecord, MarketSourceId} from '../types.js';
 
-// â”€â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- helpers -------------------------------------------------------------
 
 export function toFiniteNumber(v: unknown): number | undefined {
   if (v === null || v === undefined) return undefined;
@@ -52,14 +52,14 @@ export function toIsoDate(v: unknown): string | undefined {
 }
 
 /**
- * PHASE 2 Â§P2.E â€” Today's date in **Asia/Kolkata (IST)** as a
+ * PHASE 2 §P2.E — Today's date in **Asia/Kolkata (IST)** as a
  * YYYY-MM-DD string.
  *
  * Previously this used `new Date().toISOString().slice(0,10)`,
  * which is the *UTC* calendar day. On a server running UTC
  * (e.g. Cloud Run) that meant between 18:30 and 24:00 UTC
  * (= 00:00 to 05:30 IST the *next* day) `todayIso()` would
- * silently return *yesterday's* date â€” pushing every cron
+ * silently return *yesterday's* date — pushing every cron
  * trigger into the wrong mandi day.
  *
  * We now format with `Intl.DateTimeFormat` in the
@@ -88,13 +88,13 @@ export function formatIstDate(when: Date): string {
 
 
 /**
- * PHASE 2 Â§P2.D â€” Captcha / challenge-page detection.
+ * PHASE 2 §P2.D — Captcha / challenge-page detection.
  *
  * Agmarknet and eNAM upstreams occasionally return HTML
  * challenge pages (Cloudflare "Just a moment", Google reCAPTCHA)
  * instead of JSON. The previous normaliser silently returned
  * `[]` for such responses, and the ingestion layer logged a
- * zero-record success â€” masking the fact that the upstream was
+ * zero-record success — masking the fact that the upstream was
  * actually rate-limiting us.
  *
  * These helpers run pure string / pattern checks on the raw
@@ -127,9 +127,9 @@ export function detectCaptchaInString(input: string): boolean {
 /**
  * Detect captcha markers in an MCP response payload (parsed or not).
  * Accepts:
- *   - string  â†’ checked directly
- *   - object  â†’ serialised once with JSON.stringify, then checked
- *   - null/undefined/other â†’ false
+ *   - string  → checked directly
+ *   - object  → serialised once with JSON.stringify, then checked
+ *   - null/undefined/other → false
  */
 export function detectCaptchaInPayload(payload: unknown): boolean {
   if (payload === null || payload === undefined) return false;
@@ -182,7 +182,7 @@ export function buildRecordKey(parts: {
   return createHash('sha256').update(joined).digest('hex').slice(0, 32);
 }
 
-// â”€â”€â”€ the service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- the service ---------------------------------------------------------
 
 @injectable()
 export class MarketNormaliser {
@@ -209,9 +209,9 @@ export class MarketNormaliser {
     reportedAt?: string;
     arrivalQty?: number;
     /**
-     * Provenance flag â€” true when this record was produced from an
+     * Provenance flag — true when this record was produced from an
      * Agmarknet dashboard/aggregate response and we cannot guarantee
-     * it maps to a single mandi. See PHASE_1_CHECKLIST.md Â§P1.2.
+     * it maps to a single mandi. See PHASE_1_CHECKLIST.md §P1.2.
      */
     isAggregate?: boolean;
   }): MarketPriceRecord | null {

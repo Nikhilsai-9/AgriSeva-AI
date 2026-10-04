@@ -504520,7 +504520,7 @@ export const KVKS: Record<string, string[]> = {
   ],
   Shopian: ["Krishi Vigyan Kendra - Vill. Balpora, Shopian Distt"],
   Anantnag: [
-    "Krishi Vigyan Kendra - Vill.- Kreri & Nowpora, ATehsil- Dooru, Distt. â€“ Anantnag",
+    "Krishi Vigyan Kendra - Vill.- Kreri & Nowpora, ATehsil- Dooru, Distt. – Anantnag",
   ],
   Budgam: [
     "Krishi Vigyan Kendra - Vill. Hamchipora, Distt.- Budgam(Jammu & Kashmir)",
@@ -504711,7 +504711,7 @@ export const KVKS: Record<string, string[]> = {
   ],
   Jaisalmer: [
     "Krishi Vigyan Kendra - P.Box No.42, CAZRI Area, Distt. Jaisalmer-345001",
-    "Krishi Vigyan Kendra - Vill. â€“Pokaran, Distt.- Jaisalmer",
+    "Krishi Vigyan Kendra - Vill. –Pokaran, Distt.- Jaisalmer",
   ],
   Nagaur: [
     "Krishi Vigyan Kendra - PO. No. 36, Athiyasan, Distt. Nagaur-341 001",
@@ -504750,7 +504750,7 @@ export const KVKS: Record<string, string[]> = {
   ],
   Barmer: [
     "Krishi Vigyan Kendra - P.Box No.29, Danta, Distt. Barmer-334 001 http://barmer1.kvk2.in/index.html",
-    "Krishi Vigyan Kendra - Village- Guda Malani, Distt. â€“Barmer",
+    "Krishi Vigyan Kendra - Village- Guda Malani, Distt. –Barmer",
   ],
   Jhunjhunu: [
     "Krishi Vigyan Kendra - Abusar, P.Box No.4, Distt. Jhunjhunu-333 001",
@@ -505323,7 +505323,7 @@ export const KVKS: Record<string, string[]> = {
     "Krishi Vigyan Kendra - Morigaon, District",
   ],
   Baksa: [
-    "Krishi Vigyan Kendra - Vill.-Dhepargaou, Mouza- Kaurbha Goreswar Revenue Circle Distt. â€“Baksa (Assam)",
+    "Krishi Vigyan Kendra - Vill.-Dhepargaou, Mouza- Kaurbha Goreswar Revenue Circle Distt. –Baksa (Assam)",
   ],
   "Dima Hasao": [
     "Krishi Vigyan Kendra - Village Sarvagram (Jatinga Lampu), P.S. Halflong, Distt. Dima Hasao, Assam.",
@@ -505522,7 +505522,7 @@ export const KVKS: Record<string, string[]> = {
     "Krishi Vigyan Kendra - PO. Sindewahi, Distt. Chandrapur-441222",
   ],
   Amravati: [
-    "Krishi Vigyan Kendra - â€œChirantanâ€ Madhuban Colony, Camp, Distt. Amaravathi 444 602",
+    "Krishi Vigyan Kendra - “Chirantan” Madhuban Colony, Camp, Distt. Amaravathi 444 602",
   ],
   "Akola, PO.Badnera (Durgapur) Amaravati-444 701": [
     "Krishi Vigyan Kendra - Akola, PO.Badnera (Durgapur) Amaravati-444 701",
@@ -505536,7 +505536,7 @@ export const KVKS: Record<string, string[]> = {
   ],
   Nashik: [
     "Krishi Vigyan Kendra - Dnyanagangotri, Near Gangapur Dam, Distt. Nashik-422 222",
-    "Krishi Vigyan Kendra Vadel - Taluka â€“Malegaon Distt.-Nashik(Maharashtra)",
+    "Krishi Vigyan Kendra Vadel - Taluka –Malegaon Distt.-Nashik(Maharashtra)",
   ],
   Parbhani: [
     "Krishi Vigyan Kendra - P.B.No. 33, Jitur Road, Distt. Parbhani-431401",
@@ -505583,7 +505583,7 @@ export const KVKS: Record<string, string[]> = {
   ],
   Bhavnagar: [
     "Krishi Vigyan Kendra - Village Sansora, Distt. Bhavnagar-",
-    "Krishi Vigyan Kendra - Mini By Pass Road Opp. Royal Enfield show room Distt. B.V.Nagar, Nellore â€“ 524004",
+    "Krishi Vigyan Kendra - Mini By Pass Road Opp. Royal Enfield show room Distt. B.V.Nagar, Nellore – 524004",
   ],
   Junagadh: ["Krishi Vigyan Kendra - Kodinar Taluka, Distt. Junagadh-"],
   Navsari: [
@@ -505612,7 +505612,7 @@ export const KVKS: Record<string, string[]> = {
   ],
   Rajkot: [
     "Krishi Vigyan Kendra - Main Dry Farming Research Station, Targhadia, Distt. Rajkot-60003",
-    "Krishi Vigyan Kendra TDS Farm - Pipalia, Ta. - Dhoraji, Distt. â€“ Rajkot (Gujarat)",
+    "Krishi Vigyan Kendra TDS Farm - Pipalia, Ta. - Dhoraji, Distt. – Rajkot (Gujarat)",
   ],
   Jamnagar: ["Krishi Vigyan Kendra - Air Force Road, Distt. Jamnagar-361006"],
   Porbandar: ["Krishi Vigyan Kendra - Khapat, Distt. Porbandar-360579"],
@@ -505678,10 +505678,10 @@ export const KVKS: Record<string, string[]> = {
     "Krishi Vigyan Kendra Govt. Agricultural Farm - Kerlapal, Narayanpur Chhattisgarh",
   ],
   "Gariyaband Chhattisgarh": [
-    "Krishi Vigyan Kendra Village â€“ Kokdi - Gariyaband Block, Distt. Gariyaband Chhattisgarh",
+    "Krishi Vigyan Kendra Village – Kokdi - Gariyaband Block, Distt. Gariyaband Chhattisgarh",
   ],
   Bijapur: [
-    "Krishi Vigyan Kendra Vill. Panarapura - Distt. â€“ Bijapur",
+    "Krishi Vigyan Kendra Vill. Panarapura - Distt. – Bijapur",
     "Krishi Vigyan Kendra - Regional Agricultural Research Station, P.Box No.18, PO. & Distt. Bijapur-586101",
   ],
   Bemetara: [
@@ -505890,11 +505890,11 @@ export const KVKS: Record<string, string[]> = {
     "Krishi Vigyan Kendra DCMS Bulding - Kamalanagar Anantapur-515001, Andhra Pradesh",
     "Krishi Vigyan Kendra - Acharya N.G. Ranga Agricultural University, # 8-881, Jainagar Colony Kalyandurg, Anantapur515761, Andhra Pradesh",
   ],
-  "Karakambadi post, Renigunta mandal Chittoor dt â€“ 517 520": [
-    "RASS â€“ Acharya Ranga Krishi Vigyan Kendra - Karakambadi post, Renigunta mandal Chittoor dt â€“ 517 520",
+  "Karakambadi post, Renigunta mandal Chittoor dt – 517 520": [
+    "RASS – Acharya Ranga Krishi Vigyan Kendra - Karakambadi post, Renigunta mandal Chittoor dt – 517 520",
   ],
   Chittoor: [
-    "Programme Co-coordinator Krishi Vigyan Kendra - Kalikiri, Chittoor dist. Chittoor dt â€“Andhra Pradesh-517234",
+    "Programme Co-coordinator Krishi Vigyan Kendra - Kalikiri, Chittoor dist. Chittoor dt –Andhra Pradesh-517234",
     "Krishi Vigyan Kendra - PO. Karakambadi Vanasthali, Tirupathi, Distt. Chittoor-517501",
   ],
   "East Godavari": [
@@ -505910,26 +505910,26 @@ export const KVKS: Record<string, string[]> = {
   Krishna: [
     "Dr.K.L.Rao Krishi Vigyan - Kendra Garikapadu- 521 175, Krishna District,",
   ],
-  "Agricultural Research Station, Ghantasala â€“ 521 133Krishna": [
-    "Krishi Vigyan Kendra - Agricultural Research Station, Ghantasala â€“ 521 133Krishna",
+  "Agricultural Research Station, Ghantasala – 521 133Krishna": [
+    "Krishi Vigyan Kendra - Agricultural Research Station, Ghantasala – 521 133Krishna",
   ],
   Kurnool: [
     "Krishi Vigyan Kendra - - Upstairs Andhra Bank, Yemmiganur 518360, Kurnool District",
   ],
-  "Yagantipalle (P) Banaganapalle (M), Kurnool (Dt.) â€“ 518 124": [
-    "Shri Hanumantharaya Educational & Charitable Society - Yagantipalle (P) Banaganapalle (M), Kurnool (Dt.) â€“ 518 124",
+  "Yagantipalle (P) Banaganapalle (M), Kurnool (Dt.) – 518 124": [
+    "Shri Hanumantharaya Educational & Charitable Society - Yagantipalle (P) Banaganapalle (M), Kurnool (Dt.) – 518 124",
   ],
-  "Agril. Research Station PO: Darsi, Prakasam â€“ 523247": [
-    "Krishi Vigyan Kendra - Agril. Research Station PO: Darsi, Prakasam â€“ 523247",
+  "Agril. Research Station PO: Darsi, Prakasam – 523247": [
+    "Krishi Vigyan Kendra - Agril. Research Station PO: Darsi, Prakasam – 523247",
   ],
   "Kandukru 523 105 Prakasam": [
     "Krishi Vigyan Kendra - CTRI Premises, Kandukru 523 105 Prakasam Dist.",
   ],
-  "Krishi Vigyan Kendra Amadalavalasa, Srikakulam â€“ 532 185": [
-    "Programme Coordinator - Krishi Vigyan Kendra Amadalavalasa, Srikakulam â€“ 532 185",
+  "Krishi Vigyan Kendra Amadalavalasa, Srikakulam – 532 185": [
+    "Programme Coordinator - Krishi Vigyan Kendra Amadalavalasa, Srikakulam – 532 185",
   ],
   Visakhapatnam: [
-    "BCT â€“ Krishi Vigyan Kendra - BCT Farm Complex, Haripuram, Rambilli Mandal, Visakhapatnam Distt.-531061",
+    "BCT – Krishi Vigyan Kendra - BCT Farm Complex, Haripuram, Rambilli Mandal, Visakhapatnam Distt.-531061",
   ],
   Vizianagaram: [
     "Krishi Vigyan Kendra - PO: Rastakuntubai, Vizianagaram-535523",
@@ -505937,8 +505937,8 @@ export const KVKS: Record<string, string[]> = {
   "Venkataramannagudem West Godavari": [
     "Krishi Vigyan Kendra - Dr.Y.S.R.Horticultural University, Venkataramannagudem West Godavari District- 534 101",
   ],
-  "Undi â€“ 534 199 West Godavari Dt": [
-    "Krishi Vigyan Kendra - Undi â€“ 534 199 West Godavari Dt",
+  "Undi – 534 199 West Godavari Dt": [
+    "Krishi Vigyan Kendra - Undi – 534 199 West Godavari Dt",
   ],
   "Nellore (Andhra Pradesh)": [
     "Krishi Vigyan Kendra - Nellore (Andhra Pradesh)",
@@ -505949,11 +505949,11 @@ export const KVKS: Record<string, string[]> = {
   Adilabad: ["Krishi Vigyan Kendra Ramnagar - Adilabad -504001"],
   Karimnagar: [
     "Krishi Vigyan Kendra - Jaya Prakashnagar, , Jammikunta, Dist: Karimnagar - 505122",
-    "Krishi Vigyan Kendra - Ramagirikhilla, Ratnapur Kamanpur (M) Dist: Karimnagar â€“ 505212",
+    "Krishi Vigyan Kendra - Ramagirikhilla, Ratnapur Kamanpur (M) Dist: Karimnagar – 505212",
   ],
   Wyra: ["Krishi Vigyan Kendra - Wyra -507 165"],
   "Madanapuram Kothakota Mandal Mahabubnagar": [
-    "Krishi Vigyan Kendra - Youth For Action, Madanapuram Kothakota Mandal Mahabubnagar District-â€“ 509110",
+    "Krishi Vigyan Kendra - Youth For Action, Madanapuram Kothakota Mandal Mahabubnagar District-– 509110",
   ],
   "Telangana State. Phone No. 08540 - 228644 Cell No. 7702 36611": [
     "Palem - 509 215 Mahabubnagar Dist - Telangana State. Phone No. 08540 - 228644 Cell No. 7702 36611",
@@ -506065,7 +506065,7 @@ export const KVKS: Record<string, string[]> = {
     "Krishi Vigyan Kendra - Hanumanmatti, Ranebennur, Distt. Haveri-581 135",
   ],
   Kodagu: ["Krishi Vigyan Kendra - Gonikoppal, Distt. Kodagu-571213"],
-  Kolar: ["Krishi Vigyan Kendra - At â€“Tamka Farm, Distt. Kolar"],
+  Kolar: ["Krishi Vigyan Kendra - At –Tamka Farm, Distt. Kolar"],
   "Bijapur (Karnataka)": ["Krishi Vigyan Kendra - Bijapur (Karnataka)"],
   Vijayapura: [
     "Krishi Vigyan Kendra - Regional Agricultural Research Station, P.Box No.18, PO. & Distt. Bijapur-586101",

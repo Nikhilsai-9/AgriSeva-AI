@@ -1141,9 +1141,9 @@ export function LandingPage() {
                 onClick={() => navigate({ to: user ? "/home" : "/auth" })}
                 className="cart cursor-pointer"
                 id="nav-demo-btn"
-                aria-label={user ? t("nav.dashboardCta", "Dashboard ΓåÆ") : t("nav.getStartedCta", "Get Started ΓåÆ")}
+                aria-label={user ? t("nav.dashboardCta", "Dashboard →") : t("nav.getStartedCta", "Get Started →")}
               >
-                {user ? t("nav.dashboardCta", "Dashboard ΓåÆ") : t("nav.getStartedCta", "Get Started ΓåÆ")}
+                {user ? t("nav.dashboardCta", "Dashboard →") : t("nav.getStartedCta", "Get Started →")}
               </button>
             </div>
           </nav>
@@ -1171,9 +1171,9 @@ export function LandingPage() {
                 onClick={() => navigate({ to: user ? "/home" : "/auth" })}
                 className="btn-primary cursor-pointer"
                 id="hero-demo-btn"
-                aria-label={user ? t("hero.ctaPrimaryDashboard", "Go to Dashboard ΓåÆ") : t("hero.ctaPrimary", "Get Started with AgriSeva-AI ΓåÆ")}
+                aria-label={user ? t("hero.ctaPrimaryDashboard", "Go to Dashboard →") : t("hero.ctaPrimary", "Get Started with AgriSeva-AI →")}
               >
-                {user ? t("hero.ctaPrimaryDashboard", "Go to Dashboard ΓåÆ") : t("hero.ctaPrimary", "Get Started with AgriSeva-AI ΓåÆ")}
+                {user ? t("hero.ctaPrimaryDashboard", "Go to Dashboard →") : t("hero.ctaPrimary", "Get Started with AgriSeva-AI →")}
               </button>
               <button
                 className="btn-ghost"
@@ -1519,7 +1519,7 @@ export function LandingPage() {
           </div>
           <div className="tgrid">
             <div className="tcard">
-              <div className="stars">ΓÿàΓÿàΓÿàΓÿàΓÿà</div>
+              <div className="stars" aria-label="5 out of 5 stars">★★★★★</div>
               <p className="quote">
                 {t(
                   "testimonials.quote1",
@@ -1539,7 +1539,7 @@ export function LandingPage() {
               </div>
             </div>
             <div className="tcard">
-              <div className="stars">ΓÿàΓÿàΓÿàΓÿàΓÿà</div>
+              <div className="stars" aria-label="5 out of 5 stars">★★★★★</div>
               <p className="quote">
                 {t(
                   "testimonials.quote2",
@@ -1559,7 +1559,7 @@ export function LandingPage() {
               </div>
             </div>
             <div className="tcard">
-              <div className="stars">ΓÿàΓÿàΓÿàΓÿàΓÿà</div>
+              <div className="stars" aria-label="5 out of 5 stars">★★★★★</div>
               <p className="quote">
                 {t(
                   "testimonials.quote3",
@@ -1682,7 +1682,7 @@ export function LandingPage() {
                   border: "none",
                 }}
               >
-                {t("footer.signupBtn", "Get Started ΓåÆ")}
+                {t("footer.signupBtn", "Get Started →")}
               </button>
             </div>
           </div>
@@ -1690,7 +1690,7 @@ export function LandingPage() {
             <span>
               {t(
                 "footer.copyright",
-                "┬⌐ 2026 AgriSeva-AI ΓÇö Agricultural Decision Support Platform. All rights reserved."
+                "© 2026 AgriSeva-AI — Agricultural Decision Support Platform. All rights reserved."
               )}
             </span>
             <span>{t("footer.slogan", "Every Farmer a King, with AI by their side.")}</span>
@@ -1883,7 +1883,7 @@ export function LandingPage() {
                       background: "var(--green-deep)",
                     }}
                   >
-                    {t("simulator.openPlatform", "Open Platform ΓåÆ")}
+                    {t("simulator.openPlatform", "Open Platform →")}
                   </button>
                   <button
                     onClick={() => {
@@ -1903,7 +1903,7 @@ export function LandingPage() {
                       color: "#fff",
                     }}
                   >
-                    {t("simulator.signIn", "Sign In (/auth) ΓåÆ")}
+                    {t("simulator.signIn", "Sign In (/auth) →")}
                   </button>
                 </div>
               </div>
