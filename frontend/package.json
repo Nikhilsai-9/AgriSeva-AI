@@ -55,6 +55,7 @@
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
     "@tensorflow/tfjs-core": "^4.22.0",
     "agora-rtc-sdk-ng": "^4.24.8",
+    "agora-token": "^2.0.6",
     "boring-avatars": "^2.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
