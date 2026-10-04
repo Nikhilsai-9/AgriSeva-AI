@@ -123,8 +123,15 @@ export class MarketPricesController {
 
     return {
       success: true,
-      isDemo: false,
-      source: sources.length > 0 ? (sources.length === 1 ? sources[0] : sources.join('+')) : 'agmarknet',
+      isDemo: sanitized.length === 0,
+      source:
+        sanitized.length === 0
+          ? 'none'
+          : sources.length > 0
+            ? sources.length === 1
+              ? sources[0]
+              : sources.join('+')
+            : 'agmarknet',
       fetchedAt: new Date().toISOString(),
       prices: sanitized,
       total: sanitized.length,

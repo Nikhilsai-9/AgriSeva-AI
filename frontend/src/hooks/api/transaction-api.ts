@@ -236,7 +236,22 @@ export async function fetchLogisticsOptions(): Promise<unknown[]> {
   const res = await safeFetch<{success: boolean; options: unknown[]}>(
     '/api/logistics/options',
   );
-  return res?.options ?? [];
+  const options = res?.options ?? [];
+  // Populate UI alias fields from canonical backend field names so
+  // LogisticsPage can safely access opt.provider, opt.from, opt.to, etc.
+  return (options as any[]).map((o) => ({
+    ...o,
+    provider: o.provider ?? o.providerName ?? '',
+    from: o.from ?? o.fromLocation ?? '',
+    to: o.to ?? o.toLocation ?? '',
+    ratePerKg: o.ratePerKg ?? o.costPerKm ?? 0,
+    capacityKg: o.capacityKg ?? (o.capacityTons ? o.capacityTons * 1000 : 0),
+    estimatedDeliveryDate:
+      o.estimatedDeliveryDate ??
+      (o.estimatedHours
+        ? new Date(Date.now() + o.estimatedHours * 3_600_000).toISOString()
+        : undefined),
+  }));
 }
 
 export async function bookLogisticsApi(

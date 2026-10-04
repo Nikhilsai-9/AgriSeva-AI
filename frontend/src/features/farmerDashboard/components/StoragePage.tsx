@@ -6,6 +6,9 @@ import {
   Thermometer,
   X,
   CheckCircle2,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import {
@@ -25,7 +28,7 @@ import { DataStateBadge } from "@/features/farmerDashboard/DataStateBadge";
 
 export function StoragePage() {
   const { t } = useTranslation();
-  const { data: options } = useStorage();
+  const { data: options, isLoading, isError, refetch } = useStorage();
   const { data: bookings } = useStorageBookings();
   const { data: lots } = useMyLots();
   const reserve = useReserveStorage();
@@ -89,7 +92,25 @@ export function StoragePage() {
         {t("farmer.storage.title", "Storage Facilities")}
       </FarmerSectionTitle>
 
-      {(options ?? []).length === 0 ? (
+      {isLoading ? (
+        <FarmerCard className="p-12 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
+          <p className="text-sm font-medium">{t("farmer.storage.loading", "Loading storage facilities…")}</p>
+        </FarmerCard>
+      ) : isError ? (
+        <FarmerCard className="p-8 text-center text-rose-700 bg-rose-50/50 border-rose-200 flex flex-col items-center justify-center gap-3">
+          <AlertCircle className="h-8 w-8 text-rose-600" />
+          <p className="text-sm font-medium">{t("farmer.storage.error", "Failed to load storage facilities.")}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            {t("farmer.storage.retry", "Retry")}
+          </button>
+        </FarmerCard>
+      ) : (options ?? []).length === 0 ? (
         <FarmerCard className="p-8 text-center text-emerald-900/70">
           <p className="font-semibold text-emerald-900">
             {t("farmer.storage.empty", "No accredited warehouse or cold storage facilities registered in your district yet.")}

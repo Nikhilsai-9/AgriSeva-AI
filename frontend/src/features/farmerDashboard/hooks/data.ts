@@ -19,6 +19,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { create } from "zustand";
+import { useAuthStore } from "@/stores/auth-store";
 
 import { env } from "@/config/env";
 import { apiFetch } from "@/hooks/api/api-fetch";
@@ -808,7 +809,14 @@ export const useCreateLot = () => {
       return created as FarmerLot;
     },
     onSuccess: () => {
+      // Invalidate every query that depends on the lot list so the
+      // Home page, My Lots, Offers, and Payments pages all refresh.
       qc.invalidateQueries({ queryKey: ["farmer", "myLots"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "offers"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "payments"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "notifications"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "allMarketPrices"] });
+      qc.invalidateQueries({ queryKey: ["farmer", "todayInsight"] });
     },
   });
 };

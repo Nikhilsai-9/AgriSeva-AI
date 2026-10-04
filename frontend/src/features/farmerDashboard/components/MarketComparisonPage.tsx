@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 
 export function MarketComparisonPage() {
   const { t } = useTranslation();
-  const { data: lots } = useMyLots();
+  const { data: lots, isLoading: isLotsLoading } = useMyLots();
   const { data: prices } = useAllMarketPrices();
   const { data: buyers } = useBuyers();
   const { data: grievances } = useGrievances();
@@ -70,6 +70,24 @@ export function MarketComparisonPage() {
 
   const [expandedIdx, setExpandedIdx] = useState<number | null>(0);
 
+  if (isLotsLoading) {
+    return (
+      <FarmerPageContainer className="space-y-5">
+        <Link
+          to="/farmer"
+          className="inline-flex items-center gap-1 text-sm text-emerald-700 font-semibold"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t("farmer.common.back", "Back")}
+        </Link>
+        <FarmerCard className="p-12 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-3">
+          <TrendingUp className="h-8 w-8 text-emerald-600 animate-spin" />
+          <p className="text-sm font-medium">{t("farmer.recommend.loading", "Loading market recommendations…")}</p>
+        </FarmerCard>
+      </FarmerPageContainer>
+    );
+  }
+
   if (!activeLot) {
     return (
       <FarmerPageContainer className="space-y-5">
@@ -80,11 +98,23 @@ export function MarketComparisonPage() {
           <ArrowLeft className="h-4 w-4" />
           {t("farmer.common.back", "Back")}
         </Link>
-        <FarmerCard className="p-6 text-center text-emerald-900/70">
-          {t(
-            "farmer.recommend.empty",
-            "Create an active lot to compare markets."
-          )}
+        <FarmerCard className="p-8 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-3">
+          <Store className="h-10 w-10 text-emerald-300" />
+          <p className="font-semibold text-emerald-950">
+            {t("farmer.recommend.noLotsTitle", "No active lot found")}
+          </p>
+          <p className="text-xs text-emerald-900/60 max-w-sm">
+            {t(
+              "farmer.recommend.empty",
+              "Create a crop lot first to view net profit comparisons across regional mandis."
+            )}
+          </p>
+          <Link
+            to="/farmer/lots/new"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold px-4 py-2 hover:bg-emerald-700 transition-colors mt-2"
+          >
+            {t("farmer.lots.new", "Create New Lot")}
+          </Link>
         </FarmerCard>
       </FarmerPageContainer>
     );

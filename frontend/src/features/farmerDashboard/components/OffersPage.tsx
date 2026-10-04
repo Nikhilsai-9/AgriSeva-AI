@@ -6,6 +6,9 @@ import {
   Sprout,
   Scale,
   X,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import {
@@ -27,7 +30,7 @@ type Filter = (typeof FILTERS)[number];
 
 export function OffersPage() {
   const { t } = useTranslation();
-  const { data: offers } = useAllMyOffers();
+  const { data: offers, isLoading, isError, refetch } = useAllMyOffers();
   const updateOffer = useUpdateOfferStatus();
   const counter = useCounterOffer();
   const [filter, setFilter] = useState<Filter>("all");
@@ -91,9 +94,33 @@ export function OffersPage() {
         </div>
       </FarmerCard>
 
-      {visible.length === 0 ? (
-        <FarmerCard className="p-6 text-center text-emerald-900/70">
-          {t("farmer.offers.empty", "No offers in this view yet.")}
+      {isLoading ? (
+        <FarmerCard className="p-12 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
+          <p className="text-sm font-medium">{t("farmer.offers.loading", "Loading offers…")}</p>
+        </FarmerCard>
+      ) : isError ? (
+        <FarmerCard className="p-8 text-center text-rose-700 bg-rose-50/50 border-rose-200 flex flex-col items-center justify-center gap-3">
+          <AlertCircle className="h-8 w-8 text-rose-600" />
+          <p className="text-sm font-medium">{t("farmer.offers.error", "Failed to load offers.")}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            {t("farmer.offers.retry", "Retry")}
+          </button>
+        </FarmerCard>
+      ) : visible.length === 0 ? (
+        <FarmerCard className="p-8 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-2">
+          <HandCoins className="h-10 w-10 text-emerald-300" />
+          <p className="font-semibold text-emerald-950">
+            {filter === "all" ? t("farmer.offers.emptyAll", "No bids or offers received yet") : t("farmer.offers.emptyFilter", "No offers matching this filter")}
+          </p>
+          <p className="text-xs text-emerald-900/60 max-w-sm">
+            {t("farmer.offers.emptyHint", "When verified buyers submit bids on your crop lots, they will appear here with full price and delivery details.")}
+          </p>
         </FarmerCard>
       ) : (
         <div className="space-y-3">

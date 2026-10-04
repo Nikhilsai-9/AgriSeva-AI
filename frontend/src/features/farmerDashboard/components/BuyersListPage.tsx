@@ -7,6 +7,9 @@ import {
   Factory,
   MapPin,
   Phone,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import { useBuyers, useFarmerProfile, useMyLots } from "@/features/farmerDashboard/hooks/data";
@@ -21,7 +24,7 @@ import { cn } from "@/lib/utils";
 
 export function BuyersListPage() {
   const { t } = useTranslation();
-  const { data: buyers } = useBuyers();
+  const { data: buyers, isLoading, isError, refetch } = useBuyers();
   const { data: profile } = useFarmerProfile();
   const { data: lots } = useMyLots();
   const [query, setQuery] = useState("");
@@ -73,10 +76,28 @@ export function BuyersListPage() {
         </div>
       </FarmerCard>
 
-      {ranked.length === 0 ? (
+      {isLoading ? (
+        <FarmerCard className="p-12 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
+          <p className="text-sm font-medium">{t("farmer.buyers.loading", "Finding verified buyers…")}</p>
+        </FarmerCard>
+      ) : isError ? (
+        <FarmerCard className="p-8 text-center text-rose-700 bg-rose-50/50 border-rose-200 flex flex-col items-center justify-center gap-3">
+          <AlertCircle className="h-8 w-8 text-rose-600" />
+          <p className="text-sm font-medium">{t("farmer.buyers.error", "Failed to load buyers.")}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            {t("farmer.buyers.retry", "Retry")}
+          </button>
+        </FarmerCard>
+      ) : ranked.length === 0 ? (
         <FarmerCard className="p-8 text-center text-emerald-900/70">
           <p className="font-semibold text-emerald-900">
-            {t("farmer.buyers.empty", "No registered commercial buyers found in your district yet.")}
+            {t("farmer.buyers.empty", "No registered commercial buyers found matching your criteria.")}
           </p>
           <p className="text-xs text-emerald-900/60 mt-1 max-w-md mx-auto">
             {t(

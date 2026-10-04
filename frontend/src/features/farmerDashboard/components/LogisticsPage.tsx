@@ -1,5 +1,5 @@
 import {
-  Truck, MapPin, Calendar, Package, ShieldCheck, Check,
+  Truck, MapPin, Calendar, Package, ShieldCheck, Check, Loader2, AlertCircle, RefreshCw,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import {
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 export function LogisticsPage() {
   const { t } = useTranslation();
-  const { data: options } = useLogistics();
+  const { data: options, isLoading, isError, refetch } = useLogistics();
   const { selectedId, setSelectedId } = useSelectedLogistics();
   const pushNotification = useFarmerDashboardStore((s) => s.pushNotification);
   const selected = (options ?? []).find((o) => o.id === selectedId);
@@ -51,7 +51,25 @@ export function LogisticsPage() {
           </p>
         </FarmerCard>
       )}
-      {(options ?? []).length === 0 ? (
+      {isLoading ? (
+        <FarmerCard className="p-12 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
+          <p className="text-sm font-medium">{t("farmer.logistics.loading", "Loading logistics routes…")}</p>
+        </FarmerCard>
+      ) : isError ? (
+        <FarmerCard className="p-8 text-center text-rose-700 bg-rose-50/50 border-rose-200 flex flex-col items-center justify-center gap-3">
+          <AlertCircle className="h-8 w-8 text-rose-600" />
+          <p className="text-sm font-medium">{t("farmer.logistics.error", "Failed to load logistics options.")}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            {t("farmer.logistics.retry", "Retry")}
+          </button>
+        </FarmerCard>
+      ) : (options ?? []).length === 0 ? (
         <FarmerCard className="p-8 text-center text-emerald-900/70">
           <p className="font-semibold text-emerald-900">
             {t("farmer.logistics.empty", "No direct logistics routes available for this destination right now.")}

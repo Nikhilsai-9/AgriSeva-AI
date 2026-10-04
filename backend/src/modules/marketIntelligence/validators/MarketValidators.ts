@@ -1,5 +1,6 @@
 import {
   IsOptional,
+  IsNotEmpty,
   IsString,
   IsNumber,
   IsInt,
@@ -111,10 +112,10 @@ class GetMarketComparisonQuery {
 }
 
 class GetTodayInsightQuery {
-  @JSONSchema({description: 'Commodity (optional; defaults to most relevant active crop)', example: 'Tomato'})
-  @IsOptional()
+  @JSONSchema({description: 'Commodity', example: 'Tomato'})
+  @IsNotEmpty()
   @IsString()
-  commodity?: string;
+  commodity!: string;
 
   @JSONSchema({description: 'State', example: 'Karnataka'})
   @IsOptional()

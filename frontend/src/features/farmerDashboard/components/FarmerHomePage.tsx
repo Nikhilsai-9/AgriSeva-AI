@@ -69,7 +69,7 @@ export function FarmerHomePage() {
     payments?.filter((p) => p.status === "pending") ?? [];
   const topLot = activeLots[0];
 
-  const effectiveCrop = profileCrop || topLot?.crop;
+  const effectiveCrop = profileCrop || topLot?.crop || "Tomato";
   const effectiveState = profileState || topLot?.state;
   const { data: insight, isLoading: isInsightLoading } = useTodayInsight({
     state: effectiveState,

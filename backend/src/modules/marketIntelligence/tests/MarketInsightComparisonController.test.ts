@@ -80,6 +80,14 @@ describe('MarketInsightController', () => {
     container
       .bind(GLOBAL_TYPES.MarketHistoryService)
       .toConstantValue(mockHistoryService);
+    container
+      .bind(GLOBAL_TYPES.CommodityResolver)
+      .toConstantValue({
+        resolve: vi.fn().mockImplementation(async (c: string) => ({
+          canonical: c,
+          candidates: [c],
+        })),
+      });
     container.bind(HttpErrorHandler).toSelf().inSingletonScope();
 
     useContainer(new InversifyAdapter(container));

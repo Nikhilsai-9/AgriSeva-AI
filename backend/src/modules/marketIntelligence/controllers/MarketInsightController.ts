@@ -59,30 +59,24 @@ export class MarketInsightController {
     fetchedAt: string;
     insight: MarketTodayInsight | null;
   }> {
-    const filter: any = {};
-    if (query.commodity) {
-      const resolved = await this.commodityResolver.resolve(query.commodity);
-      const candidates = resolved.candidates;
-      filter.commodity =
-        candidates.length > 1 ? {$in: candidates} : candidates[0];
+    if (!query.commodity) {
+      throw new BadRequestError('commodity is required');
     }
+
+    const filter: any = {};
+    const resolved = await this.commodityResolver.resolve(query.commodity);
+    const candidates = resolved.candidates;
+    filter.commodity =
+      candidates.length > 1 ? {$in: candidates} : candidates[0];
     if (query.state) filter.state = query.state;
     if (query.market) filter.market = query.market;
 
-    let rows = await this.priceRepo.findMany(filter, 20);
-    // If no row found for this specific state+crop, try matching crop across India
-    if (rows.length === 0 && filter.commodity) {
-      rows = await this.priceRepo.findMany({commodity: filter.commodity}, 20);
-    }
-    // If still no row or no crop specified, find the most recent active record overall
-    if (rows.length === 0) {
-      rows = await this.priceRepo.findMany({}, 10);
-    }
+    const rows = (await this.priceRepo.findMany(filter, 20)) ?? [];
 
     if (rows.length === 0) {
       return {
         success: true,
-        isDemo: false,
+        isDemo: true,
         fetchedAt: new Date().toISOString(),
         insight: null,
       };

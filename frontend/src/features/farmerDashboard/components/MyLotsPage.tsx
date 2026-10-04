@@ -1,6 +1,6 @@
-﻿import { Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Plus, Sprout, MapPin, Calendar } from "lucide-react";
+import { Plus, Sprout, MapPin, Calendar, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { useTranslation } from "@/locales";
 import { useMyLots } from "@/features/farmerDashboard/hooks/data";
 import {
@@ -23,7 +23,7 @@ type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 export function MyLotsPage() {
   const { t } = useTranslation();
-  const { data: lots } = useMyLots();
+  const { data: lots, isLoading, isError, refetch } = useMyLots();
   const [status, setStatus] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<"newest" | "oldest" | "quantity">("newest");
 
@@ -90,9 +90,42 @@ export function MyLotsPage() {
         </FarmerCard>
       )}
 
-      {visible.length === 0 ? (
-        <FarmerCard className="p-6 text-center text-emerald-900/70">
-          {t("farmer.lots.empty", "You haven't created any lots yet.")}
+      {isLoading ? (
+        <FarmerCard className="p-12 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
+          <p className="text-sm font-medium">{t("farmer.lots.loading", "Loading your lots…")}</p>
+        </FarmerCard>
+      ) : isError ? (
+        <FarmerCard className="p-8 text-center text-rose-700 bg-rose-50/50 border-rose-200 flex flex-col items-center justify-center gap-3">
+          <AlertCircle className="h-8 w-8 text-rose-600" />
+          <p className="text-sm font-medium">{t("farmer.lots.error", "Failed to load lots.")}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            {t("farmer.lots.retry", "Retry")}
+          </button>
+        </FarmerCard>
+      ) : visible.length === 0 ? (
+        <FarmerCard className="p-8 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-3">
+          <Sprout className="h-10 w-10 text-emerald-300" />
+          <p className="font-semibold text-emerald-950">{t("farmer.lots.emptyTitle", "No lots found")}</p>
+          <p className="text-xs text-emerald-900/60 max-w-sm">
+            {status !== "all"
+              ? t("farmer.lots.emptyFilter", "No lots matching the selected filter.")
+              : t("farmer.lots.empty", "You haven't created any lots yet. Create your first crop lot to start receiving buyer bids.")}
+          </p>
+          {status === "all" && (
+            <Link
+              to="/farmer/lots/new"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold px-4 py-2 hover:bg-emerald-700 transition-colors mt-2"
+            >
+              <Plus className="h-4 w-4" />
+              {t("farmer.lots.createFirst", "Create First Lot")}
+            </Link>
+          )}
         </FarmerCard>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">

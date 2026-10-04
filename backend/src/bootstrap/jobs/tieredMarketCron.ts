@@ -48,11 +48,49 @@ export type TierJobResult = {
  * Run a single tier's ingestion once (used both by cron ticks and by
  * the manual `/api/market-prices/refresh?tier=HIGH` admin path).
  */
+export interface MarketSyncStatus {
+  lastSyncAt: string | null;
+  lastTier: WatchlistTier | 'ALL' | null;
+  lastDurationMs: number | null;
+  lastSuccessfulTargets: number | null;
+  lastTotalTargets: number | null;
+  lastRecordsPersisted: number | null;
+  lastStatus: 'success' | 'partial' | 'failed' | 'in_flight' | 'idle';
+  isRealtimeActive: boolean;
+  nextScheduledCron: string;
+}
+
+const ENABLED =
+  String(process.env.ENABLE_MARKET_INGEST_CRON ?? 'true').toLowerCase() !==
+  'false';
+
+let currentSyncStatus: MarketSyncStatus = {
+  lastSyncAt: null,
+  lastTier: null,
+  lastDurationMs: null,
+  lastSuccessfulTargets: null,
+  lastTotalTargets: null,
+  lastRecordsPersisted: null,
+  lastStatus: 'idle',
+  isRealtimeActive: ENABLED,
+  nextScheduledCron: TIER_CRON_EXPRESSIONS.HIGH,
+};
+
+export function getMarketSyncStatus(): MarketSyncStatus {
+  return {...currentSyncStatus};
+}
+
+/**
+ * Run a single tier's ingestion once (used both by cron ticks and by
+ * the manual `/api/market-prices/refresh?tier=HIGH` admin path).
+ */
 export async function runMarketIngestionJobForTier(
   tier: WatchlistTier,
 ): Promise<TierJobResult> {
   const start = Date.now();
-  console.log(`<<JOB>> [MarketIngest:${tier}] Starting tier ingestion`);
+  currentSyncStatus.lastStatus = 'in_flight';
+  currentSyncStatus.lastTier = tier;
+  console.log(`<<JOB>> [MarketIngest:${tier}] Starting automated tier ingestion`);
   try {
     const container = getContainer();
     const ingestionService = container.get<MarketIngestionService>(
@@ -69,6 +107,17 @@ export async function runMarketIngestionJobForTier(
       `<<JOB>> [MarketIngest:${tier}] Done in ${durationMs}ms — ` +
         `${ok}/${results.length} ok, ${totalRows} rows upserted`,
     );
+    currentSyncStatus = {
+      lastSyncAt: new Date().toISOString(),
+      lastTier: tier,
+      lastDurationMs: durationMs,
+      lastSuccessfulTargets: ok,
+      lastTotalTargets: results.length,
+      lastRecordsPersisted: totalRows,
+      lastStatus: ok === results.length ? 'success' : ok > 0 ? 'partial' : 'failed',
+      isRealtimeActive: ENABLED,
+      nextScheduledCron: TIER_CRON_EXPRESSIONS.HIGH,
+    };
     return {
       totalTargets: results.length,
       successful: ok,
@@ -76,16 +125,18 @@ export async function runMarketIngestionJobForTier(
       durationMs,
     };
   } catch (err) {
+    currentSyncStatus = {
+      ...currentSyncStatus,
+      lastSyncAt: new Date().toISOString(),
+      lastStatus: 'failed',
+    };
     console.error(`<<JOB>> [MarketIngest:${tier}] Error:`, err);
     throw err;
   }
 }
 
-const ENABLED =
-  String(process.env.ENABLE_MARKET_INGEST_CRON ?? 'true').toLowerCase() !==
-  'false';
-
 if (ENABLED) {
+  // 1. Scheduled tiered crons (standard cadence)
   for (const tier of Object.keys(TIER_CRON_EXPRESSIONS) as WatchlistTier[]) {
     cron.schedule(
       TIER_CRON_EXPRESSIONS[tier],
@@ -101,5 +152,34 @@ if (ENABLED) {
     console.log(
       `<<JOB>> [MarketIngest:${tier}] Scheduled (${TIER_CRON_EXPRESSIONS[tier]} Asia/Kolkata) — ${TIER_CRON_DESCRIPTIONS[tier]}`,
     );
+  }
+
+  // 2. Automated real-time synchronization for HIGH-volatility commodities (every 30m by default)
+  const realtimeCron = process.env.MARKET_REALTIME_SYNC_CRON ?? '*/30 * * * *';
+  cron.schedule(
+    realtimeCron,
+    async () => {
+      try {
+        console.log(`<<JOB>> [MarketIngest:RealTime] Auto-sync triggered for HIGH-tier crops (${realtimeCron})`);
+        await runMarketIngestionJobForTier('HIGH');
+      } catch (err: any) {
+        console.warn('<<JOB>> [MarketIngest:RealTime] Periodic sync non-fatal warning:', err?.message);
+      }
+    },
+    {timezone: 'Asia/Kolkata'},
+  );
+  console.log(`<<JOB>> [MarketIngest:RealTime] Automated real-time sync active (${realtimeCron} Asia/Kolkata)`);
+
+  // 3. Automated initial sync on startup (after 5s delay to let DB settle)
+  const syncOnStartup = String(process.env.SYNC_MARKET_ON_STARTUP ?? 'true').toLowerCase() !== 'false';
+  if (syncOnStartup) {
+    setTimeout(async () => {
+      console.log('<<JOB>> [MarketIngest:BOOT] Running automated startup sync for HIGH tier commodities...');
+      try {
+        await runMarketIngestionJobForTier('HIGH');
+      } catch (e: any) {
+        console.warn('<<JOB>> [MarketIngest:BOOT] Initial sync non-fatal warning:', e?.message);
+      }
+    }, 5000);
   }
 }

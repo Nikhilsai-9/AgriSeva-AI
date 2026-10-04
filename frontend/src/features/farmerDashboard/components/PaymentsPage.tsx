@@ -7,6 +7,9 @@ import {
   XCircle,
   Calendar,
   MessageCircleWarning,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import { usePayments } from "@/features/farmerDashboard/hooks/data";
@@ -24,7 +27,7 @@ type Filter = (typeof FILTERS)[number];
 
 export function PaymentsPage() {
   const { t } = useTranslation();
-  const { data: payments } = usePayments();
+  const { data: payments, isLoading, isError, refetch } = usePayments();
   const [filter, setFilter] = useState<Filter>("all");
 
   const visible = (payments ?? []).filter((p) =>
@@ -88,9 +91,35 @@ export function PaymentsPage() {
         </div>
       </FarmerCard>
 
-      {visible.length === 0 ? (
-        <FarmerCard className="p-6 text-center text-emerald-900/70">
-          {t("farmer.payments.empty", "No payments in this view yet.")}
+      {isLoading ? (
+        <FarmerCard className="p-12 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
+          <p className="text-sm font-medium">{t("farmer.payments.loading", "Loading payments…")}</p>
+        </FarmerCard>
+      ) : isError ? (
+        <FarmerCard className="p-8 text-center text-rose-700 bg-rose-50/50 border-rose-200 flex flex-col items-center justify-center gap-3">
+          <AlertCircle className="h-8 w-8 text-rose-600" />
+          <p className="text-sm font-medium">{t("farmer.payments.error", "Failed to load payments.")}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            {t("farmer.payments.retry", "Retry")}
+          </button>
+        </FarmerCard>
+      ) : visible.length === 0 ? (
+        <FarmerCard className="p-8 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-2">
+          <Wallet className="h-10 w-10 text-emerald-300" />
+          <p className="font-semibold text-emerald-950">
+            {filter === "all"
+              ? t("farmer.payments.emptyAll", "No payments recorded yet")
+              : t("farmer.payments.emptyFilter", "No payments matching this filter")}
+          </p>
+          <p className="text-xs text-emerald-900/60 max-w-sm">
+            {t("farmer.payments.emptyHint", "When accepted offers are settled via direct bank transfer or UPI, transaction receipts will be archived here.")}
+          </p>
         </FarmerCard>
       ) : (
         <div className="space-y-3">

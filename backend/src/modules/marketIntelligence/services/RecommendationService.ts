@@ -143,8 +143,8 @@ export class RecommendationService {
             breakdown: top.breakdown,
           }
         : null,
-      isDemo: false,
-      isDegraded: isDegradedMode(),
+      isDemo: rows.length === 0,
+      isDegraded: rows.length === 0 || isDegradedMode(),
       fetchedAt: new Date().toISOString(),
     };
   }
