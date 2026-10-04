@@ -14,6 +14,7 @@ import {
   Trash2,
   CheckCircle2,
   X,
+  Loader2,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import {
@@ -45,7 +46,7 @@ import { cn } from "@/lib/utils";
 export function LotDetailPage({ lotId }: { lotId: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data: lot } = useLot(lotId);
+  const { data: lot, isLoading, isError } = useLot(lotId);
   const { data: offers } = useOffersForLot(lotId);
   const { data: buyers } = useBuyers();
   const { data: profile } = useFarmerProfile();
@@ -118,11 +119,42 @@ export function LotDetailPage({ lotId }: { lotId: string }) {
     setMarkPrice("");
   }
 
-  if (!lot) {
+  if (isLoading) {
     return (
-      <FarmerPageContainer>
-        <FarmerCard className="p-6 text-center text-emerald-900/70">
-          {t("farmer.lotDetail.notFound", "Lot not found.")}
+      <FarmerPageContainer className="space-y-5">
+        <Link
+          to="/farmer/lots"
+          className="inline-flex items-center gap-1 text-sm text-emerald-700 font-semibold"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t("farmer.common.back", "Back")}
+        </Link>
+        <FarmerCard className="p-12 text-center text-emerald-900/70 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
+          <p className="text-sm font-medium">{t("farmer.lotDetail.loading", "Loading lot details…")}</p>
+        </FarmerCard>
+      </FarmerPageContainer>
+    );
+  }
+
+  if (isError || !lot) {
+    return (
+      <FarmerPageContainer className="space-y-5">
+        <Link
+          to="/farmer/lots"
+          className="inline-flex items-center gap-1 text-sm text-emerald-700 font-semibold"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t("farmer.common.back", "Back")}
+        </Link>
+        <FarmerCard className="p-8 text-center text-emerald-900/70 space-y-3">
+          <p className="font-semibold text-emerald-950">{t("farmer.lotDetail.notFound", "Lot not found.")}</p>
+          <Link
+            to="/farmer/lots"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold px-4 py-2 hover:bg-emerald-700 transition-colors"
+          >
+            {t("farmer.lots.viewAll", "View all lots")}
+          </Link>
         </FarmerCard>
       </FarmerPageContainer>
     );
