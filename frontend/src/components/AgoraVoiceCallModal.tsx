@@ -454,9 +454,9 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
       if (!val) endCall();
       onOpenChange(val);
     }}>
-      <DialogContent className="fixed z-[120] p-0 overflow-hidden rounded-3xl border border-emerald-500/20 shadow-2xl bg-zinc-950 text-white max-w-lg w-[calc(100vw-32px)] max-h-[min(620px,calc(100dvh-40px))] flex flex-col">
+      <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[120] p-0 overflow-hidden rounded-3xl border border-emerald-500/20 shadow-2xl bg-zinc-950 text-white max-w-lg w-[calc(100vw-32px)] max-h-[min(620px,calc(100dvh-40px))] flex flex-col [&_[data-slot=dialog-close]]:text-white [&_[data-slot=dialog-close]]:hover:text-white [&_[data-slot=dialog-close]]:hover:bg-white/20 [&_[data-slot=dialog-close]]:opacity-90">
         {/* Header */}
-        <div className="relative bg-gradient-to-r from-emerald-900 via-teal-900 to-zinc-900 p-5 border-b border-emerald-500/20">
+        <div className="relative bg-gradient-to-r from-emerald-900 via-teal-900 to-zinc-900 p-5 border-b border-emerald-500/20 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative flex items-center justify-center h-11 w-11 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-400">
@@ -487,7 +487,7 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
 
             {/* Language Selector */}
             <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
-              <SelectTrigger className="h-8 w-28 bg-white/10 border-white/20 text-xs text-white">
+              <SelectTrigger className="h-8 w-28 bg-white/10 border-white/20 text-xs text-white mr-7">
                 <Languages className="h-3.5 w-3.5 mr-1 text-emerald-400" />
                 <SelectValue />
               </SelectTrigger>
@@ -537,8 +537,8 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
         </div>
 
         {/* Live Conversation Transcript Area */}
-        <div className="p-4 bg-zinc-950">
-          <ScrollArea className="h-64 rounded-xl border border-white/10 bg-zinc-900/60 p-3" ref={scrollAreaRef}>
+        <div className="p-4 bg-zinc-950 flex-1 min-h-0 overflow-hidden flex flex-col">
+          <ScrollArea className="flex-1 min-h-[160px] h-full rounded-xl border border-white/10 bg-zinc-900/60 p-3 overscroll-contain" ref={scrollAreaRef}>
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-6 text-zinc-400 space-y-2">
                 <Mic className="h-8 w-8 text-emerald-400 animate-bounce" />
@@ -605,7 +605,7 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
         </div>
 
         {/* Call Controls Bar */}
-        <div className="p-4 bg-zinc-900 border-t border-white/10 flex items-center justify-between">
+        <div className="p-4 bg-zinc-900 border-t border-white/10 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             {/* Mute Button */}
             <Button

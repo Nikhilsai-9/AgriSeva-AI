@@ -608,7 +608,7 @@ export function GlobalCommunicationActions() {
        */}
       <aside
         aria-label="AgriSeva Global Communication & AI Helper"
-        className="fixed z-[90] flex flex-col items-center gap-2.5 sm:gap-3 select-none pointer-events-auto"
+        className="fixed z-[85] flex flex-col items-center gap-2.5 sm:gap-3 select-none pointer-events-none"
         style={{
           right: "clamp(12px, 2vw, 20px)",
           bottom: isFarmerRoute ? "clamp(72px, 8vh, 84px)" : "clamp(16px, 2.5vh, 24px)",
@@ -623,7 +623,7 @@ export function GlobalCommunicationActions() {
                 id="floating-phone-action-btn"
                 aria-label="Open AgriSeva Voice Helpline & Dialer"
                 onClick={() => setPhoneDialogOpen(true)}
-                className="group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-black/15 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="pointer-events-auto group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-black/15 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               >
                 <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
                 <Phone className="h-5 w-5 stroke-[2.2] text-white" />
@@ -642,7 +642,7 @@ export function GlobalCommunicationActions() {
                 id="floating-whatsapp-action-btn"
                 aria-label="Open AgriSeva WhatsApp Assistance"
                 onClick={() => setWhatsappDialogOpen(true)}
-                className="group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#25D366] hover:bg-[#1ebe5a] text-white shadow-lg shadow-black/15 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#25D366]/40"
+                className="pointer-events-auto group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#25D366] hover:bg-[#1ebe5a] text-white shadow-lg shadow-black/15 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#25D366]/40"
               >
                 <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
                 <MessageSquare className="h-5 w-5 stroke-[2.2] text-white" />
@@ -664,7 +664,7 @@ export function GlobalCommunicationActions() {
                 id="floating-helper-action-btn"
                 aria-label="Open AgriSeva-AI Assistant"
                 onClick={() => setHelperDialogOpen(!helperDialogOpen)}
-                className={`group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-700 via-teal-700 to-emerald-600 hover:from-emerald-800 hover:to-teal-800 text-white shadow-lg shadow-black/20 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-teal-500/40 ${
+                className={`pointer-events-auto group relative flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-700 via-teal-700 to-emerald-600 hover:from-emerald-800 hover:to-teal-800 text-white shadow-lg shadow-black/20 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-teal-500/40 ${
                   helperDialogOpen ? "ring-2 ring-emerald-400 bg-teal-800" : ""
                 }`}
               >
@@ -689,17 +689,10 @@ export function GlobalCommunicationActions() {
       <Dialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen}>
         <DialogContent
           id="agriseva-phone-helpline-dialog"
-          className="fixed z-[100] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card top-auto left-auto translate-x-0 translate-y-0 duration-200"
-          style={{
-            right: "clamp(12px, 2vw, 24px)",
-            bottom: isFarmerRoute ? "clamp(76px, 9vh, 92px)" : "clamp(16px, 2.5vh, 24px)",
-            width: "min(390px, calc(100vw - 32px))",
-            maxWidth: "min(390px, calc(100vw - 32px))",
-            maxHeight: "min(600px, calc(100dvh - 64px))",
-          }}
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] flex flex-col p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card w-[min(440px,calc(100vw-32px))] max-h-[min(620px,calc(100dvh-48px))] duration-200 outline-none [&_[data-slot=dialog-close]]:text-white [&_[data-slot=dialog-close]]:hover:text-white [&_[data-slot=dialog-close]]:hover:bg-white/20 [&_[data-slot=dialog-close]]:opacity-90"
         >
-          <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 p-6 text-white">
-            <div className="flex items-center justify-between">
+          <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 p-5 sm:p-6 text-white shrink-0">
+            <div className="flex items-center justify-between pr-7">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-white/15 backdrop-blur-sm">
                   <Headphones className="h-6 w-6 text-white" />
@@ -719,7 +712,7 @@ export function GlobalCommunicationActions() {
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 pb-6">
             <Tabs defaultValue="helpline" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-4 bg-muted/60 p-1">
                 <TabsTrigger value="helpline" className="text-xs font-semibold">
@@ -926,17 +919,10 @@ export function GlobalCommunicationActions() {
       <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
         <DialogContent
           id="agriseva-whatsapp-dialog"
-          className="fixed z-[100] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card top-auto left-auto translate-x-0 translate-y-0 duration-200"
-          style={{
-            right: "clamp(12px, 2vw, 24px)",
-            bottom: isFarmerRoute ? "clamp(76px, 9vh, 92px)" : "clamp(16px, 2.5vh, 24px)",
-            width: "min(390px, calc(100vw - 32px))",
-            maxWidth: "min(390px, calc(100vw - 32px))",
-            maxHeight: "min(600px, calc(100dvh - 64px))",
-          }}
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] flex flex-col p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card w-[min(440px,calc(100vw-32px))] max-h-[min(620px,calc(100dvh-48px))] duration-200 outline-none [&_[data-slot=dialog-close]]:text-white [&_[data-slot=dialog-close]]:hover:text-white [&_[data-slot=dialog-close]]:hover:bg-white/20 [&_[data-slot=dialog-close]]:opacity-90"
         >
-          <div className="bg-gradient-to-r from-[#25D366] via-[#20BA5C] to-[#128C7E] p-6 text-white">
-            <div className="flex items-center justify-between">
+          <div className="bg-gradient-to-r from-[#25D366] via-[#20BA5C] to-[#128C7E] p-5 sm:p-6 text-white shrink-0">
+            <div className="flex items-center justify-between pr-7">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-white/15 backdrop-blur-sm">
                   <MessageSquare className="h-6 w-6 text-white" />
@@ -957,7 +943,7 @@ export function GlobalCommunicationActions() {
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 pb-6">
             <Tabs defaultValue="chatbot" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-4 bg-muted/60 p-1">
                 <TabsTrigger value="chatbot" className="text-xs font-semibold">
@@ -1098,9 +1084,8 @@ export function GlobalCommunicationActions() {
           id="agriseva-ai-assistant-panel"
           role="dialog"
           aria-label="AgriSeva AI Assistant"
-          className="fixed z-[95] flex flex-col bg-card/95 backdrop-blur-md border border-emerald-500/30 dark:border-emerald-700/40 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200 select-auto"
+          className="fixed z-[95] flex flex-col bg-card/95 backdrop-blur-md border border-emerald-500/30 dark:border-emerald-700/40 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200 select-auto right-3 sm:right-20"
           style={{
-            right: "clamp(12px, 2vw, 24px)",
             bottom: isFarmerRoute ? "clamp(76px, 10vh, 92px)" : "clamp(18px, 2.5vh, 24px)",
             width: "min(380px, calc(100vw - 28px))",
             maxWidth: "min(380px, calc(100vw - 28px))",
