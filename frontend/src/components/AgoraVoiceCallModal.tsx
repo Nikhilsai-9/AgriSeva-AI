@@ -305,15 +305,19 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
 
       // If backend network was unreachable, fallback to environment-configured token
       if (!token) {
-        token = env.agoraRtcToken();
+        token = env.agoraRtcToken() || "";
       }
+
+      // Agora RTC SDK strictly requires either a non-empty string or null.
+      // Passing an empty string ("") throws INVALID_PARAMS: "Invalid token: . If you do not use token, set it to null"
+      const rtcToken = token.trim().length > 0 ? token.trim() : null;
 
       // Initialize Agora RTC Client
       const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
       agoraClientRef.current = client;
 
-      // Join channel with dynamic token and UID 0 (Agora assigns dynamic UID)
-      await client.join(appId, channelName, token, 0);
+      // Join channel with dynamic token (or null if tokenless testing) and UID 0 (Agora assigns dynamic UID)
+      await client.join(appId, channelName, rtcToken, 0);
 
       // Create and publish local microphone audio track
       const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -345,11 +349,13 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
     } catch (err: any) {
       console.error("Agora Web Call error:", err);
       const errMsg = err?.message || String(err);
-      toast.error(
-        errMsg.includes("NotAllowedError") || errMsg.includes("Permission")
-          ? "Microphone access was denied. Please allow microphone permission in your browser."
-          : errMsg
-      );
+      if (errMsg.includes("NotAllowedError") || errMsg.includes("Permission")) {
+        toast.error("Microphone access was denied. Please allow microphone permission in your browser.");
+      } else if (errMsg.includes("CAN_NOT_GET_GATEWAY_SERVER") || errMsg.includes("dynamic use static key") || errMsg.includes("Invalid token")) {
+        toast.error("Agora voice gateway requires an active RTC token. Please ensure VITE_AGORA_RTC_TOKEN is set or backend is running.");
+      } else {
+        toast.error(errMsg);
+      }
       endCall();
     }
   };

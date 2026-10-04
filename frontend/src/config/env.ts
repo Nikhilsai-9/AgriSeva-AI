@@ -156,8 +156,8 @@ export const env = {
 
   faqApiUrl: () => getEnv("VITE_FAQ_API_URL", false, "") || `${apiBase()}/faq`,
   popApiUrl: () => getEnv("VITE_POP_API_URL", false, "") || `${apiBase()}/pop`,
-  agoraAppId: () => getEnv("VITE_AGORA_APP_ID", false, "360acfc1ebd44465b9b85b7800153364"),
-  agoraRtcToken: () => getEnv("VITE_AGORA_RTC_TOKEN", false, ""),
+  agoraAppId: () => resolveEnv("VITE_AGORA_APP_ID", import.meta.env.VITE_AGORA_APP_ID) || "360acfc1ebd44465b9b85b7800153364",
+  agoraRtcToken: () => resolveEnv("VITE_AGORA_RTC_TOKEN", import.meta.env.VITE_AGORA_RTC_TOKEN) || "",
 };
 
 /** API base URL without a trailing slash, e.g. "https://…run.app/api". */
