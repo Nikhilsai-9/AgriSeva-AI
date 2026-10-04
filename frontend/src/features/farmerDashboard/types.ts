@@ -402,17 +402,24 @@ export interface TodayInsight {
   /** UI alias for `commodity`. */
   crop: string;
   modalPrice: number;
+  minPrice?: number;
+  maxPrice?: number;
   unit: string;
   trendPct: number;
   /** UI alias for `trendPct`. */
   changePct: number;
   trendDirection: "up" | "down" | "flat";
-  recommendation: string;
-  strongestMarket: string;
+  recommendation?: string;
+  strongestMarket?: string;
   /** UI alias for `strongestMarket`. */
   market: string;
-  weakestMarket: string;
-  distanceKm: number;
+  state?: string;
+  district?: string;
+  arrivalDate?: string;
+  source?: string;
+  sourceSystem?: string;
+  weakestMarket?: string;
+  distanceKm?: number;
   isDemo: boolean;
 }
 

@@ -168,7 +168,10 @@ export interface MarketTodayInsight {
   commodity: string;
   market: string;
   state: string;
+  district?: string;
   modalPrice?: number;
+  minPrice?: number;
+  maxPrice?: number;
   unit: string;
   arrivalDate: string;
   source: MarketSourceId;

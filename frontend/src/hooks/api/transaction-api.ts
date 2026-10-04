@@ -45,9 +45,18 @@ export interface BuyerResponse {
   [k: string]: unknown;
 }
 
-export async function fetchBuyers(): Promise<BuyerResponse[]> {
+export async function fetchBuyers(filters?: {
+  state?: string;
+  crop?: string;
+  verificationStatus?: string;
+}): Promise<BuyerResponse[]> {
+  const q = new URLSearchParams();
+  if (filters?.state) q.set('state', filters.state);
+  if (filters?.crop) q.set('crop', filters.crop);
+  if (filters?.verificationStatus) q.set('verificationStatus', filters.verificationStatus);
+  const qs = q.toString() ? `?${q.toString()}` : '';
   const res = await safeFetch<{success: boolean; buyers: BuyerResponse[]}>(
-    '/api/buyers',
+    `/api/buyers${qs}`,
   );
   return res?.buyers ?? [];
 }

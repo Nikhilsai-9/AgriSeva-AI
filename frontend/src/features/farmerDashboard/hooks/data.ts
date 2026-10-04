@@ -744,13 +744,15 @@ export const useBuyers = (filters?: { state?: string; crop?: string }) =>
       // Strict: backend is the source of truth. Empty result → empty UI;
       // network failure → query enters isError and the page renders the
       // error state instead of silently showing demo buyers.
-      const remote = await fetchBuyers();
+      const remote = await fetchBuyers(filters);
       let mapped = remote.map(mapRemoteBuyer);
       if (filters?.state)
-        mapped = mapped.filter((b) => b.state === filters.state);
+        mapped = mapped.filter((b) => b.state.toLowerCase() === filters.state!.toLowerCase());
       if (filters?.crop)
         mapped = mapped.filter((b) =>
-          b.cropsInterested.includes(filters.crop!),
+          b.cropsInterested.some(
+            (c) => c.toLowerCase() === filters.crop!.toLowerCase() || c.toLowerCase().includes(filters.crop!.toLowerCase())
+          ),
         );
       return mapped;
     },

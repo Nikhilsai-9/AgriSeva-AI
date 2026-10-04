@@ -10,6 +10,8 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
+  Plus,
+  Filter,
 } from "lucide-react";
 import { useTranslation } from "@/locales";
 import { useBuyers, useFarmerProfile, useMyLots } from "@/features/farmerDashboard/hooks/data";
@@ -20,18 +22,29 @@ import {
   FarmerSectionTitle,
 } from "@/features/farmerDashboard/FarmerLayout";
 import { DataStateBadge } from "@/features/farmerDashboard/DataStateBadge";
+import { COMMODITIES, INDIAN_STATES } from "@/features/farmerDashboard/types";
 import { cn } from "@/lib/utils";
 
 export function BuyersListPage() {
   const { t } = useTranslation();
-  const { data: buyers, isLoading, isError, refetch } = useBuyers();
   const { data: profile } = useFarmerProfile();
   const { data: lots } = useMyLots();
+
+  const primaryLot = lots?.find((l) => l.status === "active") ?? lots?.[0] ?? null;
+  const initialCrop = primaryLot?.crop || (profile as any)?.primaryCrop || "all";
+
+  const [selectedCrop, setSelectedCrop] = useState<string>(initialCrop);
+  const [selectedState, setSelectedState] = useState<string>("all");
   const [query, setQuery] = useState("");
 
+  const filters = useMemo(() => ({
+    crop: selectedCrop !== "all" ? selectedCrop : undefined,
+    state: selectedState !== "all" ? selectedState : undefined,
+  }), [selectedCrop, selectedState]);
+
+  const { data: buyers, isLoading, isError, refetch } = useBuyers(filters);
+
   const ranked = useMemo(() => {
-    const primaryLot =
-      lots?.find((l) => l.status === "active") ?? lots?.[0] ?? null;
     return (buyers ?? [])
       .map((b) => ({
         buyer: b,
@@ -47,33 +60,96 @@ export function BuyersListPage() {
           : true
       )
       .sort((a, b) => b.score - a.score);
-  }, [buyers, lots, profile, query]);
+  }, [buyers, primaryLot, profile, query]);
 
   return (
     <FarmerPageContainer className="space-y-5">
       <FarmerSectionTitle
         hint={t(
           "farmer.buyers.hint",
-          "Verified buyers ranked by how well they match your crop, quantity, quality and distance."
+          "Verified commercial buyers ranked by how well they match your crop, quantity, quality and distance."
         )}
-        action={<DataStateBadge items={buyers} />}
+        action={
+          <div className="flex items-center gap-2">
+            <Link
+              to="/farmer/lots/new"
+              className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>{t("farmer.home.addLot", "New Lot")}</span>
+            </Link>
+            <DataStateBadge items={buyers} />
+          </div>
+        }
       >
-        {t("farmer.buyers.title", "Find Buyers")}
+        {t("farmer.buyers.title", "Find Commercial Buyers")}
       </FarmerSectionTitle>
 
-      <FarmerCard className="p-3">
-        <div className="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-xl">
-          <Search className="h-4 w-4 text-emerald-900/50" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t(
-              "farmer.buyers.searchPlaceholder",
-              "Search by name, crop, location…"
-            )}
-            className="flex-1 bg-transparent outline-none text-sm placeholder:text-emerald-900/40"
-          />
+      {/* Filter and Search Bar */}
+      <FarmerCard className="p-3 sm:p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Search Input */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-xl flex-1 border border-stone-200/60">
+            <Search className="h-4 w-4 text-emerald-900/50 shrink-0" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t(
+                "farmer.buyers.searchPlaceholder",
+                "Search by buyer name, crop, city…"
+              )}
+              className="flex-1 bg-transparent outline-none text-sm placeholder:text-emerald-900/40"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Crop Filter */}
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-50 border border-stone-200/60 text-xs">
+              <Filter className="h-3.5 w-3.5 text-emerald-700" />
+              <span className="font-semibold text-emerald-900/70">Crop:</span>
+              <select
+                value={selectedCrop}
+                onChange={(e) => setSelectedCrop(e.target.value)}
+                className="bg-transparent font-bold text-emerald-950 outline-none cursor-pointer"
+              >
+                <option value="all">All Crops</option>
+                {COMMODITIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* State Filter */}
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-50 border border-stone-200/60 text-xs">
+              <span className="font-semibold text-emerald-900/70">State:</span>
+              <select
+                value={selectedState}
+                onChange={(e) => setSelectedState(e.target.value)}
+                className="bg-transparent font-bold text-emerald-950 outline-none cursor-pointer max-w-[130px] truncate"
+              >
+                <option value="all">All States</option>
+                {INDIAN_STATES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
+
+        {selectedCrop !== "all" && (
+          <div className="flex items-center gap-2 pt-1 text-xs text-emerald-800">
+            <span className="font-semibold">Showing verified buyers actively procuring:</span>
+            <span className="font-bold bg-emerald-100 text-emerald-950 px-2 py-0.5 rounded-full">
+              {selectedCrop}
+            </span>
+            <button
+              onClick={() => setSelectedCrop("all")}
+              className="text-emerald-700 underline text-[11px] hover:text-emerald-900"
+            >
+              Clear filter
+            </button>
+          </div>
+        )}
       </FarmerCard>
 
       {isLoading ? (
@@ -96,15 +172,23 @@ export function BuyersListPage() {
         </FarmerCard>
       ) : ranked.length === 0 ? (
         <FarmerCard className="p-8 text-center text-emerald-900/70">
+          <Factory className="h-10 w-10 text-emerald-300 mx-auto mb-2" />
           <p className="font-semibold text-emerald-900">
-            {t("farmer.buyers.empty", "No registered commercial buyers found matching your criteria.")}
+            {t("farmer.buyers.empty", "No commercial buyers found matching your criteria.")}
           </p>
           <p className="text-xs text-emerald-900/60 mt-1 max-w-md mx-auto">
-            {t(
-              "farmer.buyers.emptyHint",
-              "As licensed traders, institutional buyers, and food processing units register on AgriSeva, their verified profiles and procurement demand will appear here."
-            )}
+            {selectedCrop !== "all"
+              ? `No buyers are currently listed with demand for ${selectedCrop}. Try switching to another crop or clearing the filter.`
+              : "As licensed traders, institutional buyers, and food processing units register, their verified demand profiles will appear here."}
           </p>
+          {selectedCrop !== "all" && (
+            <button
+              onClick={() => setSelectedCrop("all")}
+              className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+            >
+              Show all buyers
+            </button>
+          )}
         </FarmerCard>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -113,66 +197,90 @@ export function BuyersListPage() {
               key={buyer.id}
               to="/farmer/buyers/$buyerId"
               params={{ buyerId: buyer.id }}
-              className="active:scale-[0.98]"
+              className="active:scale-[0.98] group"
             >
-              <FarmerCard className="p-4 hover:shadow-md transition-shadow h-full">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="h-10 w-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                      <Factory className="h-5 w-5" />
+              <FarmerCard className="p-4 hover:shadow-md transition-shadow h-full flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="h-10 w-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                        <Factory className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-emerald-950 truncate group-hover:text-emerald-700 transition-colors">
+                          {buyer.name}
+                        </p>
+                        <p className="text-xs text-emerald-900/60 truncate">
+                          {buyer.businessType || buyer.type || "Commercial Buyer"}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={cn(
+                        "shrink-0 text-xs font-bold px-2 py-0.5 rounded-full",
+                        score >= 75
+                          ? "bg-emerald-600 text-white"
+                          : score >= 50
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-stone-100 text-stone-700"
+                      )}
+                    >
+                      {score}% match
                     </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-emerald-900 truncate">
-                        {buyer.name}
+                  </div>
+
+                  <div className="mt-3 space-y-1.5 text-xs">
+                    <p className="text-emerald-900/70 flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+                      <span className="truncate">{buyer.location}</span>
+                    </p>
+                    <p className="text-emerald-900/70 flex items-center gap-1.5">
+                      <Star className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                      <span>{buyer.rating.toFixed(1)} • {buyer.completedDeals} deals fulfilled</span>
+                    </p>
+                    {buyer.verified && (
+                      <p className="text-emerald-700 flex items-center gap-1 font-semibold">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        <span>{t("farmer.buyers.verified", "Verified Buyer")}</span>
                       </p>
-                      <p className="text-xs text-emerald-900/60 truncate">
-                        {buyer.type}
+                    )}
+                    {buyer.phone && (
+                      <p className="text-emerald-900/60 flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+                        <span>{buyer.phone}</span>
                       </p>
+                    )}
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-emerald-50">
+                    <span className="text-[10px] font-semibold text-emerald-900/60 uppercase tracking-wider block mb-1">
+                      Crops Procured:
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {buyer.cropsInterested.map((c) => (
+                        <span
+                          key={c}
+                          className={cn(
+                            "text-[10px] px-2 py-0.5 rounded-md font-medium",
+                            selectedCrop !== "all" && c.toLowerCase() === selectedCrop.toLowerCase()
+                              ? "bg-emerald-200 text-emerald-950 font-bold"
+                              : "bg-emerald-50 text-emerald-800"
+                          )}
+                        >
+                          {c}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                  <span
-                    className={cn(
-                      "shrink-0 text-xs font-bold px-2 py-1 rounded-full",
-                      score >= 75
-                        ? "bg-emerald-600 text-white"
-                        : score >= 50
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-stone-100 text-stone-700"
-                    )}
-                  >
-                    {score}%
+                </div>
+
+                <div className="mt-4 pt-2 border-t border-emerald-100/60 flex items-center justify-between text-xs">
+                  <span className="text-emerald-700 font-bold group-hover:underline">
+                    View Buyer Profile →
                   </span>
-                </div>
-                <div className="mt-3 space-y-1.5 text-xs">
-                  <p className="text-emerald-900/70 flex items-center gap-1">
-                    <MapPin className="h-3 w-3" /> {buyer.location}
-                  </p>
-                  <p className="text-emerald-900/70 flex items-center gap-1">
-                    <Star className="h-3 w-3 text-amber-500" />
-                    {buyer.rating.toFixed(1)} • {buyer.completedDeals}{" "}
-                    {t("farmer.buyers.deals", "deals")}
-                  </p>
-                  {buyer.verified && (
-                    <p className="text-emerald-700 flex items-center gap-1 font-semibold">
-                      <ShieldCheck className="h-3 w-3" />
-                      {t("farmer.buyers.verified", "Verified buyer")}
-                    </p>
-                  )}
-                  {buyer.phone && (
-                    <p className="text-emerald-900/60 flex items-center gap-1">
-                      <Phone className="h-3 w-3" /> {buyer.phone}
-                    </p>
-                  )}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {buyer.cropsInterested.slice(0, 3).map((c) => (
-                    <span
-                      key={c}
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800"
-                    >
-                      {c}
-                    </span>
-                  ))}
+                  <span className="text-[11px] text-emerald-900/50">
+                    ID: {buyer.id}
+                  </span>
                 </div>
               </FarmerCard>
             </Link>
