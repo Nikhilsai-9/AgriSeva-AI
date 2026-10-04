@@ -30,6 +30,7 @@
  */
 
 import {inject, injectable} from 'inversify';
+import {GLOBAL_TYPES} from '#root/types.js';
 import {isDemoSeedingEnabled, getDemoSeedingDecision} from '../../../config/demoSeeding.js';
 import {BuyerRepository} from '../repositories/BuyerRepository.js';
 import {LotRepository} from '../repositories/LotRepository.js';
@@ -54,13 +55,13 @@ export class SeedLoader {
   private seedPromise: Promise<void> | null = null;
 
   constructor(
-    @inject(BuyerRepository) private readonly buyers: BuyerRepository,
-    @inject(LotRepository) private readonly lots: LotRepository,
-    @inject(OfferRepository) private readonly offers: OfferRepository,
-    @inject(PaymentRepository) private readonly payments: PaymentRepository,
-    @inject(GrievanceRepository) private readonly grievances: GrievanceRepository,
-    @inject(StorageRepository) private readonly storage: StorageRepository,
-    @inject(LogisticsRepository) private readonly logistics: LogisticsRepository,
+    @inject(GLOBAL_TYPES.TransactionBuyerRepository) private readonly buyers: BuyerRepository,
+    @inject(GLOBAL_TYPES.TransactionLotRepository) private readonly lots: LotRepository,
+    @inject(GLOBAL_TYPES.TransactionOfferRepository) private readonly offers: OfferRepository,
+    @inject(GLOBAL_TYPES.TransactionPaymentRepository) private readonly payments: PaymentRepository,
+    @inject(GLOBAL_TYPES.TransactionGrievanceRepository) private readonly grievances: GrievanceRepository,
+    @inject(GLOBAL_TYPES.TransactionStorageRepository) private readonly storage: StorageRepository,
+    @inject(GLOBAL_TYPES.TransactionLogisticsRepository) private readonly logistics: LogisticsRepository,
   ) {}
 
   /**

@@ -315,4 +315,34 @@ describe('Transaction controllers — auth & ownership', () => {
       );
     });
   });
+
+  describe('Container wiring resolution', () => {
+    it('resolves SeedLoader and controllers from transaction container bindings without errors', async () => {
+      const { transactionContainerModule } = await import('../container.js');
+      const { SeedLoader } = await import('../services/SeedLoader.js');
+      const { BuyerController } = await import('../controllers/BuyerController.js');
+
+      const testContainer = new Container();
+      // Provide dummy Database for repositories
+      testContainer.bind(GLOBAL_TYPES.Database).toConstantValue({
+        getCollection: vi.fn().mockResolvedValue({
+          createIndex: vi.fn(),
+          countDocuments: vi.fn().mockResolvedValue(0),
+          find: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }),
+        }),
+      });
+      testContainer.bind(GLOBAL_TYPES.NotificationService).toConstantValue(mockNotificationService);
+      testContainer.load(transactionContainerModule);
+
+      const resolvedSeed = testContainer.get(GLOBAL_TYPES.TransactionSeedLoader);
+      expect(resolvedSeed).toBeInstanceOf(SeedLoader);
+
+      const resolvedBuyerCtrl = testContainer.get(BuyerController);
+      expect(resolvedBuyerCtrl).toBeInstanceOf(BuyerController);
+
+      const resolvedLotCtrl = testContainer.get(LotController);
+      expect(resolvedLotCtrl).toBeInstanceOf(LotController);
+    });
+  });
 });
+

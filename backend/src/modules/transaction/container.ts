@@ -28,18 +28,34 @@ import {StorageController} from './controllers/StorageController.js';
 import {LogisticsController} from './controllers/LogisticsController.js';
 
 export const transactionContainerModule = new ContainerModule(options => {
-  // Repositories
+  // Repositories (bound by both Symbol token and class token for maximum DI resilience)
   options.bind(GLOBAL_TYPES.TransactionBuyerRepository).to(BuyerRepository).inSingletonScope();
+  options.bind(BuyerRepository).toSelf().inSingletonScope();
+
   options.bind(GLOBAL_TYPES.TransactionLotRepository).to(LotRepository).inSingletonScope();
+  options.bind(LotRepository).toSelf().inSingletonScope();
+
   options.bind(GLOBAL_TYPES.TransactionOfferRepository).to(OfferRepository).inSingletonScope();
+  options.bind(OfferRepository).toSelf().inSingletonScope();
+
   options.bind(GLOBAL_TYPES.TransactionPaymentRepository).to(PaymentRepository).inSingletonScope();
+  options.bind(PaymentRepository).toSelf().inSingletonScope();
+
   options.bind(GLOBAL_TYPES.TransactionGrievanceRepository).to(GrievanceRepository).inSingletonScope();
+  options.bind(GrievanceRepository).toSelf().inSingletonScope();
+
   options.bind(GLOBAL_TYPES.TransactionStorageRepository).to(StorageRepository).inSingletonScope();
+  options.bind(StorageRepository).toSelf().inSingletonScope();
+
   options.bind(GLOBAL_TYPES.TransactionLogisticsRepository).to(LogisticsRepository).inSingletonScope();
+  options.bind(LogisticsRepository).toSelf().inSingletonScope();
 
   // Services
   options.bind(GLOBAL_TYPES.TransactionOfferService).to(OfferService).inSingletonScope();
+  options.bind(OfferService).toSelf().inSingletonScope();
+
   options.bind(GLOBAL_TYPES.TransactionSeedLoader).to(SeedLoader).inSingletonScope();
+  options.bind(SeedLoader).toSelf().inSingletonScope();
 
   // Controllers
   options.bind(BuyerController).toSelf().inSingletonScope();
