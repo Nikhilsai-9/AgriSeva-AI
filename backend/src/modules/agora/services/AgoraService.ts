@@ -1,5 +1,9 @@
 import { injectable, inject } from 'inversify';
-import { RtcTokenBuilder, RtcRole } from 'agora-token';
+import agoraTokenPkg from 'agora-token';
+
+const agoraPkgAny: any = (agoraTokenPkg as any)?.default || agoraTokenPkg;
+const RtcTokenBuilder = agoraPkgAny?.RtcTokenBuilder;
+const RtcRole = agoraPkgAny?.RtcRole || { PUBLISHER: 1, SUBSCRIBER: 2 };
 import { GROUNDED_ANSWER_TYPES } from '../../groundedAnswer/types.js';
 import type { IGroundedAnswerService } from '../../groundedAnswer/interfaces/IGroundedAnswerService.js';
 
