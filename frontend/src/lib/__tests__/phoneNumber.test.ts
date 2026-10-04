@@ -81,4 +81,33 @@ describe("Canonical Phone Number Utilities", () => {
       expect(getTelLink("9876543210")).toBe("tel:+919876543210");
     });
   });
+
+  describe("Official AgriSeva-AI Contact Number (+91 91824 17061)", () => {
+    const rawNumber = "+91 91824 17061";
+    const normalizedNumber = "+919182417061";
+
+    it("normalizes to E.164 without spaces", () => {
+      expect(normalizePhoneNumber(rawNumber)).toBe(normalizedNumber);
+      expect(normalizePhoneNumber("9182417061")).toBe(normalizedNumber);
+    });
+
+    it("validates as a valid Indian mobile number", () => {
+      expect(isValidPhoneNumber(rawNumber)).toBe(true);
+      expect(isValidPhoneNumber(normalizedNumber)).toBe(true);
+    });
+
+    it("formats cleanly for user display", () => {
+      expect(formatPhoneNumber(normalizedNumber)).toBe("+91 91824 17061");
+    });
+
+    it("generates clean WhatsApp deep link without spaces or + signs", () => {
+      expect(getWhatsAppLink(rawNumber)).toBe("https://wa.me/919182417061");
+      expect(getWhatsAppLink(normalizedNumber, "Namaste AgriSeva")).toBe("https://wa.me/919182417061?text=Namaste%20AgriSeva");
+    });
+
+    it("generates standard tel: URI", () => {
+      expect(getTelLink(rawNumber)).toBe("tel:+919182417061");
+    });
+  });
 });
+

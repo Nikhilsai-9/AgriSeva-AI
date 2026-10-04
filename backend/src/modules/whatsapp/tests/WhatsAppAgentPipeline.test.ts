@@ -65,7 +65,7 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
                 value: {
                   messaging_product: 'whatsapp',
                   metadata: {
-                    display_phone_number: '15551234567',
+                    display_phone_number: '9182417061',
                     phone_number_id: '104239857281928',
                   },
                   messages: [

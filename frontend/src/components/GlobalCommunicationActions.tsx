@@ -48,6 +48,7 @@ import { toast } from "sonner";
 import { apiFetch } from "@/hooks/api/api-fetch";
 import { env } from "@/config/env";
 
+export const AGRISEVA_CONTACT_PHONE = env.contactPhone();
 export const AGRISEVA_HELPLINE_NUMBER = env.helplineNumber();
 export const AGRISEVA_WHATSAPP_NUMBER = env.whatsappNumber();
 export const KISAN_TOLLFREE_NUMBER = "1800-180-1551";

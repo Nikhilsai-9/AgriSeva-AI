@@ -57,6 +57,7 @@ type EnvKeyPublic =
   | `VITE_PLIVO_${string}_USERNAME`
 
   // Helpline & WhatsApp Integration
+  | "VITE_AGRISEVA_CONTACT_PHONE"
   | "VITE_AGRISEVA_HELPLINE_NUMBER"
   | "VITE_WHATSAPP_NUMBER"
 
@@ -145,8 +146,9 @@ export const env = {
   // built app is served by Firebase Hosting, whose SPA rewrite answers any unknown path
   // with index.html and a 200 — so a relative /api/pop/... silently returns the HTML page
   // instead of JSON. Only an explicit VITE_FAQ_API_URL / VITE_POP_API_URL overrides this.
-  helplineNumber: () => getEnv("VITE_AGRISEVA_HELPLINE_NUMBER", false, "+15551689646"),
-  whatsappNumber: () => getEnv("VITE_WHATSAPP_NUMBER", false, getEnv("VITE_AGRISEVA_HELPLINE_NUMBER", false, "+15551689646")),
+  contactPhone: () => getEnv("VITE_AGRISEVA_CONTACT_PHONE", false, getEnv("VITE_AGRISEVA_HELPLINE_NUMBER", false, getEnv("VITE_WHATSAPP_NUMBER", false, "+919182417061"))),
+  helplineNumber: () => getEnv("VITE_AGRISEVA_CONTACT_PHONE", false, getEnv("VITE_AGRISEVA_HELPLINE_NUMBER", false, "+919182417061")),
+  whatsappNumber: () => getEnv("VITE_AGRISEVA_CONTACT_PHONE", false, getEnv("VITE_WHATSAPP_NUMBER", false, "+919182417061")),
 
   faqApiUrl: () => getEnv("VITE_FAQ_API_URL", false, "") || `${apiBase()}/faq`,
   popApiUrl: () => getEnv("VITE_POP_API_URL", false, "") || `${apiBase()}/pop`,

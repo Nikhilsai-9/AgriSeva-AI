@@ -402,7 +402,7 @@ export class WhatsAppService implements IWhatsAppService {
     return (
       process.env.META_WA_PHONE_NUMBER_ID ||
       process.env.WHATSAPP_PHONE_NUMBER_ID ||
-      '104239857281928'
+      '1449345788253222'
     ).trim();
   }
 
