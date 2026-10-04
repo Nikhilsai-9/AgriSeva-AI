@@ -173,7 +173,7 @@ const FEATURE_REGISTRY: AppFeature[] = [
     id: "phone-helpline",
     title: "Voice Helpline & Kisan Call Center",
     category: "Helplines",
-    desc: "Call the Kisan Call Center (1800-180-1551) toll-free or initiate an instant in-browser WebRTC call.",
+    desc: "Call the 24/7 AgriSeva-AI telephone voice agent or Kisan Call Center toll-free from any mobile phone.",
     actionType: "phone",
     keywords: ["call", "phone", "helpline", "kisan call center", "talk to expert", "dialer"],
   },
@@ -599,7 +599,7 @@ export function GlobalCommunicationActions() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Automated multilingual agricultural query resolution powered by Plivo WebRTC and Grounded AI.
+                    24/7 automated multilingual voice advisory powered by Plivo Telephony & AgriSeva Grounded AI. Dial from any mobile phone (no app or internet required) in Telugu, Hindi, Tamil, Kannada, Marathi & English.
                   </p>
                 </div>
 
