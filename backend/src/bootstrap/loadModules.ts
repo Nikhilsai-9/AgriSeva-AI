@@ -26,6 +26,7 @@ import * as rerouteModule from '../modules/reroute/index.js';
 import * as transactionModule from '../modules/transaction/index.js';
 import * as userModule from '../modules/user/index.js';
 import * as whatsappModule from '../modules/whatsapp/index.js';
+import * as agoraModule from '../modules/agora/index.js';
 
 let container: Container | null = null;
 
@@ -36,6 +37,7 @@ interface LoadedModuleResult {
 
 const moduleRegistry: Record<string, any> = {
   'acc-agent': accAgentModule,
+  agora: agoraModule,
   ai: aiModule,
   answer: answerModule,
   auditTrails: auditTrailsModule,

@@ -63,7 +63,10 @@ type EnvKeyPublic =
 
   // FAQ / POP processing servers
   | "VITE_FAQ_API_URL"
-  | "VITE_POP_API_URL";
+  | "VITE_POP_API_URL"
+
+  // Agora Voice Calling
+  | "VITE_AGORA_APP_ID";
 
 /* The following VITE_* names are intentionally accepted ONLY because        */
 /* `runtime-config.js` injects them at container start. They are NOT built    */
@@ -152,6 +155,7 @@ export const env = {
 
   faqApiUrl: () => getEnv("VITE_FAQ_API_URL", false, "") || `${apiBase()}/faq`,
   popApiUrl: () => getEnv("VITE_POP_API_URL", false, "") || `${apiBase()}/pop`,
+  agoraAppId: () => getEnv("VITE_AGORA_APP_ID", false, "360acfc1ebd44465b9b85b7800153364"),
 };
 
 /** API base URL without a trailing slash, e.g. "https://…run.app/api". */

@@ -47,6 +47,7 @@ import { normalizePhoneNumber, isValidPhoneNumber, formatPhoneNumber, getWhatsAp
 import { toast } from "sonner";
 import { apiFetch } from "@/hooks/api/api-fetch";
 import { env } from "@/config/env";
+import { AgoraVoiceCallModal } from "./AgoraVoiceCallModal";
 
 export const AGRISEVA_CONTACT_PHONE = env.contactPhone();
 export const AGRISEVA_HELPLINE_NUMBER = env.helplineNumber();
@@ -194,6 +195,7 @@ export function GlobalCommunicationActions() {
 
   const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [agoraCallOpen, setAgoraCallOpen] = useState(false);
 
   // Phone Call State
   const [targetPhone, setTargetPhone] = useState("");
@@ -230,16 +232,23 @@ export function GlobalCommunicationActions() {
     }
   };
 
-  const handleStartCall = (phoneNum: string) => {
+  const handleStartCall = (phoneNum: string, forceDeviceDial = false) => {
     const normalized = normalizePhoneNumber(phoneNum);
     // If agent/admin, direct to coordinator call interface
     if (user && (user.role === "call_agent" || user.role === "admin" || user.role === "coordinator")) {
       setPhoneDialogOpen(false);
       navigate({ to: "/coordinator" });
       toast.info(`Launching Agent Call Console for ${formatPhoneNumber(normalized)}`);
-    } else {
+      return;
+    }
+
+    if (forceDeviceDial || phoneNum === KISAN_TOLLFREE_NUMBER) {
       // Direct device call
       window.location.href = getTelLink(normalized);
+    } else {
+      // Free in-browser web voice call using Agora RTC (10,000 free min/mo)
+      setPhoneDialogOpen(false);
+      setAgoraCallOpen(true);
     }
   };
 
@@ -568,6 +577,45 @@ export function GlobalCommunicationActions() {
 
               {/* Tab 1: Direct Helplines */}
               <TabsContent value="helpline" className="space-y-4 pt-1">
+                {/* 1. AGORA LIVE WEB VOICE CALL CARD (10,000 MIN FREE) */}
+                <div className="rounded-xl border border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-emerald-500/5 p-4 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-emerald-600 text-white">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">
+                          Live AI Web Voice Call
+                        </span>
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                          Agora RTC • 10,000 Free Min/Mo
+                        </span>
+                      </div>
+                    </div>
+                    <Badge className="bg-emerald-600 text-white text-[10px] px-2 py-0.5">
+                      100% Free
+                    </Badge>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Talk live to AgriSeva AI right in your browser. No SIM card needed, no mobile balance consumed, and zero phone call charges.
+                  </p>
+
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setPhoneDialogOpen(false);
+                      setAgoraCallOpen(true);
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center justify-center gap-2 h-9 shadow-md shadow-emerald-950/20"
+                  >
+                    <Headphones className="h-4 w-4" />
+                    <span>Start Free Web Voice Call</span>
+                  </Button>
+                </div>
+
+                {/* 2. DEDICATED PHONE HELPLINE */}
                 <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -590,16 +638,18 @@ export function GlobalCommunicationActions() {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => handleStartCall(AGRISEVA_HELPLINE_NUMBER)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1.5 h-8 px-3.5 shadow-sm"
+                        onClick={() => handleStartCall(AGRISEVA_HELPLINE_NUMBER, true)}
+                        variant="outline"
+                        className="border-emerald-600 text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5 h-8 px-3 shadow-sm"
+                        title="Dial on phone"
                       >
                         <Phone className="h-3.5 w-3.5" />
-                        <span>Call</span>
+                        <span>Dial</span>
                       </Button>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    24/7 automated multilingual voice advisory powered by Plivo Telephony & AgriSeva Grounded AI. Dial from any mobile phone (no app or internet required) in Telugu, Hindi, Tamil, Kannada, Marathi & English.
+                    Official AgriSeva contact number. Dial from any phone to reach our automated helpline.
                   </p>
                 </div>
 
@@ -1087,6 +1137,15 @@ export function GlobalCommunicationActions() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ─────────────────────────────────────────────────────────────
+          4. AGORA LIVE WEB VOICE CALL MODAL (10,000 FREE MIN/MO)
+         ───────────────────────────────────────────────────────────── */}
+      <AgoraVoiceCallModal
+        open={agoraCallOpen}
+        onOpenChange={setAgoraCallOpen}
+        callerPhone={user?.phoneNumber || AGRISEVA_CONTACT_PHONE}
+      />
     </>
   );
 }
