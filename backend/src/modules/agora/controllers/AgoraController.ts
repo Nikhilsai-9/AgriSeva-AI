@@ -5,17 +5,19 @@ import {
   QueryParam,
   Body,
   HttpCode,
+  CurrentUser,
 } from 'routing-controllers';
 import { OpenAPI } from 'routing-controllers-openapi';
 import { inject, injectable } from 'inversify';
 import { AGORA_TYPES } from '../types.js';
 import { AgoraService } from '../services/AgoraService.js';
 
-import type { QuestionSource } from '#root/shared/interfaces/models.js';
+import type { QuestionSource, IUser } from '#root/shared/interfaces/models.js';
 
 interface VoiceQueryDto {
   question: string;
   language?: string;
+  userId?: string;
   farmerPhone?: string;
   source?: QuestionSource;
   imageUrl?: string;
@@ -56,7 +58,10 @@ export class AgoraController {
    */
   @Post('/voice-query')
   @HttpCode(200)
-  public async handleVoiceQuery(@Body() body: VoiceQueryDto) {
+  public async handleVoiceQuery(
+    @Body() body: VoiceQueryDto,
+    @CurrentUser() user?: IUser,
+  ) {
     if (!body || !body.question || !body.question.trim()) {
       return {
         success: false,
@@ -64,12 +69,15 @@ export class AgoraController {
       };
     }
 
+    const effectiveUserId = user?._id?.toString() || body.userId;
+
     const result = await this.agoraService.processVoiceQuery(
       body.question.trim(),
       body.language || 'te-IN',
       body.farmerPhone,
       body.source || 'AI_ASSISTANT',
       body.imageUrl,
+      effectiveUserId,
     );
 
     return result;

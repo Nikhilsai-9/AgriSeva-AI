@@ -90,6 +90,7 @@ export function FarmerDashboardShell() {
    */
   const handleTabChange = (value: string) => {
     if (value === FARMER_DASHBOARD_TAB || value === "farmer") return; // already here
+    if (value === "dashboard" && isFarmerOrUserRole(user?.role)) return; // already here
     if (user?.email) {
       localStorage.setItem(`playground_active_tab_${user.email}`, value);
     }

@@ -37,6 +37,7 @@ import {
 import type { QAMetadata } from '#root/shared/database/interfaces/ICallDetailsRepository.js';
 import { BadRequestErrorResponse } from '#shared/middleware/errorHandler.js';
 import { verifyNotTester } from '#root/shared/functions/verifyNotTester.js';
+import { isStaffOrReviewer } from '#root/utils/buildQuestionFilter.js';
 import {
   AddQuestionBodyDto,
   AllocatedQuestionsBodyDto,
@@ -211,8 +212,9 @@ export class QuestionController {
   async getDetailedQuestions(
     @QueryParams() query: GetDetailedQuestionsQuery,
     @Body() body: DetailedQuestionsBodyDto,
+    @CurrentUser() user: IUser,
   ): Promise<{ questions: IQuestion[]; totalPages: number }> {
-    return this.questionService.getDetailedQuestions(query, body);
+    return this.questionService.getDetailedQuestions(query, body, user);
   }
 
   @Post('/generate')
@@ -1038,10 +1040,23 @@ export class QuestionController {
   @OpenAPI({ summary: 'Get selected question by ID' })
   async getQuestionById(
     @Params() params: QuestionIdParam,
-    @Body() updates: Partial<QuestionResponse>,
+    @CurrentUser() user: IUser,
+    @Body() updates?: Partial<QuestionResponse>,
   ): Promise<QuestionResponse> {
     const { questionId } = params;
-    return this.questionService.getQuestionById(questionId);
+    const question = await this.questionService.getQuestionById(questionId);
+
+    // Enforce user ownership on backend (Requirement 2 & 9)
+    if (!isStaffOrReviewer(user?.role as string) && question) {
+      const qUserId = question.userId?.toString();
+      const uId = user?._id?.toString();
+      const phoneMatch = user?.mobile && (question.threadId === user.mobile || (question as any).farmerPhone === user.mobile);
+      if (qUserId !== uId && !phoneMatch) {
+        throw new ForbiddenError('Access denied: You do not have permission to view this question.');
+      }
+    }
+
+    return question;
   }
 
   @Get('/:questionId/full')
@@ -1062,6 +1077,16 @@ export class QuestionController {
 
     if (!question) {
       throw new NotFoundError(`Question with id ${questionId} not found`);
+    }
+
+    // Enforce user ownership on backend (Requirement 2 & 9)
+    if (!isStaffOrReviewer(user?.role as string) && question) {
+      const qUserId = question.userId?.toString();
+      const uId = user?._id?.toString();
+      const phoneMatch = user?.mobile && (question.threadId === user.mobile || (question as any).farmerPhone === user.mobile);
+      if (qUserId !== uId && !phoneMatch) {
+        throw new ForbiddenError('Access denied: You do not have permission to view this question.');
+      }
     }
 
     return { success: true, data: { ...question, approved_moderator, assigned_moderator, assigned_gate_keeper, assigned_auditor, isAssignedModerator, isAssignedGateKeeper, isAssignedAuditor } };
@@ -2241,9 +2266,10 @@ export class QuestionController {
   @ResponseSchema(QuestionResponse)
   @OpenAPI({ summary: 'Get all questions and review levels' })
   async getQuestionsAndReviewlevel(
-    @QueryParams() query: GetDetailedQuestionsQuery
+    @QueryParams() query: GetDetailedQuestionsQuery,
+    @CurrentUser() user: IUser,
   ): Promise<QuestionLevelResponse> {
-    return this.questionService.getQuestionAndReviewLevel(query);
+    return this.questionService.getQuestionAndReviewLevel(query, user);
   }
 
   @Get('/background-status')
@@ -2697,33 +2723,38 @@ export class QuestionController {
 
   @Get('/:questionId/generate-answer')
   @HttpCode(200)
+  @Authorized()
   @ResponseSchema(BadRequestErrorResponse, { statusCode: 400 })
   @OpenAPI({ summary: 'Generate ai-initial answer' })
-  async generateAiInitialAnswer(@Params() params: QuestionIdParam, @QueryParams() query: { userId: string }) {
+  async generateAiInitialAnswer(
+    @Params() params: QuestionIdParam,
+    @CurrentUser() currentUser: IUser,
+    @QueryParams() query?: { userId?: string },
+  ) {
     const { questionId } = params;
-    const { userId } = query;
+    const effectiveUser = currentUser || (query?.userId ? await this.userService.getUserById(query.userId) : null);
+    const userId = effectiveUser?._id?.toString() || query?.userId;
     let response;
     let auditPayload: ModeratorAuditTrail;
-    if (userId) {
-      const user = await this.userService.getUserById(userId);
+    if (effectiveUser) {
       const prevQuestion = await this.questionService.getQuestionById(questionId);
       auditPayload = {
         category: AuditCategory.AI_GENERATED,
         action: AuditAction.GENERATE_ANSWER,
         actor: {
-          id: user._id.toString(),
-          name: `${user.firstName} ${user.lastName}`,
-          email: user.email,
-          role: user.role,
-          avatar: user?.avatar || '',
+          id: effectiveUser._id.toString(),
+          name: `${effectiveUser.firstName} ${effectiveUser.lastName}`,
+          email: effectiveUser.email,
+          role: effectiveUser.role,
+          avatar: effectiveUser?.avatar || '',
         },
         context: {
           questionId: questionId,
-          question: prevQuestion.text,
+          question: prevQuestion?.text || prevQuestion?.question || '',
         },
         changes: {
           before: {
-            aiInitialAnswer: prevQuestion.aiInitialAnswer || null,
+            aiInitialAnswer: prevQuestion?.aiInitialAnswer || null,
           },
         },
         outcome: {

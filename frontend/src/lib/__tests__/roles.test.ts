@@ -146,5 +146,52 @@ describe("Role and Permission Architecture Audit Tests", () => {
       expect(normalize("all_questions")).toBe("all_questions");
       expect(normalize("upload")).toBe("upload");
     });
+
+    it("enforces default tab separation by user role so normal users never land on moderator dashboard", () => {
+      const getDefaultTab = (role?: string | null) => {
+        if (role === "expert") return "questions";
+        if (role === "call_agent") return "call_interface";
+        if (role === "gate_keeper" || role === "auditor") return "roleDashboard";
+        if (isModeratorRole(role)) return "dashboard";
+        return "all_questions";
+      };
+
+      // Normal users and farmers MUST default to all_questions (or farmer portal), never dashboard
+      expect(getDefaultTab("user")).toBe("all_questions");
+      expect(getDefaultTab("farmer")).toBe("all_questions");
+      expect(getDefaultTab(null)).toBe("all_questions");
+      expect(getDefaultTab(undefined)).toBe("all_questions");
+
+      // Staff roles get their respective dashboard tabs
+      expect(getDefaultTab("moderator")).toBe("dashboard");
+      expect(getDefaultTab("admin")).toBe("dashboard");
+      expect(getDefaultTab("tester")).toBe("dashboard");
+      expect(getDefaultTab("expert")).toBe("questions");
+      expect(getDefaultTab("call_agent")).toBe("call_interface");
+      expect(getDefaultTab("gate_keeper")).toBe("roleDashboard");
+      expect(getDefaultTab("auditor")).toBe("roleDashboard");
+    });
+
+    it("prevents normal users from loading stale moderator dashboard tab from storage", () => {
+      const isSavedTabAllowedForRole = (savedTab: string, role?: string | null) => {
+        const isGateKeeperOrAuditor = role === "gate_keeper" || role === "auditor";
+        const isModerator = isModeratorRole(role);
+        return (
+          (isGateKeeperOrAuditor ? savedTab !== "dashboard" : savedTab !== "roleDashboard") &&
+          (isModerator ? true : savedTab !== "dashboard" && savedTab !== "performance")
+        );
+      };
+
+      // Normal user: "dashboard" or "performance" is strictly rejected as invalid
+      expect(isSavedTabAllowedForRole("dashboard", "user")).toBe(false);
+      expect(isSavedTabAllowedForRole("dashboard", "farmer")).toBe(false);
+      expect(isSavedTabAllowedForRole("performance", "user")).toBe(false);
+      expect(isSavedTabAllowedForRole("all_questions", "user")).toBe(true);
+      expect(isSavedTabAllowedForRole("upload", "user")).toBe(true);
+
+      // Moderator: "dashboard" is allowed
+      expect(isSavedTabAllowedForRole("dashboard", "moderator")).toBe(true);
+      expect(isSavedTabAllowedForRole("all_questions", "moderator")).toBe(true);
+    });
   });
 });

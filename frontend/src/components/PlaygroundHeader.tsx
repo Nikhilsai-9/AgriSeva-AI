@@ -35,7 +35,23 @@ export function PlaygroundHeader({
 
         <div className="flex-1 lg:flex justify-center min-w-0 hidden ">
           <TabsList className="flex gap-2 overflow-x-auto whitespace-nowrap bg-transparent p-0 no-scrollbar">
-            {user && (isFarmerOrUserRole(user.role) || isModeratorRole(user.role)) && (
+            {/* ── Normal User / Farmer: Dashboard links to their Farmer Dashboard ── */}
+            {user && isFarmerOrUserRole(user.role) && (
+              <TabsTrigger
+                value="farmer_dashboard"
+                className="px-2 md:px-3 py-1.5 rounded-lg font-medium text-sm md:text-base transition-all duration-150 flex-shrink-0 flex items-center gap-1.5"
+              >
+                <HoverCard openDelay={150}>
+                  <span className="flex items-center gap-1.5">
+                    <Sprout className="h-4 w-4 text-emerald-600" />
+                    {t("sidebar.dashboard", "Dashboard")}
+                  </span>
+                </HoverCard>
+              </TabsTrigger>
+            )}
+
+            {/* ── Moderator / Admin: Moderator Performance Dashboard ── */}
+            {user && isModeratorRole(user.role) && (
               <TabsTrigger
                 value="dashboard"
                 className="px-2 md:px-3 py-1.5 rounded-lg font-medium text-sm md:text-base transition-all duration-150 flex-shrink-0"
@@ -45,6 +61,7 @@ export function PlaygroundHeader({
                 </HoverCard>
               </TabsTrigger>
             )}
+
             {/* Gate keepers / auditors get their own role dashboard instead. */}
             {user && (user.role === "gate_keeper" || user.role === "auditor") && (
               <TabsTrigger
@@ -56,6 +73,8 @@ export function PlaygroundHeader({
                 </HoverCard>
               </TabsTrigger>
             )}
+
+            {/* Expert role dashboard */}
             {user && user.role === "expert" && (
               <TabsTrigger
                 value="expertPerformance"
@@ -67,8 +86,8 @@ export function PlaygroundHeader({
               </TabsTrigger>
             )}
 
-            {/* ── Farmer Dashboard ── position #2 in main nav (all non-call-agent roles) */}
-            {user && user.role !== "call_agent" && (
+            {/* ── Farmer Dashboard ── position #2 for staff roles who also want to view the Farmer portal */}
+            {user && !isFarmerOrUserRole(user.role) && user.role !== "call_agent" && (
               <TabsTrigger
                 value="farmer_dashboard"
                 className="px-2 md:px-3 py-1.5 rounded-lg font-medium text-sm md:text-base transition-all duration-150 flex-shrink-0 flex items-center gap-1.5"

@@ -464,6 +464,7 @@ export class QuestionService extends BaseService implements IQuestionService {
   async getDetailedQuestions(
     query: GetDetailedQuestionsQuery,
     body: DetailedQuestionsBodyDto,
+    currentUser?: IUser,
   ): Promise<{ questions: IQuestion[]; totalPages: number; feedbackQuestions?: IQuestion[] }> {
     let searchEmbedding: number[] | null = null;
 
@@ -485,6 +486,7 @@ export class QuestionService extends BaseService implements IQuestionService {
     const result = await this.questionRepo.findDetailedQuestions(
       {
         ...query,
+        currentUser,
         searchEmbedding,
       },
       body,
@@ -4648,6 +4650,7 @@ export class QuestionService extends BaseService implements IQuestionService {
 
   async getQuestionAndReviewLevel(
     query: GetDetailedQuestionsQuery,
+    currentUser?: IUser,
   ): Promise<QuestionLevelResponse> {
     return this._withTransaction(async session => {
       let searchEmbedding: number[] | null = null;
@@ -4668,6 +4671,7 @@ export class QuestionService extends BaseService implements IQuestionService {
 
       return this.questionRepo.getQuestionsAndReviewLevel({
         ...query,
+        currentUser,
         searchEmbedding,
       });
     });
@@ -6755,18 +6759,59 @@ if (filters.endDate) {
       const submissions =
         await this.questionSubmissionRepo.getByQuestionId(questionId);
 
-      if (submissions.history.length > 0)
+      if (submissions?.history && submissions.history.length > 0)
         throw new ForbiddenError(
           'Cannot generate AI initial answer. Question already has submitted answers.',
         );
 
-      const res = await this.aiService.getAnswerByQuestionDetails(question);
-
-      if (!res?.answer || !res.answer.trim()) {
-        throw new InternalServerError('AI failed to generate answer');
+      let aiAnswer = '';
+      try {
+        const res = await this.aiService.getAnswerByQuestionDetails(question);
+        if (res?.answer && res.answer.trim()) {
+          aiAnswer = res.answer.trim();
+        }
+      } catch (aiErr: any) {
+        console.warn('[generateAiInitialAnswer] aiService failed, falling back to GroundedAnswerService:', aiErr?.message);
       }
 
-      return { aiInitialAnswer: res.answer };
+      if (!aiAnswer) {
+        try {
+          const service =
+            this.groundedAnswerService ||
+            new GroundedAnswerService(this.mongoDatabase);
+          const groundedResult = await service.generateGroundedAnswer({
+            query: question.question,
+            language: question.language || question.detectedLanguage || 'en-IN',
+            crop: (question.details?.crop as string) || '',
+            state: question.details?.state || '',
+            userContext: {
+              role: 'farmer',
+              userId: question.userId?.toString(),
+            },
+          });
+          if (groundedResult?.answer && groundedResult.answer.trim()) {
+            aiAnswer = groundedResult.answer.trim();
+          }
+        } catch (groundedErr: any) {
+          console.warn('[generateAiInitialAnswer] GroundedAnswerService fallback error:', groundedErr?.message);
+        }
+      }
+
+      if (!aiAnswer) {
+        throw new InternalServerError('AI failed to generate answer. Please try again.');
+      }
+
+      // Persist the generated answer to the question in database (Requirement 4)
+      await this.questionRepo.updateQuestion(
+        questionId,
+        {
+          aiInitialAnswer: aiAnswer,
+          updatedAt: new Date(),
+        },
+        session,
+      );
+
+      return { aiInitialAnswer: aiAnswer };
     });
   }
 

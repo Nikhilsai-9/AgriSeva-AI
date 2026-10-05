@@ -533,6 +533,7 @@ export function GlobalCommunicationActions() {
           body: JSON.stringify({
             question: text || "Please inspect this crop image and provide diagnosis/treatment",
             language: currentLanguage?.code || "en-IN",
+            userId: user?._id || (user as any)?.id,
             farmerPhone: user?.phoneNumber || (user as any)?.mobile,
             source: currentImg ? "IMAGE" : "AI_ASSISTANT",
             imageUrl: currentImg || undefined,
@@ -547,6 +548,8 @@ export function GlobalCommunicationActions() {
           if (data?.questionId) {
             qId = data.questionId;
           }
+          queryClient.invalidateQueries({ queryKey: ["questions_levels"] });
+          queryClient.invalidateQueries({ queryKey: ["all-detailed-questions"] });
           queryClient.invalidateQueries({ queryKey: ["detailed_questions"] });
           queryClient.invalidateQueries({ queryKey: ["questions"] });
           queryClient.invalidateQueries({ queryKey: ["question-status-summary"] });

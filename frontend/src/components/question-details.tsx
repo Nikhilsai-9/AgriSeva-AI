@@ -4,7 +4,7 @@ import type {
   IRerouteHistoryResponse,
 } from "@/types";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QuestionService } from "@/hooks/services/questionService";
 
 import { Button } from "./atoms/button";
@@ -105,16 +105,26 @@ export const QuestionDetails = ({
   //   enabled: !!question?._id && ["AGRISEVA_AI", "WHATSAPP", "AGRI_EXPERT", "OUTREACH"].includes(question.source),
   // });
 
+  const queryClient = useQueryClient();
   const { mutate: generateAIAnswer, isPending: isGeneratingAI } =
     useGenerateInitialAnswer(currentUser._id?.toString());
-  const submissionExists = question.submission.history.length > 0 || false;
+  const submissionExists = (question?.submission?.history?.length ?? 0) > 0;
 
   const handleGenerateAI = () => {
     if (!question?._id) return;
 
     generateAIAnswer(question._id, {
       onSuccess: (data) => {
-        setTempAiAnswer(data.aiInitialAnswer);
+        if (data?.aiInitialAnswer) {
+          setTempAiAnswer(data.aiInitialAnswer);
+          toast.success("AI Answer generated and saved successfully!");
+          queryClient.invalidateQueries({ queryKey: ["question", question._id] });
+          queryClient.invalidateQueries({ queryKey: ["question_full", question._id] });
+          queryClient.invalidateQueries({ queryKey: ["questions_levels"] });
+          queryClient.invalidateQueries({ queryKey: ["all-detailed-questions"] });
+          queryClient.invalidateQueries({ queryKey: ["questions"] });
+          queryClient.invalidateQueries({ queryKey: ["detailed_questions"] });
+        }
       },
       onError: (err) => {
         console.error(err);

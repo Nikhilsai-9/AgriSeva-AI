@@ -33,6 +33,8 @@ export const useSubmitTranscript = () => {
     },
     onSuccess: () => {
       // Invalidate existing application query keys to ensure real recalculation
+      queryClient.invalidateQueries({ queryKey: ["questions_levels"] });
+      queryClient.invalidateQueries({ queryKey: ["all-detailed-questions"] });
       queryClient.invalidateQueries({ queryKey: ["questions"] });
       queryClient.invalidateQueries({ queryKey: ["detailed_questions"] });
       queryClient.invalidateQueries({ queryKey: ["question-status-summary"] });

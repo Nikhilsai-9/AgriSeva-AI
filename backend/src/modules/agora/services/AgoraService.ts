@@ -106,10 +106,12 @@ export class AgoraService {
     farmerPhone?: string,
     source: QuestionSource = 'AI_ASSISTANT',
     imageUrl?: string,
+    userId?: string,
   ): Promise<AgoraVoiceQueryResponse> {
     const canonicalResult = await this.questionService.createCanonicalQuestion({
       question,
       language,
+      userId,
       farmerPhone,
       source,
       imageUrl,

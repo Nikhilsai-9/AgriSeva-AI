@@ -85,50 +85,69 @@ export class WhatsAppController {
 
   private processIncomingEvent(body: any): void {
     try {
-      if (body?.object && body?.entry && body.entry[0]?.changes && body.entry[0].changes[0]?.value) {
-        const change = body.entry[0].changes[0].value;
-        const messages = change.messages;
-        const metadata = change.metadata;
-        const phoneNumberId =
-          metadata?.phone_number_id ||
-          process.env.META_WA_PHONE_NUMBER_ID ||
-          process.env.WHATSAPP_PHONE_NUMBER_ID;
+      if (!body?.object || !Array.isArray(body?.entry)) return;
 
-        if (messages && messages.length > 0) {
-          const incomingMsg = messages[0];
-          const from = incomingMsg.from;
-          const msgType = incomingMsg.type;
-          const msgId = incomingMsg.id;
+      // Loop ALL entries and ALL changes (Meta can batch multiple events in one POST)
+      for (const entry of body.entry) {
+        if (!Array.isArray(entry?.changes)) continue;
+        for (const change of entry.changes) {
+          const value = change?.value;
+          if (!value) continue;
 
-          if (this.isDuplicate(msgId)) {
-            console.log(`[WhatsAppController] Duplicate webhook event for message ${msgId} ignored.`);
-            return;
+          const messages: any[] = value.messages;
+          const metadata = value.metadata;
+          const phoneNumberId =
+            metadata?.phone_number_id ||
+            process.env.META_WA_PHONE_NUMBER_ID ||
+            process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+          if (!Array.isArray(messages) || messages.length === 0) continue;
+
+          // Loop ALL messages in this change (Meta sometimes batches them)
+          for (const incomingMsg of messages) {
+            const from: string = incomingMsg.from;
+            const msgType: string = incomingMsg.type;
+            const msgId: string = incomingMsg.id;
+
+            if (this.isDuplicate(msgId)) {
+              console.log(`[WhatsAppController] Duplicate webhook event for message ${msgId} ignored.`);
+              continue;
+            }
+
+            // Extract text body from all possible message types:
+            //  - plain text
+            //  - interactive button reply (quick-reply buttons)
+            //  - interactive list reply (list-message row click)
+            //  - legacy "button" type (wa.me pre-filled link buttons)
+            //  - image caption (the text typed with an image)
+            const textBody: string =
+              incomingMsg.text?.body ||
+              incomingMsg.interactive?.button_reply?.title ||
+              incomingMsg.interactive?.list_reply?.title ||
+              incomingMsg.button?.text ||
+              incomingMsg.button?.payload ||
+              incomingMsg.image?.caption ||
+              '';
+
+            console.log(
+              `[WhatsAppController] Incoming ${msgType} message ${msgId || ''} from ${from}: "${textBody}"`,
+            );
+
+            // Process asynchronously — do NOT await, webhook must return 200 immediately
+            this.whatsappService
+              .handleIncomingWhatsAppCloudMessage(from, textBody, phoneNumberId, {
+                msgId,
+                msgType,
+                interactive: incomingMsg.interactive,
+                audio: incomingMsg.audio,
+                voice: incomingMsg.voice,
+                image: incomingMsg.image,
+                button: incomingMsg.button,
+              })
+              .catch((err: any) => {
+                console.error('[WhatsAppController] Asynchronous WhatsApp handling error:', err);
+              });
           }
-
-          const textBody =
-            incomingMsg.text?.body ||
-            incomingMsg.interactive?.button_reply?.title ||
-            incomingMsg.interactive?.list_reply?.title ||
-            '';
-
-          console.log(`[WhatsAppController] Incoming ${msgType} message ${msgId || ''} from ${from}: "${textBody}"`);
-
-          // Process asynchronously without blocking the webhook acknowledgment
-          this.whatsappService.handleIncomingWhatsAppCloudMessage(
-            from,
-            textBody,
-            phoneNumberId,
-            {
-              msgId,
-              msgType,
-              interactive: incomingMsg.interactive,
-              audio: incomingMsg.audio,
-              voice: incomingMsg.voice,
-              image: incomingMsg.image,
-            },
-          ).catch((err: any) => {
-            console.error('[WhatsAppController] Asynchronous WhatsApp handling error:', err);
-          });
         }
       }
     } catch (err) {

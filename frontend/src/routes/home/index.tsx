@@ -45,14 +45,24 @@ function RouteComponent() {
       });
       return;
     }
-  }, [user, currentUser, isLoading, navigate]);
+
+    // Normal users/farmers belong on their dedicated User/Farmer Dashboard (/farmer).
+    // Only permit access to /home if they explicitly requested a separate feature tab like all_questions or upload.
+    if (isFarmerOrUserRole(currentUser?.role)) {
+      if (!search.tab || search.tab === "dashboard" || search.tab === "performance") {
+        navigate({ to: "/farmer" });
+        return;
+      }
+    }
+  }, [user, currentUser, isLoading, navigate, search.tab]);
 
   // While loading user auth state or redirecting
   if (
     !user ||
     isLoading ||
     currentUser?.role === "pae_expert" ||
-    isCoordinatorRole(currentUser?.role)
+    isCoordinatorRole(currentUser?.role) ||
+    (isFarmerOrUserRole(currentUser?.role) && (!search.tab || search.tab === "dashboard" || search.tab === "performance"))
   ) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground gap-4">

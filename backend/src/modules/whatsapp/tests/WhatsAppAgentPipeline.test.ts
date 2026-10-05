@@ -309,7 +309,10 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
         getCollection: vi.fn().mockImplementation(async (colName: string) => {
           if (colName === 'whatsapp_sessions') return mockSessionsCol;
           if (colName === 'users') return mockUsersCol;
-          return { findOne: vi.fn().mockResolvedValue(null) };
+          return {
+            findOne: vi.fn().mockResolvedValue(null),
+            insertOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+          };
         }),
       };
 

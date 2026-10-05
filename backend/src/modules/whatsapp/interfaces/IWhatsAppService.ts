@@ -43,6 +43,8 @@ export interface IncomingWhatsAppMessageExtra {
   audio?: { id: string; mime_type?: string };
   voice?: { id: string; mime_type?: string };
   image?: { id: string; mime_type?: string; caption?: string };
+  /** Legacy WhatsApp "button" message type (e.g. wa.me pre-filled text buttons) */
+  button?: { text?: string; payload?: string };
 }
 
 export interface IWhatsAppService {

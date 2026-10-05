@@ -17,6 +17,7 @@ import {
   ContentType,
   InternalServerError,
   BadRequestError,
+  ForbiddenError,
 } from 'routing-controllers';
 import {OpenAPI, ResponseSchema} from 'routing-controllers-openapi';
 import {inject} from 'inversify';
@@ -94,11 +95,14 @@ export class PerformanceController {
   })
   @Get('/dashboard')
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   async getDashboardData(
     @QueryParams() query: GetDashboardQuery,
     @CurrentUser() user: IUser,
   ): Promise<DashboardResponse> {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const currentUserId = user._id.toString();
     const isAdmin = user.role === 'admin';
     const isTrainingUser = user.isTrainingUser === true
@@ -114,13 +118,16 @@ export class PerformanceController {
 
   @OpenAPI({ summary: 'Get role overview and approval rates' })
   @Get('/overview')
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   async getOverview(@CurrentUser() user: IUser,@QueryParams() query: { startDateTime?: string; endDateTime?: string; userType?: 'all' | 'tmu' | 'normal';}): Promise<{
     userRoleOverview: UserRoleOverview[];
     stfExpertCount: number;
     stfModeratorCount: number;
     moderatorApprovalRate: ModeratorApprovalRate;
   }> {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     return this.performanceService.getOverview(
       user._id.toString(),
       query,
@@ -131,16 +138,21 @@ export class PerformanceController {
 
   @OpenAPI({ summary: 'Get golden dataset analytics' })
   @Get('/golden-dataset')
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   async getGoldenDataset(@CurrentUser() user: IUser,@QueryParams() query: GetGoldenDatasetQuery): Promise<GoldenDataset> {
-
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     return this.performanceService.getGoldenDataset(query,user.isTrainingUser??false,user.role === 'admin');
   }
 
   @OpenAPI({ summary: 'Get question contribution trends' })
   @Get('/contribution-trend')
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   async getContributionTrend(@CurrentUser() user: IUser,@QueryParams() query: GetContributionTrendQuery): Promise<QuestionContributionTrend[]> {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const isAdmin = user.role === 'admin'
     const isTrainingUser = user.isTrainingUser === true
     return this.performanceService.getContributionTrend(query.timeRange,isTrainingUser,isAdmin);
@@ -148,8 +160,11 @@ export class PerformanceController {
 
   @OpenAPI({ summary: 'Get status overview' })
   @Get('/status-overview')
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   async getStatusOverview(@CurrentUser() user: IUser): Promise<StatusOverview> {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const isAdmin = user.role === 'admin'
     const isTrainingUser = user.isTrainingUser === true
     return this.performanceService.getStatusOverview(isTrainingUser,isAdmin);
@@ -157,7 +172,7 @@ export class PerformanceController {
 
   @OpenAPI({ summary: 'Get expert performance metrics' })
   @Get('/expert-performance')
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester', 'expert'])
   async getExpertPerformance(@CurrentUser() user: IUser): Promise<ExpertPerformance[]> {
     const isAdmin = user.role === 'admin'
     const isTrainingUser = user.isTrainingUser === true
@@ -166,8 +181,11 @@ export class PerformanceController {
 
   @OpenAPI({ summary: 'Get detailed questions/answers analytics' })
   @Post('/questions-analytics')
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   async getQuestionsAnalytics(@CurrentUser() user: IUser, @Body() query: GetQuestionsAnalyticsQuery): Promise<Analytics> {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const isAdmin = user.role === 'admin'
     const isTrainingUser = user.isTrainingUser === true
     return this.performanceService.getQuestionsAnalytics(query, isTrainingUser, isAdmin);
@@ -191,11 +209,14 @@ export class PerformanceController {
   })
   @Get('/heatMapofReviewers')
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   async getHeatMapresults(
     @CurrentUser() user: IUser,
     @QueryParams() query: GetHeatMapQuery,
   ): Promise<IReviewerHeatmapResponse | null> {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const isAdmin = user.role === 'admin'
     const isTrainingUser = user.isTrainingUser === true
     const result = await this.performanceService.getHeatMapresults(query,isTrainingUser,isAdmin);
@@ -217,7 +238,7 @@ export class PerformanceController {
   })
   @Get('/workload')
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester', 'expert'])
   async getWorkLoadCount(@CurrentUser() user: IUser): Promise<{
     currentUserAnswersCount: number;
     totalQuestionsCount: number;
@@ -251,7 +272,7 @@ export class PerformanceController {
   })
   @Get('/level-report')
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   @ContentType(
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   )
@@ -260,6 +281,9 @@ export class PerformanceController {
     @QueryParams() query: {startDate: string; endDate: string},
     @Res() response: any,
   ) {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const isAdmin = user.role === 'admin';
     const startDate = query.startDate;
     const endDate = query.endDate;
@@ -300,7 +324,7 @@ export class PerformanceController {
   })
   @Post('/check-in')
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester', 'expert'])
   async checkIn(@CurrentUser() user: IUser) {
     await this.performanceService.updateCheckInTime(user._id.toString(), new Date());
     return { success: true, lastCheckInAt: new Date() };
@@ -328,7 +352,7 @@ export class PerformanceController {
   })
   @Post("/cron-snapshot/send-report")
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin'])
   async sendCronSnapshotReport(
     @CurrentUser() user: IUser,
     @Body() body: { startDate?: string; endDate?: string } = {},
@@ -406,7 +430,7 @@ export class PerformanceController {
   })
   @Get('/shift-based-metrics')
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   @ContentType(
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   )
@@ -415,6 +439,9 @@ export class PerformanceController {
     @QueryParams() query: {startDate: string; endDate: string; shift: string; source: string; from:string; to:string;},
     @Res() response: any,
   ) {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const isAdmin = user.role === 'admin';
     const isTrainingUser = user.isTrainingUser ?? false;
     const startDate = query.startDate;
@@ -465,7 +492,7 @@ export class PerformanceController {
   })
   @Get('/shift-based-trends')
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   @ContentType(
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   )
@@ -474,6 +501,9 @@ export class PerformanceController {
     @QueryParams() query: {startDate: string; endDate: string; shift: string; source: string; from:string; to:string;},
     @Res() response: any,
   ) {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const isAdmin = user.role === 'admin';
     const isTrainingUser = user.isTrainingUser ?? false;
     const startDate = query.startDate;
@@ -524,7 +554,7 @@ export class PerformanceController {
   })
   @Get('/shift-based-status-distribution')
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   @ContentType(
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   )
@@ -533,6 +563,9 @@ export class PerformanceController {
     @QueryParams() query: {startDate: string; endDate: string; shift: string; source: string; from:string; to:string;},
     @Res() response: any,
   ) {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const isAdmin = user.role === 'admin';
     const isTrainingUser = user.isTrainingUser ?? false;
     const startDate = query.startDate;
@@ -583,7 +616,7 @@ export class PerformanceController {
   })
   @Get('/shift-based-level-distribution')
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   @ContentType(
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   )
@@ -592,6 +625,9 @@ export class PerformanceController {
     @QueryParams() query: {startDate: string; endDate: string; shift: string; source: string; from:string; to:string;},
     @Res() response: any,
   ) {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const isAdmin = user.role === 'admin';
     const isTrainingUser = user.isTrainingUser ?? false;
     const startDate = query.startDate;
@@ -642,7 +678,7 @@ export class PerformanceController {
   })
   @Get('/shift-based-top-experts')
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   @ContentType(
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   )
@@ -651,6 +687,9 @@ export class PerformanceController {
     @QueryParams() query: {startDate: string; endDate: string; shift: string; source: string; from:string; to:string;},
     @Res() response: any,
   ) {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const isAdmin = user.role === 'admin';
     const isTrainingUser = user.isTrainingUser ?? false;
     const startDate = query.startDate;
@@ -701,7 +740,7 @@ export class PerformanceController {
   })
   @Get('/shift-based-top-approving-experts')
   @HttpCode(200)
-  @Authorized()
+  @Authorized(['admin', 'moderator', 'tester'])
   @ContentType(
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   )
@@ -710,6 +749,9 @@ export class PerformanceController {
     @QueryParams() query: {startDate: string; endDate: string; shift: string; source: string; from:string; to:string;},
     @Res() response: any,
   ) {
+    if (user.role !== 'admin' && user.role !== 'moderator' && user.role !== 'tester') {
+      throw new ForbiddenError('Only moderators and admins can access dashboard data');
+    }
     const isAdmin = user.role === 'admin';
     const isTrainingUser = user.isTrainingUser ?? false;
     const startDate = query.startDate;

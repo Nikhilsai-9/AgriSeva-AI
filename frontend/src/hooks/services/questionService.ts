@@ -1277,36 +1277,21 @@ export class QuestionService {
     if (currentUserId) {
       params.append("userId", currentUserId);
     }
-    const response = await fetch(
+    return apiFetch<{ aiInitialAnswer: string } | null>(
       `${this._baseUrl}/${questionId}/generate-answer?${params.toString()}`,
-      { method: "GET", }
+      { method: "GET" }
     );
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data?.message || "Failed to approve AI answer");
-    }
-    return data; 
   }
 
-  async approveAIInitialAnswer(questionId: string, answer: string) {
-  const response = await fetch(
-    `${this._baseUrl}/${questionId}/approve-initial-answer`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ answer }),
-    }
-  );
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data?.message || "Failed to approve AI answer");
+  async approveAIInitialAnswer(questionId: string, answer: string): Promise<{ success: boolean } | null> {
+    return apiFetch<{ success: boolean } | null>(
+      `${this._baseUrl}/${questionId}/approve-initial-answer`,
+      {
+        method: "POST",
+        body: JSON.stringify({ answer }),
+      }
+    );
   }
-
-  return data;
-}
 
   async getReallocationPreview(type: string): Promise<any> {
     return apiFetch<any>(`${this._baseUrl}/reallocation-preview?type=${type}`);

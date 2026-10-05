@@ -22,6 +22,62 @@ import {
   getLanguageDisplayName,
 } from '#root/modules/groundedAnswer/services/GroundedAnswerService.js';
 import { Collection, ObjectId } from 'mongodb';
+import type { QuestionSource } from '#root/shared/interfaces/models.js';
+
+/**
+ * Maps any form of language input — interactive button/list ID, typed language name
+ * (in English, native script, or transliterated), or a digit shortcut — to a BCP-47
+ * locale code such as 'te-IN'.
+ *
+ * Returns null when the input does not resemble a language selection at all.
+ * This is the single authoritative lookup to fix the infinite language-loop bug.
+ */
+function matchLanguageChoice(raw: string): string | null {
+  const s = (raw || '').trim();
+  if (!s) return null;
+
+  // 1. Exact button / list IDs sent by our interactive menus
+  if (s.startsWith('lang_')) {
+    const code = s.replace('lang_', '');
+    if (code && !code.startsWith('page')) return code; // e.g. 'te-IN'
+  }
+
+  const lower = s.toLowerCase();
+
+  // 2. Digit shortcuts (1-10) matching the order shown in the language menu page 1
+  const DIGIT_MAP: Record<string, string> = {
+    '1': 'te-IN', '2': 'hi-IN', '3': 'ta-IN', '4': 'kn-IN', '5': 'en-IN',
+    '6': 'mr-IN', '7': 'bn-IN', '8': 'gu-IN', '9': 'pa-IN', '10': 'ml-IN',
+  };
+  if (DIGIT_MAP[s]) return DIGIT_MAP[s];
+
+  // 3. Language names in any form: English name, native script, or common transliteration
+  const NAME_MAP: Record<string, string> = {
+    // English names
+    'telugu': 'te-IN', 'hindi': 'hi-IN', 'tamil': 'ta-IN', 'kannada': 'kn-IN',
+    'english': 'en-IN', 'marathi': 'mr-IN', 'bengali': 'bn-IN', 'bangla': 'bn-IN',
+    'gujarati': 'gu-IN', 'punjabi': 'pa-IN', 'malayalam': 'ml-IN', 'odia': 'od-IN',
+    'oriya': 'od-IN', 'assamese': 'as-IN', 'urdu': 'ur-IN', 'maithili': 'mai-IN',
+    'konkani': 'kok-IN', 'nepali': 'ne-IN', 'kashmiri': 'ks-IN', 'dogri': 'doi-IN',
+    'sindhi': 'sd-IN', 'bodo': 'brx-IN', 'santhali': 'sat-IN', 'manipuri': 'mni-IN',
+    // Native scripts
+    'తెలుగు': 'te-IN', 'हिन्दी': 'hi-IN', 'हिंदी': 'hi-IN', 'தமிழ்': 'ta-IN',
+    'ಕನ್ನಡ': 'kn-IN', 'മലയാളം': 'ml-IN', 'मराठी': 'mr-IN', 'বাংলা': 'bn-IN',
+    'ગુજરાતી': 'gu-IN', 'ਪੰਜਾਬੀ': 'pa-IN', 'ଓଡ଼ିଆ': 'od-IN', 'অসমীয়া': 'as-IN',
+    'اردو': 'ur-IN', 'मैथिली': 'mai-IN', 'कोंकणी': 'kok-IN', 'नेपाली': 'ne-IN',
+    'डोगरी': 'doi-IN',
+    // Common transliterations / abbreviations
+    'tel': 'te-IN', 'hin': 'hi-IN', 'tam': 'ta-IN', 'kan': 'kn-IN',
+    'eng': 'en-IN', 'mar': 'mr-IN', 'ben': 'bn-IN', 'guj': 'gu-IN',
+    'pun': 'pa-IN', 'mal': 'ml-IN', 'ori': 'od-IN', 'ass': 'as-IN',
+    'teugu': 'te-IN', 'telgu': 'te-IN',
+  };
+
+  if (NAME_MAP[s]) return NAME_MAP[s];   // exact match (case-sensitive for scripts)
+  if (NAME_MAP[lower]) return NAME_MAP[lower]; // case-insensitive English match
+
+  return null;
+}
 
 export interface IWhatsAppSession {
   _id?: ObjectId | string;
@@ -1329,8 +1385,10 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
     }
 
     // Step 1: Website / User Profile Language Sync (Requirement 8 & 30)
-    // If language is not explicitly set in WhatsApp, inspect MongoDB users collection for existing profile
-    if (!session.languageSelectedExplicitly || !session.preferredLanguage) {
+    // If language is not explicitly set in WhatsApp, inspect MongoDB users collection for existing profile.
+    // If no match found, create an independent WhatsApp-only farmer record so the conversation always
+    // has a stable userId and appears correctly in the WhatsApp History page.
+    if (!session.userId || !session.languageSelectedExplicitly || !session.preferredLanguage) {
       try {
         const usersCol = await this.mongoDatabase.getCollection<IUser>('users');
         const domestic10 = canonicalPhone.replace(/\D/g, '').slice(-10);
@@ -1349,10 +1407,38 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
           session.userId = userMatch._id?.toString();
           session.userName = `${userMatch.firstName || ''} ${userMatch.lastName || ''}`.trim();
           const profileLang = userMatch.farmerProfile?.preferredLanguage;
-          if (profileLang) {
+          if (profileLang && !session.languageSelectedExplicitly) {
             session.preferredLanguage = profileLang;
             session.languageSelectedExplicitly = true;
             console.log(`[WhatsAppService] Synced preferredLanguage "${profileLang}" from website profile for ${from}`);
+          }
+        } else if (!session.userId) {
+          // No existing account — create an independent WhatsApp-only farmer record.
+          // This ensures the conversation has a stable identity and appears in WhatsApp History.
+          const newUser: Partial<IUser> = {
+            firebaseUID: `wa_${canonicalPhone.replace(/\D/g, '')}`,
+            email: `wa_${canonicalPhone.replace(/\D/g, '')}@whatsapp.agriseva`,
+            firstName: 'WhatsApp',
+            lastName: canonicalPhone,
+            role: 'user',
+            mobile: canonicalPhone,
+            farmerProfile: { phone: canonicalPhone },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          try {
+            const insertResult = await usersCol.insertOne(newUser as IUser);
+            session.userId = insertResult.insertedId.toString();
+            session.userName = canonicalPhone;
+            console.log(`[WhatsAppService] Created independent WhatsApp farmer record for ${from} → userId=${session.userId}`);
+          } catch (insertErr: any) {
+            // If insertion fails due to race condition, try to find the record that was just created
+            const raceMatch = await usersCol.findOne({ mobile: canonicalPhone });
+            if (raceMatch) {
+              session.userId = raceMatch._id?.toString();
+              session.userName = `${raceMatch.firstName || ''} ${raceMatch.lastName || ''}`.trim();
+            }
+            console.warn('[WhatsAppService] Race on user creation (acceptable):', insertErr.message);
           }
         }
       } catch (err: any) {
@@ -1360,69 +1446,85 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
       }
     }
 
-    // Step 2: Handle Interactive Language Selection Replies (Buttons or List Rows)
+    // Step 2: Handle Language Selection — from interactive replies OR typed text/digit
+    // This block also handles legacy wa.me "button" message type.
     const interactiveId =
-      extra?.interactive?.button_reply?.id || extra?.interactive?.list_reply?.id;
+      extra?.interactive?.button_reply?.id ||
+      extra?.interactive?.list_reply?.id ||
+      extra?.button?.payload ||
+      extra?.button?.text;
 
-    if (interactiveId) {
-      if (interactiveId === 'lang_page_2') {
-        await this.sendLanguageSelectionMenu(from, targetPhoneId, 2);
+    // Determine if this message is a language selection by any means:
+    //  (a) interactive list/button reply with a lang_ ID
+    //  (b) typed language name or digit matching our matchLanguageChoice helper
+    const langCodeFromInteractive = interactiveId ? matchLanguageChoice(interactiveId) : null;
+    // Only check typed input if the message hasn't already been identified as a non-language type
+    const isMediaOnly = (extra?.msgType === 'audio' || extra?.msgType === 'voice' || extra?.msgType === 'image') && !text;
+    const langCodeFromTyped = (!isMediaOnly && !langCodeFromInteractive && session.pendingFirstMessage !== undefined)
+      ? matchLanguageChoice(text || '')
+      : null;
+    const resolvedLangCode = langCodeFromInteractive || langCodeFromTyped;
+
+    // Handle navigation between language menu pages
+    if (interactiveId === 'lang_page_2') {
+      await this.sendLanguageSelectionMenu(from, targetPhoneId, 2);
+      return;
+    }
+    if (interactiveId === 'lang_page_1' || interactiveId === 'lang_more_all') {
+      await this.sendLanguageSelectionMenu(from, targetPhoneId, 1);
+      return;
+    }
+
+    if (resolvedLangCode) {
+      const chosenCode = resolvedLangCode;
+      session.preferredLanguage = chosenCode;
+      session.languageSelectedExplicitly = true;
+      session.updatedAt = new Date();
+
+      const pending = session.pendingFirstMessage;
+      session.pendingFirstMessage = undefined;
+
+      await sessionsCol.updateOne(
+        { phoneNumber: canonicalPhone },
+        { $set: session },
+        { upsert: true },
+      );
+
+      console.log(`[WhatsAppService] User ${from} selected language: ${chosenCode}`);
+
+      // If there was a pending first message, restore it and continue!
+      if (pending && (pending.text || pending.mediaId)) {
+        const restoredConfirmations: Record<string, string> = {
+          'te-IN': '✅ మీ భాషగా *తెలుగు* ఎంపిక చేయబడింది.\nమీ ప్రశ్నను పరిశీలిస్తున్నాము, దయచేసి వేచి ఉండండి...',
+          'hi-IN': '✅ आपकी भाषा *हिन्दी* चुन ली गई है।\nहम आपके प्रश्न का उत्तर तैयार कर रहे हैं, कृपया प्रतीक्षा करें...',
+          'ta-IN': '✅ உங்கள் மொழியாக *தமிழ்* தேர்ந்தெடுக்கப்பட்டது.\nஉங்கள் கேள்விக்கான பதிலை தயார் செய்கிறோம், காத்திருக்கவும்...',
+          'kn-IN': '✅ ನಿಮ್ಮ ಭಾಷೆಯಾಗಿ *ಕನ್ನಡ* ಆಯ್ಕೆಯಾಗಿದೆ.\nನಿಮ್ಮ ಪ್ರಶ್ನೆಗೆ ಉತ್ತರವನ್ನು ಸಿದ್ಧಪಡಿಸುತ್ತಿದ್ದೇವೆ, ದಯವಿಟ್ಟು ನಿರೀಕ್ಷಿಸಿ...',
+          'en-IN': '✅ Language set to *English*.\nAnalyzing your question, please wait a moment...',
+        };
+        const confirmMsg = restoredConfirmations[chosenCode] || restoredConfirmations['en-IN'];
+        await this.sendTextMessage(from, targetPhoneId, confirmMsg);
+
+        // Restore the pending message and fall through to process it
+        text = pending.text || '';
+        extra = {
+          msgId: 'restored_' + Date.now(),
+          msgType: pending.msgType || 'text',
+          audio: pending.msgType === 'audio' ? { id: pending.mediaId!, mime_type: pending.mimeType } : undefined,
+          voice: pending.msgType === 'voice' ? { id: pending.mediaId!, mime_type: pending.mimeType } : undefined,
+          image: pending.msgType === 'image' ? { id: pending.mediaId!, mime_type: pending.mimeType || 'image/jpeg', caption: pending.caption } : undefined,
+        };
+      } else {
+        // No pending message — send welcome greeting in the chosen language
+        const welcomeGreetings: Record<string, string> = {
+          'te-IN': '🌾 *నమస్తే! AgriSeva-AI కి స్వాగతం.*\n\nమీ భాషగా *తెలుగు* విజయవంతంగా సెట్ చేయబడింది.\n\nమీరు పంట సమస్యలు, వ్యాధులు, మండి మార్కెట్ ధరలు, ఎరువులు లేదా ప్రభుత్వ పథకాల గురించి ఏ ప్రశ్ననైనా ఇక్కడ అడగవచ్చు.\n\n*టెక్స్ట్ మెసేజ్, వాయిస్ నోట్ లేదా పంట ఫోటో* పంపండి!\n\n_🌐 భాషను మార్చడానికి ఎప్పుడైనా "language" అని పంపండి._',
+          'hi-IN': '🌾 *नमस्ते! AgriSeva-AI में आपका स्वागत है।*\n\nआपकी भाषा *हिन्दी* सफलतापूर्वक चुन ली गई है।\n\nआप फसल संबंधी समस्याएं, कीट-रोग, मंडी भाव, खाद-उर्वरक या सरकारी योजनाओं के बारे में कोई भी प्रश्न पूछ सकते हैं।\n\n*टेक्स्ट मैसेज, वॉइस नोट या फसल की फोटो* भेजें!\n\n_🌐 भाषा बदलने के लिए कभी भी "language" लिखें।_',
+          'ta-IN': '🌾 *வணக்கம்! AgriSeva-AI-க்கு நல்வரவு.*\n\nஉங்கள் மொழியாக *தமிழ்* தேர்ந்தெடுக்கப்பட்டது.\n\nபயிர் பாதுகாப்பு, நோய், மண்டி விலை, உரங்கள் அல்லது அரசு திட்டங்கள் குறித்து நீங்கள் எந்த கேள்வியையும் கேட்கலாம்.\n\n*உரை, குரல் பதிவு அல்லது பயிர் புகைப்படம்* அனுப்புங்கள்!\n\n_🌐 மொழியை மாற்ற "language" என தட்டச்சு செய்யவும்._',
+          'kn-IN': '🌾 *ನಮಸ್ಕಾರ! AgriSeva-AI ಗೆ ಸ್ವಾಗತ.*\n\nನಿಮ್ಮ ಭಾಷೆಯಾಗಿ *ಕನ್ನಡ* ಆಯ್ಕೆಯಾಗಿದೆ.\n\nಬೆಳೆ ರೋಗಗಳು, ಮಂಡಿ ದರಗಳು, ರಸಗೊಬ್ಬರಗಳು ಅಥವಾ ಕೃಷಿ ಯೋಜನೆಗಳ ಬಗ್ಗೆ ನಿಮ್ಮ ಪ್ರಶ್ನೆಗಳನ್ನು ಇಲ್ಲಿ ಕೇಳಬಹುದು.\n\n*ಪಠ್ಯ, ಧ್ವನಿ ಸಂದೇಶ ಅಥವಾ ಬೆಳೆಯ ಫೋಟೋ* ಕಳುಹಿಸಿ!\n\n_🌐 ಭಾಷೆ ಬದಲಾಯಿಸಲು "language" ಎಂದು ಕಳುಹಿಸಿ._',
+          'en-IN': '🌾 *Namaste! Welcome to AgriSeva-AI.*\n\nYour language is set to *English*.\n\nYou can ask any question regarding crop health, pest & disease diagnosis, today\'s mandi prices, fertilizers, or government schemes.\n\nSend a *text message, voice note, or crop photo*!\n\n_🌐 Type "language" anytime to change your language._',
+        };
+        const welcome = welcomeGreetings[chosenCode] || welcomeGreetings['en-IN'];
+        await this.sendTextMessage(from, targetPhoneId, welcome);
         return;
-      }
-      if (interactiveId === 'lang_page_1' || interactiveId === 'lang_more_all') {
-        await this.sendLanguageSelectionMenu(from, targetPhoneId, 1);
-        return;
-      }
-      if (interactiveId.startsWith('lang_')) {
-        const chosenCode = interactiveId.replace('lang_', '');
-        session.preferredLanguage = chosenCode;
-        session.languageSelectedExplicitly = true;
-        session.updatedAt = new Date();
-
-        const pending = session.pendingFirstMessage;
-        session.pendingFirstMessage = undefined;
-
-        await sessionsCol.updateOne(
-          { phoneNumber: canonicalPhone },
-          { $set: session },
-          { upsert: true },
-        );
-
-        console.log(`[WhatsAppService] User ${from} selected language: ${chosenCode}`);
-
-        // If there was a pending first message, restore it and continue!
-        if (pending && (pending.text || pending.mediaId)) {
-          const restoredConfirmations: Record<string, string> = {
-            'te-IN': '✅ మీ భాషగా *తెలుగు* ఎంపిక చేయబడింది.\nమీ ప్రశ్నను పరిశీలిస్తున్నాము, దయచేసి వేచి ఉండండి...',
-            'hi-IN': '✅ आपकी भाषा *हिन्दी* चुन ली गई है।\nहम आपके प्रश्न का उत्तर तैयार कर रहे हैं, कृपया प्रतीक्षा करें...',
-            'ta-IN': '✅ உங்கள் மொழியாக *தமிழ்* தேர்ந்தெடுக்கப்பட்டது.\nஉங்கள் கேள்விக்கான பதிலை தயார் செய்கிறோம், காத்திருக்கவும்...',
-            'kn-IN': '✅ ನಿಮ್ಮ ಭಾಷೆಯಾಗಿ *ಕನ್ನಡ* ಆಯ್ಕೆಯಾಗಿದೆ.\nನಿಮ್ಮ ಪ್ರಶ್ನೆಗೆ ಉತ್ತರವನ್ನು ಸಿದ್ಧಪಡಿಸುತ್ತಿದ್ದೇವೆ, ದಯವಿಟ್ಟು ನಿರೀಕ್ಷಿಸಿ...',
-            'en-IN': '✅ Language set to *English*.\nAnalyzing your question, please wait a moment...',
-          };
-          const confirmMsg = restoredConfirmations[chosenCode] || restoredConfirmations['en-IN'];
-          await this.sendTextMessage(from, targetPhoneId, confirmMsg);
-
-          // Continue processing the original message in the newly selected language!
-          text = pending.text || '';
-          extra = {
-            msgId: 'restored_' + Date.now(),
-            msgType: pending.msgType || 'text',
-            audio: pending.msgType === 'audio' ? { id: pending.mediaId!, mime_type: pending.mimeType } : undefined,
-            voice: pending.msgType === 'voice' ? { id: pending.mediaId!, mime_type: pending.mimeType } : undefined,
-            image: pending.msgType === 'image' ? { id: pending.mediaId!, mime_type: pending.mimeType || 'image/jpeg', caption: pending.caption } : undefined,
-          };
-        } else {
-          const welcomeGreetings: Record<string, string> = {
-            'te-IN': '🌾 *నమస్తే! AgriSeva-AI కి స్వాగతం.*\n\nమీ భాషగా *తెలుగు* విజయవంతంగా సెట్ చేయబడింది.\n\nమీరు పంట సమస్యలు, వ్యాధులు, మండి మార్కెట్ ధరలు, ఎరువులు లేదా ప్రభుత్వ పథకాల గురించి ఏ ప్రశ్ననైనా ఇక్కడ అడగవచ్చు.\n\n*టెక్స్ట్ మెసేజ్, వాయిస్ నోట్ లేదా పంట ఫోటో* పంపండి!\n\n_🌐 భాషను మార్చడానికి ఎప్పుడైనా "language" అని పంపండి._',
-            'hi-IN': '🌾 *नमस्ते! AgriSeva-AI में आपका स्वागत है।*\n\nआपकी भाषा *हिन्दी* सफलतापूर्वक चुन ली गई है।\n\nआप फसल संबंधी समस्याएं, कीट-रोग, मंडी भाव, खाद-उर्वरक या सरकारी योजनाओं के बारे में कोई भी प्रश्न पूछ सकते हैं।\n\n*टेक्स्ट मैसेज, वॉइस नोट या फसल की फोटो* भेजें!\n\n_🌐 भाषा बदलने के लिए कभी भी "language" लिखें।_',
-            'ta-IN': '🌾 *வணக்கம்! AgriSeva-AI-க்கு நல்வரவு.*\n\nஉங்கள் மொழியாக *தமிழ்* தேர்ந்தெடுக்கப்பட்டது.\n\nபயிர் பாதுகாப்பு, நோய், மண்டி விலை, உரங்கள் அல்லது அரசு திட்டங்கள் குறித்து நீங்கள் எந்த கேள்வியையும் கேட்கலாம்.\n\n*உரை, குரல் பதிவு அல்லது பயிர் புகைப்படம்* அனுப்புங்கள்!\n\n_🌐 மொழியை மாற்ற "language" என தட்டச்சு செய்யவும்._',
-            'kn-IN': '🌾 *ನಮಸ್ಕಾರ! AgriSeva-AI ಗೆ ಸ್ವಾಗತ.*\n\nನಿಮ್ಮ ಭಾಷೆಯಾಗಿ *ಕನ್ನಡ* ಆಯ್ಕೆಯಾಗಿದೆ.\n\nಬೆಳೆ ರೋಗಗಳು, ಮಂಡಿ ದರಗಳು, ರಸಗೊಬ್ಬರಗಳು ಅಥವಾ ಕೃಷಿ ಯೋಜನೆಗಳ ಬಗ್ಗೆ ನಿಮ್ಮ ಪ್ರಶ್ನೆಗಳನ್ನು ಇಲ್ಲಿ ಕೇಳಬಹುದು.\n\n*ಪಠ್ಯ, ಧ್ವನಿ ಸಂದೇಶ ಅಥವಾ ಬೆಳೆಯ ಫೋಟೋ* ಕಳುಹಿಸಿ!\n\n_🌐 ಭಾಷೆ ಬದಲಾಯಿಸಲು "language" ಎಂದು ಕಳುಹಿಸಿ._',
-            'en-IN': '🌾 *Namaste! Welcome to AgriSeva-AI.*\n\nYour language is set to *English*.\n\nYou can ask any question regarding crop health, pest & disease diagnosis, today\'s mandi prices, fertilizers, or government schemes.\n\nSend a *text message, voice note, or crop photo*!\n\n_🌐 Type "language" anytime to change your language._',
-          };
-          const welcome = welcomeGreetings[chosenCode] || welcomeGreetings['en-IN'];
-          await this.sendTextMessage(from, targetPhoneId, welcome);
-          return;
-        }
       }
     }
 
@@ -1446,21 +1548,30 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
     }
 
     // Step 4: First-time Unmapped User Language Discovery (Requirements 3, 5, 29, 41, 42)
+    // Only enter this block when we still have no language preference after Step 2 processed interactive/typed choices.
     if (!session.preferredLanguage) {
+      // Try script detection (works well for non-Latin scripts like Telugu, Hindi, Tamil)
       const detected = detectLanguageFromText(text || extra?.image?.caption || '');
       if (detected && detected !== 'en-IN') {
         session.preferredLanguage = detected;
         console.log(`[WhatsAppService] Auto-detected language "${detected}" from incoming script for ${from}`);
       } else {
-        // Save current incoming message so it is not lost while farmer selects language
-        session.pendingFirstMessage = {
-          text: text || '',
-          msgType: extra?.msgType || 'text',
-          mediaId: extra?.audio?.id || extra?.voice?.id || extra?.image?.id,
-          mimeType: extra?.audio?.mime_type || extra?.voice?.mime_type || extra?.image?.mime_type,
-          caption: extra?.image?.caption,
-          timestamp: new Date(),
-        };
+        // Cannot determine language — save message for later and show language selector.
+        // Do NOT save the message if it's already a language-selection command (avoids loop).
+        const isLangCommand =
+          (text || '').toLowerCase().trim() in { language: 1, lang: 1, 'change language': 1, 'switch language': 1,
+            'select language': 1, bhasha: 1, 'भाषा': 1, 'భాష': 1, 'மொழி': 1, 'ಭಾಷೆ': 1 };
+
+        if (!isLangCommand) {
+          session.pendingFirstMessage = {
+            text: text || '',
+            msgType: extra?.msgType || 'text',
+            mediaId: extra?.audio?.id || extra?.voice?.id || extra?.image?.id,
+            mimeType: extra?.audio?.mime_type || extra?.voice?.mime_type || extra?.image?.mime_type,
+            caption: extra?.image?.caption,
+            timestamp: new Date(),
+          };
+        }
         await sessionsCol.updateOne(
           { phoneNumber: canonicalPhone },
           { $set: session },
@@ -1525,7 +1636,24 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
           const diagnosis = await this.processCropImage(buffer, mimeType, caption, currentLang);
           if (diagnosis) {
             const translatedDiagnosis = await this.translateText(diagnosis, currentLang);
-            const formatted = `🌱 *AgriSeva-AI పంట రోగ నిర్ధారణ*\n\n${translatedDiagnosis}\n\n━━━━━━━━━━━━━━━━\n_🌾 AgriSeva-AI • ${getLanguageDisplayName(currentLang)}_\n_🌐 భాషను మార్చడానికి "language" అని పంపండి._`;
+            // Use localized header/footer — was previously hardcoded in Telugu regardless of user language
+            const imgHeaders: Record<string, string> = {
+              'te-IN': '🌱 *AgriSeva-AI పంట రోగ నిర్ధారణ*',
+              'hi-IN': '🌱 *AgriSeva-AI फसल रोग निदान*',
+              'ta-IN': '🌱 *AgriSeva-AI பயிர் நோய் கண்டறிதல்*',
+              'kn-IN': '🌱 *AgriSeva-AI ಬೆಳೆ ರೋಗ ರೋಗನಿರ್ಣಯ*',
+              'en-IN': '🌱 *AgriSeva-AI Crop Disease Diagnosis*',
+            };
+            const imgFooters: Record<string, string> = {
+              'te-IN': '🌐 భాషను మార్చడానికి "language" అని పంపండి.',
+              'hi-IN': '🌐 भाषा बदलने के लिए "language" लिखें।',
+              'ta-IN': '🌐 மொழியை மாற்ற "language" என தட்டச்சு செய்யவும்.',
+              'kn-IN': '🌐 ಭಾಷೆ ಬದಲಾಯಿಸಲು "language" ಎಂದು ಕಳುಹಿಸಿ.',
+              'en-IN': '🌐 Type "language" anytime to change language.',
+            };
+            const imgHeader = imgHeaders[currentLang] || imgHeaders['en-IN'];
+            const imgFooter = imgFooters[currentLang] || imgFooters['en-IN'];
+            const formatted = `${imgHeader}\n\n${translatedDiagnosis}\n\n━━━━━━━━━━━━━━━━\n_🌾 AgriSeva-AI • ${getLanguageDisplayName(currentLang)}_\n_${imgFooter}_`;
             await this.sendTextMessage(from, targetPhoneId, formatted);
 
             // Update session history
@@ -1544,6 +1672,56 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
             });
             session.lastMessageAt = new Date();
             await sessionsCol.updateOne({ phoneNumber: canonicalPhone }, { $set: session }, { upsert: true });
+
+            // Persist WhatsApp crop diagnosis image to "All Questions" pipeline
+            try {
+              const questionsCol = await this.mongoDatabase.getCollection('questions');
+              const imgMsgId = extra?.image?.id || extra?.msgId || `wa_img_${canonicalPhone}_${Date.now()}`;
+              const existingImgQ = await questionsCol.findOne({ messageId: imgMsgId });
+              if (!existingImgQ) {
+                const imgQId = new ObjectId();
+                const userObjId = session.userId ? new ObjectId(session.userId.toString()) : undefined;
+                await questionsCol.insertOne({
+                  _id: imgQId,
+                  userId: userObjId,
+                  question: caption || '📷 [Crop Disease Image Diagnosis]',
+                  originalQuestion: caption || 'Crop Disease Image Diagnosis',
+                  status: 'open',
+                  source: 'WHATSAPP',
+                  imageUrl: buffer ? `data:${mimeType};base64,${buffer.toString('base64')}` : undefined,
+                  messageId: imgMsgId,
+                  threadId: canonicalPhone,
+                  totalAnswersCount: 1,
+                  isAutoAllocate: false,
+                  autoAllocateGateKeeper: true,
+                  autoAllocateAuditor: true,
+                  autoAllocateModerator: true,
+                  embedding: [],
+                  metrics: null,
+                  priority: 'medium',
+                  details: { state: '', district: '', crop: '', season: '', domain: ['Disease Management'] },
+                  language: currentLang,
+                  detectedLanguage: currentLang,
+                  aiInitialAnswer: translatedDiagnosis,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                });
+
+                const submissionsCol = await this.mongoDatabase.getCollection('question_submissions');
+                await submissionsCol.insertOne({
+                  questionId: imgQId,
+                  lastRespondedBy: null,
+                  history: [],
+                  queue: [],
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                });
+                console.log(`[WhatsAppService] Persisted WhatsApp crop image question (id: ${imgQId}, msgId: ${imgMsgId})`);
+              }
+            } catch (imgQErr: any) {
+              console.warn('[WhatsAppService] Could not persist crop image question to questions collection:', imgQErr.message);
+            }
+
             return;
           }
         } catch (err: any) {
@@ -1654,6 +1832,95 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
     session.updatedAt = new Date();
 
     await sessionsCol.updateOne({ phoneNumber: canonicalPhone }, { $set: session }, { upsert: true });
+
+    // Step 11: Persist to "All Questions" pipeline (source: WHATSAPP)
+    // Ensures questions asked via WhatsApp reliably appear in All Questions with complete metadata
+    try {
+      const questionsCol = await this.mongoDatabase.getCollection('questions');
+      const msgId = extra?.msgId || `wa_${canonicalPhone}_${Date.now()}`;
+      const existingQ = await questionsCol.findOne({
+        $or: [{ messageId: msgId }, { $and: [{ threadId: canonicalPhone }, { question: userQuery }] }],
+      });
+
+      if (!existingQ) {
+        const qId = new ObjectId();
+        const userObjId = session.userId ? new ObjectId(session.userId.toString()) : undefined;
+
+        // Extract crop / domain if possible
+        const rawDetails = session.farmerDetails || {};
+        let state = (rawDetails.state || '').trim();
+        let district = (rawDetails.district || '').trim();
+        let crop = (rawDetails.crop || '').trim();
+        let domains: string[] = [];
+
+        if (!crop) {
+          const knownCrops = [
+            'Tomato', 'Paddy', 'Rice', 'Wheat', 'Cotton', 'Chilli', 'Chilli / Mirchi',
+            'Onion', 'Potato', 'Maize', 'Soyabean', 'Groundnut', 'Bengal Gram',
+            'Sugarcane', 'Turmeric', 'Banana', 'Mango', 'Mustard', 'Gram', 'Pulses'
+          ];
+          const lower = userQuery.toLowerCase();
+          const matched = knownCrops.find(c => lower.includes(c.toLowerCase()));
+          if (matched) crop = matched;
+        }
+
+        const lowerQ = userQuery.toLowerCase();
+        if (/(yellow|leaf|leaves|curl|spot|rot|blight|wilt|fungus|disease|virus|బాధ|తెగులు|వ్యాధి|रोग|धब्बा|कीट)/i.test(lowerQ)) {
+          domains = ['Disease Management'];
+        } else if (/(pest|worm|caterpillar|borer|insect|aphid|spray|pesticide|పురుగు|కీటకం|कीड़ा|कीटनाशक)/i.test(lowerQ)) {
+          domains = ['Insect - Pest Management'];
+        } else if (/(price|mandi|rate|cost|msp|market|ధర|రేటు|మండి|भाव|दाम|कीमत)/i.test(lowerQ)) {
+          domains = ['Market Prices, MSP & Marketing'];
+        } else if (/(water|drip|irrigate|irrigation|నీరు|నీటి|सिंचाई|पानी)/i.test(lowerQ)) {
+          domains = ['Irrigation and Water Management'];
+        } else if (/(soil|urea|fertilizer|npk|zinc|nitrogen|ఎరువు|యూరియా|खाद|उर्वरक)/i.test(lowerQ)) {
+          domains = ['Soil Health and Nutrient Management'];
+        } else {
+          domains = ['Cultural and Crop Management Practices'];
+        }
+
+        await questionsCol.insertOne({
+          _id: qId,
+          userId: userObjId,
+          question: userQuery,
+          originalQuestion: userQuery,
+          status: 'open',
+          source: 'WHATSAPP',
+          messageId: msgId,
+          threadId: canonicalPhone,
+          totalAnswersCount: 1,
+          isAutoAllocate: false,
+          autoAllocateGateKeeper: true,
+          autoAllocateAuditor: true,
+          autoAllocateModerator: true,
+          embedding: [],
+          metrics: null,
+          priority: 'medium',
+          details: { state, district, crop, season: '', domain: domains },
+          language: currentLang,
+          detectedLanguage: currentLang,
+          aiInitialAnswer: finalLocalizedAnswer,
+          mediaUrl: audioDataUrl,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        const submissionsCol = await this.mongoDatabase.getCollection('question_submissions');
+        await submissionsCol.insertOne({
+          questionId: qId,
+          lastRespondedBy: null,
+          history: [],
+          queue: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        console.log(`[WhatsAppService] Persisted WhatsApp question (id: ${qId}, msgId: ${msgId}, userId: ${session.userId})`);
+      }
+    } catch (qErr: any) {
+      console.warn('[WhatsAppService] Could not persist question to questions collection:', qErr.message);
+    }
+
     console.log(`[WhatsAppService] Successfully completed request for ${from} in ${currentLang}`);
   }
 }

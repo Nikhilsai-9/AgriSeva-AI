@@ -115,7 +115,9 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
           ? "call_interface"
           : user.role === "gate_keeper" || user.role === "auditor"
             ? "roleDashboard"
-            : "dashboard";
+            : isModeratorRole(user.role)
+              ? "dashboard"
+              : "all_questions";
 
     // A tab saved before the role changed (or before roleDashboard existed) can point at
     // content this role no longer renders, leaving a blank page. Drop it in that case.
@@ -127,7 +129,7 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
     const savedTabValid =
       !!savedTab &&
       (isGateKeeperOrAuditor ? savedTab !== "dashboard" : savedTab !== "roleDashboard") &&
-      (isModerator || isFarmerOrUserRole(user.role) || savedTab !== "dashboard");
+      (isModerator ? true : savedTab !== "dashboard" && savedTab !== "performance");
 
     if (savedTab && savedTabValid) {
       setActiveTab(savedTab);
@@ -245,6 +247,11 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
       return;
     }
 
+    if (value === "dashboard" && isFarmerOrUserRole(user?.role)) {
+      navigate({ to: "/farmer" });
+      return;
+    }
+
     const storageKey = getStorageKey(user);
     if (!storageKey) return;
     setActiveTab(value);
@@ -299,32 +306,36 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
         <div className="h-full py-4 sm:py-6 min-w-0 max-w-[1920px] mx-auto w-full">
           <div className="grid h-full items-stretch gap-6 min-w-0">
             <div className="md:order-1 w-full min-w-0">
-              <TabsContent
-                value="dashboard"
-                className={cn(
-                  "mt-0 border-0 md:px-8 outline-none",
-                  "data-[state=active]:animate-in",
-                  "data-[state=active]:fade-in-0",
-                  "data-[state=active]:zoom-in-[0.98]",
-                  "data-[state=active]:slide-in-from-bottom-3",
-                  "duration-500 ease-out",
-                )}
-              >
-                <Dashboard />
-              </TabsContent>
-              <TabsContent
-                value="performance"
-                className={cn(
-                  "mt-0 border-0 md:px-8 outline-none",
-                  "data-[state=active]:animate-in",
-                  "data-[state=active]:fade-in-0",
-                  "data-[state=active]:zoom-in-[0.98]",
-                  "data-[state=active]:slide-in-from-bottom-3",
-                  "duration-500 ease-out",
-                )}
-              >
-                <Dashboard />
-              </TabsContent>
+              {user && isModeratorRole(user.role) && (
+                <TabsContent
+                  value="dashboard"
+                  className={cn(
+                    "mt-0 border-0 md:px-8 outline-none",
+                    "data-[state=active]:animate-in",
+                    "data-[state=active]:fade-in-0",
+                    "data-[state=active]:zoom-in-[0.98]",
+                    "data-[state=active]:slide-in-from-bottom-3",
+                    "duration-500 ease-out",
+                  )}
+                >
+                  <Dashboard />
+                </TabsContent>
+              )}
+              {user && isModeratorRole(user.role) && (
+                <TabsContent
+                  value="performance"
+                  className={cn(
+                    "mt-0 border-0 md:px-8 outline-none",
+                    "data-[state=active]:animate-in",
+                    "data-[state=active]:fade-in-0",
+                    "data-[state=active]:zoom-in-[0.98]",
+                    "data-[state=active]:slide-in-from-bottom-3",
+                    "duration-500 ease-out",
+                  )}
+                >
+                  <Dashboard />
+                </TabsContent>
+              )}
               {user && (user.role === "expert" || user.role === "moderator") && (
                 <TabsContent
                   value="expertPerformance"

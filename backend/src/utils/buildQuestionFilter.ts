@@ -2,16 +2,54 @@
 import { GetDetailedQuestionsQuery } from "#root/modules/question/classes/validators/QuestionVaidators.js";
 import { ObjectId } from "mongodb";
 import { buildBaseQuestionMatch } from "./dashboard-filters.js";
+import type { IUser } from "#root/shared/interfaces/models.js";
+
+export const PRIVILEGED_QUESTION_ROLES = [
+  'admin',
+  'moderator',
+  'expert',
+  'pae_expert',
+  'call_agent',
+  'gate_keeper',
+  'auditor',
+  'district_coordinator',
+  'block_coordinator',
+  'village_volunteer',
+  'tester',
+];
+
+export const isStaffOrReviewer = (role?: string): boolean => {
+  return !!role && PRIVILEGED_QUESTION_ROLES.includes(role);
+};
 
 export const buildQuestionFilter = async (
-  query: GetDetailedQuestionsQuery & { searchEmbedding: number[] | null },
-  QuestionSubmissionCollection,AnswersCollection
+  query: GetDetailedQuestionsQuery & { searchEmbedding: number[] | null; currentUser?: IUser },
+  QuestionSubmissionCollection: any,
+  AnswersCollection: any,
+  currentUser?: IUser,
 ) => {
-
-  const filter = buildBaseQuestionMatch(query.source,query.isTrainingQuestion=== true);
+  const activeUser = currentUser || query.currentUser;
+  const filter = buildBaseQuestionMatch(query.source, query.isTrainingQuestion === true);
   
-  if(query.isTrainingQuestion=== true){
-    filter.source = "AGRI_EXPERT"
+  if (query.isTrainingQuestion === true) {
+    filter.source = "AGRI_EXPERT";
+  }
+
+  // Enforce User-Specific Question Ownership (Requirement 2 & 9)
+  // When a farmer/normal user logs in, All Questions must show only that user's questions.
+  if (activeUser && !isStaffOrReviewer(activeUser.role as string)) {
+    const userObjectId = new ObjectId(activeUser._id);
+    const userStrId = activeUser._id.toString();
+    const userOwnershipMatch: any[] = [
+      { userId: userObjectId },
+      { userId: userStrId },
+    ];
+    if (activeUser.mobile) {
+      userOwnershipMatch.push({ threadId: activeUser.mobile });
+      userOwnershipMatch.push({ 'farmerProfile.phone': activeUser.mobile });
+    }
+    if (!filter.$and) filter.$and = [];
+    filter.$and.push({ $or: userOwnershipMatch });
   }
   const caseInsensitive = (field: string, value?: string) => {
     if (value && value !== "all") {

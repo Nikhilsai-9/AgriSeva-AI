@@ -88,13 +88,16 @@ export const MobileSidebar = ({
       if (search?.tab) {
         if (search.tab === "upload") return "upload";
         if (search.tab === "all_questions") return "all_questions";
-        if (search.tab === "dashboard") return "dashboard";
+        if (search.tab === "dashboard") {
+          return isFarmerOrUserRole(user?.role) ? "farmer" : "dashboard";
+        }
         return search.tab;
       }
-      if (user && (isFarmerOrUserRole(user.role) || isModeratorRole(user.role))) return "dashboard";
+      if (user && isFarmerOrUserRole(user.role)) return "farmer";
+      if (user && isModeratorRole(user.role)) return "dashboard";
       if (user?.role === "expert") return "questions";
     }
-    return activeTabProp || (user && isFarmerOrUserRole(user.role) ? "dashboard" : "farmer");
+    return activeTabProp || (user && isFarmerOrUserRole(user.role) ? "farmer" : "dashboard");
   };
 
   const activeTab = getComputedActiveTab();
@@ -108,6 +111,8 @@ export const MobileSidebar = ({
     } else if (value === "farmer" || value === "farmer_dashboard") {
       // Farmer Dashboard lives at its own route.
       navigate({ to: "/farmer" });
+    } else if (value === "dashboard" && isFarmerOrUserRole(user?.role)) {
+      navigate({ to: "/farmer" });
     } else {
       setTab(value);
       if (user?.email) {
@@ -120,8 +125,13 @@ export const MobileSidebar = ({
   };
 
   const menuItems = [
-    // Dashboard for normal users, farmers, moderators, and admins
-    ...(user && (isFarmerOrUserRole(user.role) || isModeratorRole(user.role))
+    // Dashboard for normal users/farmers: strictly points to Farmer Dashboard
+    ...(user && isFarmerOrUserRole(user.role)
+      ? [{ id: "farmer", label: t("sidebar.dashboard", "Dashboard"), icon: Sprout }]
+      : []),
+
+    // Dashboard for moderators and admins: Moderator Performance Dashboard
+    ...(user && isModeratorRole(user.role)
       ? [{ id: "dashboard", label: t("sidebar.dashboard", "Dashboard"), icon: BarChart3 }]
       : []),
 
@@ -133,8 +143,8 @@ export const MobileSidebar = ({
       ? [{ id: "expertPerformance", label: t("sidebar.dashboard", "Dashboard"), icon: BarChart3 }]
       : []),
 
-    // ── Farmer Dashboard ── position #2 (all roles, excludes call_agent)
-    ...(user && user.role !== "call_agent"
+    // ── Farmer Dashboard ── position #2 for staff roles
+    ...(user && !isFarmerOrUserRole(user.role) && user.role !== "call_agent"
       ? [{ id: "farmer", label: t("sidebar.farmerDashboard", "Farmer Dashboard"), icon: Sprout }]
       : []),
 

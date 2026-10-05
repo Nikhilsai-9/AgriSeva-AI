@@ -373,6 +373,7 @@ export interface IQuestionService {
   getDetailedQuestions(
     query: GetDetailedQuestionsQuery,
     body: DetailedQuestionsBodyDto,
+    currentUser?: IUser,
   ): Promise<{
     questions: IQuestion[];
     totalPages: number;
@@ -605,6 +606,7 @@ export interface IQuestionService {
   /** Get table data with review levels */
   getQuestionAndReviewLevel(
     query: GetDetailedQuestionsQuery,
+    currentUser?: IUser,
   ): Promise<QuestionLevelResponse>;
 
   cleanupQuestionSubmissions(

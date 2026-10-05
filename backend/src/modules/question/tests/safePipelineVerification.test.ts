@@ -184,4 +184,86 @@ describe('Safe Pipeline Fixes Verification Tests', () => {
     expect(q1._id.toString()).toBe(q2._id.toString());
     expect(storedQuestions.size).toBe(1);
   });
+
+  it('generateAiInitialAnswer: generates and saves aiInitialAnswer to database', async () => {
+    const qId = new ObjectId('664fd0000000000000000099');
+    const questionObj = {
+      _id: qId,
+      question: 'What is the best fertilizer for tomato crop?',
+      userId: new ObjectId(USER_ID),
+      source: 'WHATSAPP',
+      status: 'open',
+      details: { crop: 'Tomato', state: 'Andhra Pradesh' },
+    };
+    storedQuestions.set(qId.toString(), questionObj);
+
+    mockQuestionRepo.getById = vi.fn().mockResolvedValue(questionObj);
+    mockQuestionSubmissionRepo.getByQuestionId = vi.fn().mockResolvedValue({
+      questionId: qId,
+      history: [],
+    });
+
+    const result = await questionService.generateAiInitialAnswer(qId.toString());
+
+    expect(result).toBeDefined();
+    expect(result.aiInitialAnswer).toBeDefined();
+    expect(result.aiInitialAnswer.length).toBeGreaterThan(0);
+    // Verifies that updateQuestion was called with the generated answer
+    expect(mockQuestionRepo.updateQuestion).toHaveBeenCalledWith(
+      qId.toString(),
+      expect.objectContaining({
+        aiInitialAnswer: expect.any(String),
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('User ownership: buildQuestionFilter restricts normal farmers to their own questions', async () => {
+    const { buildQuestionFilter } = await import('#root/utils/buildQuestionFilter.js');
+
+    const farmerUser: any = {
+      _id: new ObjectId(USER_ID),
+      role: 'farmer',
+      mobile: '+919876543210',
+    };
+
+    const { filter } = await buildQuestionFilter(
+      { page: 1, limit: 10 } as any,
+      {} as any,
+      {} as any,
+      farmerUser,
+    );
+
+    // Filter must include user ownership condition in $and
+    expect(filter.$and).toBeDefined();
+    const ownershipCondition = filter.$and.find((c: any) => c.$or);
+    expect(ownershipCondition).toBeDefined();
+    expect(ownershipCondition.$or).toEqual(
+      expect.arrayContaining([
+        { userId: new ObjectId(USER_ID) },
+        { userId: USER_ID },
+        { threadId: '+919876543210' },
+      ]),
+    );
+  });
+
+  it('Staff access: buildQuestionFilter does not restrict staff or moderators', async () => {
+    const { buildQuestionFilter } = await import('#root/utils/buildQuestionFilter.js');
+
+    const moderatorUser: any = {
+      _id: new ObjectId('664f00000000000000000001'),
+      role: 'moderator',
+    };
+
+    const { filter } = await buildQuestionFilter(
+      { page: 1, limit: 10 } as any,
+      {} as any,
+      {} as any,
+      moderatorUser,
+    );
+
+    // Moderator should NOT have a user ownership $or in $and
+    const ownershipCondition = filter.$and?.find((c: any) => c.$or);
+    expect(ownershipCondition).toBeUndefined();
+  });
 });

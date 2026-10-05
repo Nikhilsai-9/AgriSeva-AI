@@ -45,7 +45,7 @@ import {
   QuestionLevelResponse,
   ReviewLevelTimeValue,
 } from '#root/modules/question/classes/transformers/QuestionLevel.js';
-import { buildQuestionFilter } from '#root/utils/buildQuestionFilter.js';
+import { buildQuestionFilter, isStaffOrReviewer } from '#root/utils/buildQuestionFilter.js';
 import {
   AllocatedQuestionsBodyDto,
   DetailedQuestionsBodyDto,
@@ -677,6 +677,23 @@ export class QuestionRepository implements IQuestionRepository {
         isTesting: { $ne: true },
         isTrainingQuestion: { $ne: true },
       };
+
+      // Enforce User-Specific Question Ownership (Requirement 2 & 9)
+      const activeUser = (query as any).currentUser;
+      if (activeUser && !isStaffOrReviewer(activeUser.role as string)) {
+        const userObjectId = new ObjectId(activeUser._id);
+        const userStrId = activeUser._id.toString();
+        const userOwnershipMatch: any[] = [
+          { userId: userObjectId },
+          { userId: userStrId },
+        ];
+        if (activeUser.mobile) {
+          userOwnershipMatch.push({ threadId: activeUser.mobile });
+          userOwnershipMatch.push({ 'farmerProfile.phone': activeUser.mobile });
+        }
+        if (!filter.$and) filter.$and = [];
+        filter.$and.push({ $or: userOwnershipMatch });
+      }
       if (pae_review) {
         filter.pae_review = { $eq: true };
       }
@@ -5902,7 +5919,21 @@ export class QuestionRepository implements IQuestionRepository {
           createdAt: 1,
           updatedAt: 1,
           moderatorAssignedAt: 1,
-          authors_history: 1, // ← Add authors_history to projection
+          authors_history: 1,
+          userId: 1,
+          source: 1,
+          language: 1,
+          detectedLanguage: 1,
+          details: 1,
+          imageUrl: 1,
+          aiInitialAnswer: 1,
+          aiApprovedAnswer: 1,
+          aiApprovedSources: 1,
+          priority: 1,
+          messageId: 1,
+          threadId: 1,
+          contextId: 1,
+          totalAnswersCount: 1,
         },
       },
 
@@ -6351,6 +6382,20 @@ export class QuestionRepository implements IQuestionRepository {
           totalTurnAround: 1,
           authors_history: 1,
           moderatorAssignedAt: 1,
+          userId: 1,
+          source: 1,
+          language: 1,
+          detectedLanguage: 1,
+          details: 1,
+          imageUrl: 1,
+          aiInitialAnswer: 1,
+          aiApprovedAnswer: 1,
+          aiApprovedSources: 1,
+          priority: 1,
+          messageId: 1,
+          threadId: 1,
+          contextId: 1,
+          totalAnswersCount: 1,
           submission: {
             _id: '$submission._id',
             questionId: '$submission.questionId',
