@@ -19,6 +19,32 @@ import { QuestionLevelResponse } from '#root/modules/question/classes/transforme
 import { ClientSession, ObjectId } from 'mongodb';
 import type { QAMetadata } from '#root/shared/database/interfaces/ICallDetailsRepository.js';
 
+export interface CreateCanonicalQuestionParams {
+  question: string;
+  source: QuestionSource;
+  userId?: string | ObjectId;
+  farmerPhone?: string;
+  language?: string;
+  imageUrl?: string;
+  details?: Partial<IQuestion['details']>;
+  submissionId?: string;
+  contextId?: string;
+  threadId?: string;
+  aiAnswer?: string;
+  confidence?: string;
+  sources?: any[];
+  user?: IUser;
+  session?: ClientSession;
+}
+
+export interface CanonicalQuestionResult {
+  question: IQuestion;
+  answer?: string;
+  sources?: any[];
+  confidence?: string;
+  language?: string;
+}
+
 /** Feedback data structure */
 export interface FeedbackData {
   _id: { $oid: string };
@@ -442,6 +468,16 @@ export interface IQuestionService {
     },
     session?: ClientSession,
   ): Promise<IQuestion>;
+
+  /**
+   * CANONICAL QUESTION PIPELINE:
+   * Single entry point that persists the question, assigns farmer identity,
+   * categorizes agricultural domain/crop, generates/attaches grounded AI answer,
+   * creates submission/answer records, and exposes the question in All Questions.
+   */
+  createCanonicalQuestion(
+    params: CreateCanonicalQuestionParams,
+  ): Promise<CanonicalQuestionResult>;
 
   /** Question detail page */
   getQuestionById(questionId: string): Promise<QuestionResponse>;

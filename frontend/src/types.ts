@@ -185,7 +185,17 @@ export interface HistoryItem {
 }
 
 export type QuestionPriority = "low" | "medium" | "high" | "critical";
-export type QuestionSource = "AGRISEVA_AI" | "AGRI_EXPERT" | "WHATSAPP" | "OUTREACH";
+export type QuestionSource =
+  | "AGRISEVA_AI"
+  | "AGRI_EXPERT"
+  | "WHATSAPP"
+  | "OUTREACH"
+  | "AI_ASSISTANT"
+  | "AGENT_INTERFACE"
+  | "WEB_CALLING"
+  | "VOICE"
+  | "IMAGE"
+  | "FARMER_DASHBOARD";
 
 export interface IQuestion {
   id: string;
@@ -490,7 +500,12 @@ export interface IQuestionFullData {
   priority: QuestionPriority;
   context: string;
   metrics: IQuestionMetrics;
-  source: string;
+  source: QuestionSource | string;
+  imageUrl?: string;
+  language?: string;
+  detectedLanguage?: string;
+  farmerPhone?: string;
+  userId?: any;
   totalAnswersCount: number;
   createdAt: string;
   updatedAt: string;
@@ -654,7 +669,10 @@ export interface IDetailedQuestion {
     season: string;
     domain: string[];
   };
-  source: "AGRISEVA_AI" | "AGRI_EXPERT" | "WHATSAPP" | "OUTREACH";
+  source: QuestionSource;
+  imageUrl?: string;
+  language?: string;
+  detectedLanguage?: string;
   createdAt?: string;
   updatedAt?: string;
   review_level_number?: number;

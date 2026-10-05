@@ -27,6 +27,7 @@ import {
   UserRole,
   TIME_BOUND_SOURCES,
   MANUAL_SOURCES,
+  SourceItem,
 } from '#root/shared/interfaces/models.js';
 import {
   BadRequestError,
@@ -68,6 +69,8 @@ import {
   FeedbackResponse,
   FeedbackData,
   FeedbackQueueDetails,
+  CreateCanonicalQuestionParams,
+  CanonicalQuestionResult,
 } from '../interfaces/IQuestionService.js';
 import { isToday } from '#root/utils/date.utils.js';
 import { UserService } from '#root/modules/user/services/UserService.js';
@@ -1434,7 +1437,18 @@ export class QuestionService extends BaseService implements IQuestionService {
     }
 
     // 2. Derive source from user context (Safe Fix 1: no invented enums or hardcoded values)
-    const validSources: QuestionSource[] = ['AGRISEVA_AI', 'AGRI_EXPERT', 'WHATSAPP', 'OUTREACH'];
+    const validSources: QuestionSource[] = [
+      'AGRISEVA_AI',
+      'AGRI_EXPERT',
+      'WHATSAPP',
+      'OUTREACH',
+      'AI_ASSISTANT',
+      'AGENT_INTERFACE',
+      'WEB_CALLING',
+      'VOICE',
+      'IMAGE',
+      'FARMER_DASHBOARD',
+    ];
     let source: QuestionSource = 'AGRISEVA_AI';
     if (options?.source && validSources.includes(options.source)) {
       source = options.source;
@@ -1536,6 +1550,273 @@ export class QuestionService extends BaseService implements IQuestionService {
     return savedQuestion;
   }
 
+  /**
+   * CANONICAL QUESTION PIPELINE:
+   * Single unified entry point for all channels (AI Helper, Agent Interface,
+   * Web Calling, Voice, Image, Farmer Dashboard).
+   * - Identifies farmer
+   * - Preserves original language & text
+   * - Categorizes crop & domain
+   * - Connects Grounded AI answer
+   * - Saves question, submission, and answer to MongoDB
+   * - Ensures visibility in All Questions
+   */
+  async createCanonicalQuestion(
+    params: CreateCanonicalQuestionParams,
+  ): Promise<CanonicalQuestionResult> {
+    const trimmedText = (params.question || '').trim();
+    if (!trimmedText) {
+      throw new BadRequestError('Question text cannot be empty');
+    }
+
+    // 1. Idempotency Check
+    if (params.contextId && ObjectId.isValid(params.contextId)) {
+      const existing = await this.questionRepo.getByContextId(params.contextId, params.session);
+      if (existing && existing.length > 0) {
+        return {
+          question: existing[0],
+          answer: existing[0].aiInitialAnswer,
+          confidence: 'high',
+          language: existing[0].language || existing[0].detectedLanguage,
+        };
+      }
+    }
+
+    // 2. Identify Farmer / User
+    let userId: ObjectId | null = null;
+    let foundUser: IUser | null = params.user || null;
+
+    if (params.userId && ObjectId.isValid(String(params.userId))) {
+      userId = new ObjectId(String(params.userId));
+      if (!foundUser) {
+        try {
+          const userCol = await this.mongoDatabase.getCollection<IUser>('users');
+          foundUser = await userCol.findOne({ _id: userId }, { session: params.session });
+        } catch {
+          // ignore
+        }
+      }
+    } else if (params.farmerPhone) {
+      try {
+        const userCol = await this.mongoDatabase.getCollection<IUser>('users');
+        const phone = params.farmerPhone.replace(/[^0-9]/g, '');
+        const last10 = phone.slice(-10);
+        foundUser = await userCol.findOne(
+          {
+            $or: [
+              { mobile: params.farmerPhone },
+              { mobile: phone },
+              { mobile: last10 },
+              { 'farmerProfile.phone': params.farmerPhone },
+            ],
+          },
+          { session: params.session },
+        );
+        if (foundUser?._id) {
+          userId = new ObjectId(String(foundUser._id));
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // 3. Language Detection & Preservation (Requirement 6)
+    const detectedLanguage = detectLanguageFromText(trimmedText, params.language);
+
+    // 4. Agricultural Category & Crop Extraction (Requirement 7)
+    const userKvk = foundUser?.kvkCovered?.[0];
+    const farmerProf = foundUser?.farmerProfile;
+    const rawDetails = params.details || {};
+
+    let state = (rawDetails.state || userKvk?.state || farmerProf?.state || '').toString().trim();
+    let district = (rawDetails.district || userKvk?.district || farmerProf?.district || '').toString().trim();
+    let crop = (rawDetails.crop || farmerProf?.primaryCrops?.[0] || '').toString().trim();
+    let season = (rawDetails.season || '').toString().trim();
+    let domains: string[] = Array.isArray(rawDetails.domain)
+      ? rawDetails.domain
+      : rawDetails.domain
+      ? [rawDetails.domain]
+      : [];
+
+    // If crop is not set, extract from query text using known agricultural commodities
+    if (!crop) {
+      const knownCrops = [
+        'Tomato', 'Paddy', 'Rice', 'Wheat', 'Cotton', 'Chilli', 'Chilli / Mirchi',
+        'Onion', 'Potato', 'Maize', 'Soyabean', 'Groundnut', 'Bengal Gram',
+        'Sugarcane', 'Turmeric', 'Banana', 'Mango', 'Mustard', 'Gram', 'Pulses'
+      ];
+      const lower = trimmedText.toLowerCase();
+      const matched = knownCrops.find(c => lower.includes(c.toLowerCase()));
+      if (matched) {
+        crop = matched;
+      }
+    }
+
+    // If domain/category is not set, map using agricultural query intent
+    if (domains.length === 0) {
+      const lower = trimmedText.toLowerCase();
+      if (/(yellow|leaf|leaves|curl|spot|rot|blight|wilt|fungus|disease|virus|బాధ|తెగులు|వ్యాధి|रोग|धब्बा|कीट)/i.test(lower)) {
+        domains = ['Disease Management'];
+      } else if (/(pest|worm|caterpillar|borer|insect|aphid|spray|pesticide|పురుగు|కీటకం|कीड़ा|कीटनाशक)/i.test(lower)) {
+        domains = ['Insect - Pest Management'];
+      } else if (/(price|mandi|rate|cost|msp|market|ధర|రేటు|మండి|भाव|दाम|कीमत)/i.test(lower)) {
+        domains = ['Market Prices, MSP & Marketing'];
+      } else if (/(water|drip|irrigate|irrigation|నీరు|నీటి|सिंचाई|पानी)/i.test(lower)) {
+        domains = ['Irrigation and Water Management'];
+      } else if (/(soil|urea|fertilizer|npk|zinc|nitrogen|ఎరువు|యూరియా|खाद|उर्वरक)/i.test(lower)) {
+        domains = ['Soil Health and Nutrient Management'];
+      } else if (/(weather|rain|monsoon|storm|వర్షం|వాతావరణం|मौसम|बारिश)/i.test(lower)) {
+        domains = ['Climate, Weather & Stress Management'];
+      } else if (/(scheme|subsidy|pm-kisan|rythu bandhu|పథకం|योजना|सब्सिडी)/i.test(lower)) {
+        domains = ['Agricultural Schemes & Subsidies'];
+      } else {
+        domains = ['Cultural and Crop Management Practices'];
+      }
+    }
+
+    const details: IQuestion['details'] = {
+      state: state ? toTitleCase(state) : '',
+      district: district ? toTitleCase(district) : '',
+      crop: crop ? toTitleCase(crop) : '',
+      season: season ? toTitleCase(season) : '',
+      domain: domains,
+    };
+
+    // 5. Generate Grounded AI Answer if not provided
+    let aiAnswer = params.aiAnswer || '';
+    let confidence: string = params.confidence || 'medium';
+    let sources: any[] = params.sources || [];
+
+    if (!aiAnswer) {
+      try {
+        const service =
+          this.groundedAnswerService ||
+          new GroundedAnswerService(this.mongoDatabase);
+        const groundedResult = await service.generateGroundedAnswer({
+          query: trimmedText,
+          language: detectedLanguage,
+          crop: details.crop as string,
+          state: details.state,
+          userContext: {
+            role: 'farmer',
+            userId: userId?.toString() || params.farmerPhone,
+          },
+        });
+        if (groundedResult?.answer) {
+          aiAnswer = groundedResult.answer;
+          confidence = groundedResult.confidence || 'medium';
+          sources = groundedResult.sources || [];
+        }
+      } catch (err: any) {
+        console.warn('[createCanonicalQuestion] AI Grounding unavailable:', err?.message);
+      }
+    }
+
+    // 6. Formatted text & embedding
+    const formattedText = `Question: ${trimmedText}`;
+    let textEmbedding: number[] = [];
+    if (appConfig.ENABLE_AI_SERVER) {
+      try {
+        const { embedding } = await this.aiService.getEmbedding(formattedText);
+        textEmbedding = embedding;
+      } catch (err: any) {
+        console.warn('[createCanonicalQuestion] AI embedding unavailable:', err?.message);
+      }
+    }
+
+    // 7. Base Question Record
+    const questionIdObj = new ObjectId();
+    const questionId = questionIdObj.toString();
+
+    const baseQuestion: IQuestion = {
+      _id: questionIdObj,
+      userId,
+      question: trimmedText,
+      originalQuestion: trimmedText,
+      priority: 'medium',
+      source: params.source,
+      status: 'open',
+      totalAnswersCount: aiAnswer ? 1 : 0,
+      contextId: params.contextId && ObjectId.isValid(params.contextId) ? new ObjectId(params.contextId) : null,
+      details,
+      isAutoAllocate: true,
+      autoAllocateGateKeeper: true,
+      autoAllocateAuditor: true,
+      autoAllocateModerator: true,
+      embedding: textEmbedding,
+      metrics: null,
+      text: formattedText,
+      language: detectedLanguage,
+      detectedLanguage,
+      imageUrl: params.imageUrl,
+      aiInitialAnswer: aiAnswer || undefined,
+      isTesting: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // 8. Save Question to MongoDB
+    const savedQuestion = await this.questionRepo.addQuestion(baseQuestion, params.session);
+
+    // 9. Save Bare Submission Record
+    const submissionData: IQuestionSubmission = {
+      questionId: questionIdObj,
+      lastRespondedBy: null,
+      history: [],
+      queue: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    await this.questionSubmissionRepo.addSubmission(submissionData, params.session);
+
+    // 10. Save AI Answer in AnswerRepository (Requirement 8)
+    if (aiAnswer) {
+      try {
+        const answerSourceItems: SourceItem[] = sources.map((s: any) => ({
+          source: s.reference || s.title || 'AgriSeva Knowledge Base',
+          sourceName: s.title || s.type || 'ICAR Advisory',
+          sourceType: 'hyper_local',
+        }));
+
+        await this.answerRepo.addAnswer(
+          questionId,
+          userId?.toString() || 'SYSTEM_AI',
+          aiAnswer,
+          answerSourceItems,
+          [],
+          false,
+          1,
+          params.session,
+          'ai_initial',
+          'AI-generated initial answer via Canonical Pipeline',
+        );
+      } catch (err: any) {
+        console.warn('[createCanonicalQuestion] Failed to store answer record:', err?.message);
+      }
+    }
+
+    // 11. Run background processing safely
+    setImmediate(() => {
+      this.processQuestionInBackground({
+        questionId,
+        source: params.source,
+        details,
+        baseQuestion,
+        logData: { source: params.source, questionId },
+      }).catch((err: any) =>
+        console.error(`[createCanonicalQuestion] Background processing error for questionId=${questionId}:`, err?.message),
+      );
+    });
+
+    return {
+      question: savedQuestion || baseQuestion,
+      answer: aiAnswer,
+      sources,
+      confidence,
+      language: detectedLanguage,
+    };
+  }
+
   private async processQuestionInBackground(params: {
     questionId: string;
     source: IQuestion['source'];
@@ -1556,23 +1837,25 @@ export class QuestionService extends BaseService implements IQuestionService {
       } else {
         const isTimeBoundedQuestion =
           source === 'AGRISEVA_AI' || source === 'WHATSAPP';
-        let threadValidation;
+        let threadValidation: any;
         if (isTimeBoundedQuestion) {
-          threadValidation = await this.validateTimeBoundQuestionThread(
-            questionId,
-            baseQuestion.threadId,
-          );
-          console.log('threadValidation ', threadValidation);
-          if (!threadValidation.isValid) {
-            console.log('Npt valid');
-            logData.outcome = 'TESTING_THREAD_ID';
-            logData.threadValidationReason = threadValidation.reason;
-            chatbotSimilarityLogger.warn('ADD_QUESTION_LOG', logData);
+          if (source === 'WHATSAPP' && baseQuestion.threadId) {
+            threadValidation = await this.validateTimeBoundQuestionThread(
+              questionId,
+              baseQuestion.threadId,
+            );
+            console.log('threadValidation ', threadValidation);
+            if (!threadValidation.isValid) {
+              console.log('Not valid thread');
+              logData.outcome = 'TESTING_THREAD_ID';
+              logData.threadValidationReason = threadValidation.reason;
+              chatbotSimilarityLogger.warn('ADD_QUESTION_LOG', logData);
 
-            await this.questionRepo.updateQuestion(questionId, {
-              isTesting: true,
-            });
-            return;
+              await this.questionRepo.updateQuestion(questionId, {
+                isTesting: true,
+              });
+              return;
+            }
           }
           /* else {
              // Extract the last GDB tool response from thread content

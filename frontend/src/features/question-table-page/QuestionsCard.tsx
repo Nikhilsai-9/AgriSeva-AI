@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { ConfirmationModal } from "../../components/confirmation-modal";
 import { useQuestionTableStore } from "@/stores/all-questions";
+import { SourceBadge } from "./QuestionRow";
 
 const truncate = (s: string, n = 80) => {
   if (!s) return "";
@@ -254,8 +255,8 @@ const QuestionsCard: React.FC<QuestionsCardProps> = ({
         )}
 
         {visibleColumns.question && (
-        <div className="flex flex-col h-[5.75rem] justify-between">
-          <div className="h-6 flex items-start">
+        <div className="flex flex-col min-h-[5.75rem] justify-between">
+          <div className="h-6 flex items-center gap-1.5 flex-wrap">
             {isDuplicate && (
               <Badge
                 variant="outline"
@@ -264,10 +265,33 @@ const QuestionsCard: React.FC<QuestionsCardProps> = ({
                 Duplicate
               </Badge>
             )}
+            {(q.language || q.detectedLanguage) && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 whitespace-nowrap">
+                {q.language || q.detectedLanguage}
+              </span>
+            )}
           </div>
-          <h3 className="text-lg font-bold text-gray-900 leading-snug group-hover:text-green-700 transition-colors line-clamp-2 dark:text-gray-100 dark:group-hover:text-green-400" title={q.question}>
-            {truncate(q.question, 80)}
-          </h3>
+          <div className="flex items-start gap-2 my-1">
+            {q.imageUrl && (
+              <a
+                href={q.imageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="shrink-0 mt-0.5"
+                title="View attached crop photo"
+              >
+                <img
+                  src={q.imageUrl}
+                  alt="Crop"
+                  className="h-10 w-10 rounded-md object-cover border border-emerald-500/40 hover:scale-105 transition-transform shadow-xs cursor-pointer"
+                />
+              </a>
+            )}
+            <h3 className="text-base font-bold text-gray-900 leading-snug group-hover:text-green-700 transition-colors line-clamp-2 dark:text-gray-100 dark:group-hover:text-green-400" title={q.question}>
+              {truncate(q.question, 80)}
+            </h3>
+          </div>
           <div className="mt-1 h-5 flex items-center">
             {q.status !== "pass" && (
               <TimerDisplay timer={timer} status={q.status} source={q.source} />
@@ -361,9 +385,7 @@ const QuestionsCard: React.FC<QuestionsCardProps> = ({
             <span className="text-xs font-medium text-gray-400 uppercase tracking-wider dark:text-gray-500">
               Source
             </span>
-            <span className="truncate max-w-[150px] inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
-              {q.source}
-            </span>
+            <SourceBadge source={q.source} />
           </div>
             )}
 

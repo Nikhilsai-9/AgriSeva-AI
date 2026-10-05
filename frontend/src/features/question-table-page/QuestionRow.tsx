@@ -66,6 +66,62 @@ const truncate = (s: string, n = 80) => {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 };
 
+export const SourceBadge = ({ source }: { source?: string }) => {
+  if (!source) return <span className="text-muted-foreground text-xs">—</span>;
+
+  let label = source.replace(/_/g, " ");
+  let colorClass = "bg-muted text-muted-foreground border-border";
+
+  switch (source) {
+    case "AI_ASSISTANT":
+      label = "AI Assistant";
+      colorClass = "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800";
+      break;
+    case "AGENT_INTERFACE":
+      label = "Agent Interface";
+      colorClass = "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800";
+      break;
+    case "WEB_CALLING":
+      label = "Web Calling";
+      colorClass = "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800";
+      break;
+    case "VOICE":
+      label = "Voice";
+      colorClass = "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800";
+      break;
+    case "IMAGE":
+      label = "Image Query";
+      colorClass = "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800";
+      break;
+    case "FARMER_DASHBOARD":
+      label = "Farmer Dashboard";
+      colorClass = "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800";
+      break;
+    case "AGRISEVA_AI":
+      label = "AgriSeva-AI";
+      colorClass = "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800";
+      break;
+    case "AGRI_EXPERT":
+      label = "Agri Expert";
+      colorClass = "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800";
+      break;
+    case "WHATSAPP":
+      label = "WhatsApp";
+      colorClass = "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/60 dark:text-green-300 dark:border-green-800";
+      break;
+    case "OUTREACH":
+      label = "Outreach";
+      colorClass = "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800";
+      break;
+  }
+
+  return (
+    <Badge variant="outline" className={`text-[11px] font-medium whitespace-nowrap px-2 py-0.5 ${colorClass}`}>
+      {label}
+    </Badge>
+  );
+};
+
 export const QuestionRow: React.FC<QuestionRowProps> = ({
   q,
   idx,
@@ -344,7 +400,25 @@ export const QuestionRow: React.FC<QuestionRowProps> = ({
                 </span>
               )}
 
-              <div className="flex flex-col gap-1 py-1">
+              {/* Image Preview Thumbnail if attached */}
+              {q.imageUrl && (
+                <a
+                  href={q.imageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0"
+                  title="View attached crop photo"
+                >
+                  <img
+                    src={q.imageUrl}
+                    alt="Crop"
+                    className="h-8 w-8 rounded-md object-cover border border-emerald-500/40 hover:scale-110 transition-transform shadow-xs cursor-pointer"
+                  />
+                </a>
+              )}
+
+              <div className="flex flex-col gap-1 py-1 min-w-0">
                 <TooltipProvider delayDuration={200}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -391,9 +465,16 @@ export const QuestionRow: React.FC<QuestionRowProps> = ({
                   </Tooltip>
                 </TooltipProvider>
 
-                {q.status !== "delayed" && q.status !== "pass" && (
-                  <TimerDisplay timer={timer} status={q.status} source={q.source} showDays={true} />
-                )}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {(q.language || q.detectedLanguage) && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 whitespace-nowrap">
+                      {q.language || q.detectedLanguage}
+                    </span>
+                  )}
+                  {q.status !== "delayed" && q.status !== "pass" && (
+                    <TimerDisplay timer={timer} status={q.status} source={q.source} showDays={true} />
+                  )}
+                </div>
               </div>
             </div>
           </TableCell>
@@ -468,11 +549,11 @@ export const QuestionRow: React.FC<QuestionRowProps> = ({
           )}
 
           {/* Source */}
-          {/* {visibleColumns.source && (
-            <TableCell className="align-middle">
-              <Badge variant="outline">{q.source}</Badge>
+          {visibleColumns.source && (
+            <TableCell className="align-middle text-center">
+              <SourceBadge source={q.source} />
             </TableCell>
-          )} */}
+          )}
           {/* Status */}
           {visibleColumns.status && (
             <TableCell className="align-middle">{statusBadge}</TableCell>

@@ -323,6 +323,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
         language,
         submissionId,
         details: derivedDetails,
+        source: "VOICE",
       });
 
       // Distinguish outcome accurately per Safe Fix 9 & 13

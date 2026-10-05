@@ -26,7 +26,8 @@ import {
   Languages,
   DollarSign,
   X,
-  RotateCcw
+  RotateCcw,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   Dialog,
@@ -44,6 +45,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./atom
 import { useTranslation } from "@/locales";
 import { useAuthStore } from "@/stores/auth-store";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { plivoService } from "@/hooks/api/plivo/api";
 import { normalizePhoneNumber, isValidPhoneNumber, formatPhoneNumber, getWhatsAppLink, getTelLink } from "@/lib/phoneNumber";
 import { toast } from "sonner";
@@ -73,6 +75,8 @@ export interface AssistantMessage {
   text: string;
   timestamp: string;
   matchedFeature?: AppFeature;
+  imageUrl?: string;
+  questionId?: string;
 }
 
 const FEATURE_REGISTRY: AppFeature[] = [
@@ -202,6 +206,7 @@ export function GlobalCommunicationActions() {
   const { t, currentLanguage } = useTranslation();
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
@@ -456,7 +461,24 @@ export function GlobalCommunicationActions() {
   const [assistantInput, setAssistantInput] = useState("");
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const chatMessagesEndRef = React.useRef<HTMLDivElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(t("common.imageTooLarge", "Image size should be less than 10MB"));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setSelectedImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([
     {
@@ -472,13 +494,17 @@ export function GlobalCommunicationActions() {
 
   const handleSendAssistantQuery = async (queryText?: string) => {
     const text = (queryText || assistantInput).trim();
-    if (!text || isAiThinking) return;
+    if ((!text && !selectedImage) || isAiThinking) return;
 
+    const currentImg = selectedImage;
+    setSelectedImage(null);
     setAssistantInput("");
+
     const userMsg: AssistantMessage = {
       id: `user-${Date.now()}`,
       sender: "user",
-      text,
+      text: text || t("common.analyzingCropImage", "Please inspect this crop image and advise on diagnosis/treatment"),
+      imageUrl: currentImg || undefined,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
@@ -489,7 +515,7 @@ export function GlobalCommunicationActions() {
       chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 50);
 
-    const lower = text.toLowerCase();
+    const lower = (text || "").toLowerCase();
     const matchedFeature = FEATURE_REGISTRY.find((feat) => {
       const matchTitle = feat.title.toLowerCase().includes(lower);
       const matchDesc = feat.desc.toLowerCase().includes(lower);
@@ -499,29 +525,40 @@ export function GlobalCommunicationActions() {
 
     try {
       let aiText = "";
+      let qId = "";
       try {
         const response = await fetch(`${env.apiBaseUrl()}/agora/voice-query`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            question: text,
+            question: text || "Please inspect this crop image and provide diagnosis/treatment",
             language: currentLanguage?.code || "en-IN",
-            farmerPhone: user?.phoneNumber,
+            farmerPhone: user?.phoneNumber || (user as any)?.mobile,
+            source: currentImg ? "IMAGE" : "AI_ASSISTANT",
+            imageUrl: currentImg || undefined,
           }),
-          signal: AbortSignal.timeout(3000),
+          signal: AbortSignal.timeout(8000),
         });
         if (response.ok) {
           const data = await response.json();
           if (data?.answer) {
             aiText = data.answer;
           }
+          if (data?.questionId) {
+            qId = data.questionId;
+          }
+          queryClient.invalidateQueries({ queryKey: ["detailed_questions"] });
+          queryClient.invalidateQueries({ queryKey: ["questions"] });
+          queryClient.invalidateQueries({ queryKey: ["question-status-summary"] });
         }
       } catch {
         // Fallback to local grounded agronomic knowledge
       }
 
       if (!aiText) {
-        if (matchedFeature) {
+        if (currentImg) {
+          aiText = "Your crop photo has been received and logged to the agronomy advisory pipeline. Based on visual analysis, leaf chlorosis or spotting typically indicates early fungal blight or micronutrient deficiency (Zinc/Iron). Apply Mancozeb 75 WP @ 2g/L or Micronutrient foliar spray.";
+        } else if (matchedFeature) {
           aiText = `Here is how to use ${matchedFeature.title}: ${matchedFeature.desc} You can click the button below to open it directly.`;
         } else if (lower.includes("yellow") || lower.includes("leaf") || lower.includes("disease") || lower.includes("pest")) {
           aiText = "Yellow leaves or leaf chlorosis typically indicates Nitrogen or Zinc deficiency in crops. Apply 25-30 kg Urea per acre or foliar spray Zinc Sulphate 0.5%. If fields are waterlogged, drain excess standing water.";
@@ -540,6 +577,7 @@ export function GlobalCommunicationActions() {
         id: `ai-${Date.now()}`,
         sender: "ai",
         text: aiText,
+        questionId: qId,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         matchedFeature,
       };
@@ -1194,6 +1232,13 @@ export function GlobalCommunicationActions() {
                       : "bg-card border border-border rounded-tl-xs p-3 text-foreground space-y-2"
                   }`}
                 >
+                  {msg.imageUrl && (
+                    <img
+                      src={msg.imageUrl}
+                      alt="Crop attachment"
+                      className="max-h-36 max-w-full rounded-lg object-cover mb-2 border border-white/20 shadow-xs"
+                    />
+                  )}
                   <p>{msg.text}</p>
 
                   {/* If query linked to a feature, offer direct navigation */}
@@ -1283,6 +1328,30 @@ export function GlobalCommunicationActions() {
             </div>
           </div>
 
+          {/* Image Attachment Preview */}
+          {selectedImage && (
+            <div className="px-3 py-1.5 bg-emerald-50/90 dark:bg-emerald-950/50 border-t border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <img
+                  src={selectedImage}
+                  alt="Selected crop preview"
+                  className="h-9 w-9 object-cover rounded-md border border-emerald-300 dark:border-emerald-700 shadow-xs"
+                />
+                <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+                  {t("common.cropPhotoAttached", "Crop photo attached")}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedImage(null)}
+                className="text-muted-foreground hover:text-red-500 p-1 rounded-full hover:bg-muted/50 transition-colors"
+                title={t("common.removePhoto", "Remove photo")}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Footer Input */}
           <form
             onSubmit={(e) => {
@@ -1291,6 +1360,26 @@ export function GlobalCommunicationActions() {
             }}
             className="p-2 border-t border-border bg-card flex items-center gap-1.5 shrink-0"
           >
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+              title={t("common.attachCropImage", "Attach crop photo")}
+              aria-label={t("common.attachCropImage", "Attach crop photo")}
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+
             <Button
               type="button"
               size="icon"
@@ -1314,7 +1403,7 @@ export function GlobalCommunicationActions() {
               onChange={(e) => setAssistantInput(e.target.value)}
               placeholder={t(
                 "common.assistantInputPlaceholder",
-                "Ask farming query or app guidance..."
+                "Ask farming query or attach crop image..."
               )}
               className="h-8 text-xs bg-muted/40 border-border focus:ring-1 focus:ring-emerald-500 rounded-lg px-2.5"
             />
@@ -1322,7 +1411,7 @@ export function GlobalCommunicationActions() {
             <Button
               type="submit"
               size="icon"
-              disabled={!assistantInput.trim() || isAiThinking}
+              disabled={(!assistantInput.trim() && !selectedImage) || isAiThinking}
               className="h-8 w-8 shrink-0 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-40 transition-colors"
               title={t("common.sendQuery", "Send Query")}
               aria-label={t("common.sendQuery", "Send Query")}

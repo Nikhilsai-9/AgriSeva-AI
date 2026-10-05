@@ -20,8 +20,30 @@ describe('AgoraService', () => {
     }),
   } as unknown as IGroundedAnswerService;
 
+  const mockQuestionService: any = {
+    createCanonicalQuestion: vi.fn().mockResolvedValue({
+      question: {
+        _id: 'q123',
+        question: 'నా వరి పంటలో ఆకులు పసుపు రంగులోకి మారుతున్నాయి',
+        source: 'AI_ASSISTANT',
+        language: 'te-IN',
+      },
+      answer: 'వరి పంటలో పసుపు రంగు ఆకులు నత్రజని లోపం వల్ల కావచ్చు. ఎకరాకు 25-30 కిలోల యూరియా వేయండి.',
+      confidence: 'high',
+      sources: [
+        {
+          type: 'pop',
+          id: 'pop-paddy-01',
+          title: 'ICAR Package of Practices - Paddy Nitrogen Management',
+          reference: 'ICAR-CRRI Rice Advisory 2026',
+        },
+      ],
+      language: 'te-IN',
+    }),
+  };
+
   it('should generate a valid Agora RTC token for voice calling', () => {
-    const service = new AgoraService(mockGroundedAnswerService);
+    const service = new AgoraService(mockGroundedAnswerService, mockQuestionService);
     const result = service.generateToken('agriseva-call', 1001, 'publisher');
 
     expect(result.success).toBe(true);
@@ -33,7 +55,7 @@ describe('AgoraService', () => {
   });
 
   it('should process a voice query and return grounded agricultural advice', async () => {
-    const service = new AgoraService(mockGroundedAnswerService);
+    const service = new AgoraService(mockGroundedAnswerService, mockQuestionService);
     const result = await service.processVoiceQuery(
       'నా వరి పంటలో ఆకులు పసుపు రంగులోకి మారుతున్నాయి',
       'te-IN',

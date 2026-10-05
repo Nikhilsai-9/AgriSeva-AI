@@ -6,6 +6,9 @@ const RtcTokenBuilder = agoraPkgAny?.RtcTokenBuilder;
 const RtcRole = agoraPkgAny?.RtcRole || { PUBLISHER: 1, SUBSCRIBER: 2 };
 import { GROUNDED_ANSWER_TYPES } from '../../groundedAnswer/types.js';
 import type { IGroundedAnswerService } from '../../groundedAnswer/interfaces/IGroundedAnswerService.js';
+import { GLOBAL_TYPES } from '#root/types.js';
+import type { IQuestionService } from '../../question/interfaces/IQuestionService.js';
+import type { QuestionSource } from '#root/shared/interfaces/models.js';
 
 export interface AgoraTokenResponse {
   success: boolean;
@@ -23,6 +26,7 @@ export interface AgoraVoiceQueryResponse {
   confidence?: string;
   sources?: any[];
   language?: string;
+  questionId?: string;
 }
 
 @injectable()
@@ -30,6 +34,8 @@ export class AgoraService {
   constructor(
     @inject(GROUNDED_ANSWER_TYPES.GroundedAnswerService)
     private readonly groundedAnswerService: IGroundedAnswerService,
+    @inject(GLOBAL_TYPES.QuestionService)
+    private readonly questionService: IQuestionService,
   ) {}
 
   private getAppId(): string {
@@ -90,27 +96,33 @@ export class AgoraService {
   }
 
   /**
-   * Processes a live spoken voice query received during an Agora call.
-   * Grounded through AgriSeva agronomic database, weather, Mandi prices, and ICAR advisories.
+   * Processes a live query received from AI Assistant or in-browser Agora call.
+   * Runs through canonical question pipeline: saves question, assigns category,
+   * generates grounded answer, saves answer to MongoDB, and makes visible in All Questions.
    */
   public async processVoiceQuery(
     question: string,
     language: string = 'te-IN',
     farmerPhone?: string,
+    source: QuestionSource = 'AI_ASSISTANT',
+    imageUrl?: string,
   ): Promise<AgoraVoiceQueryResponse> {
-    const groundedResult = await this.groundedAnswerService.generateGroundedAnswer({
-      query: question,
+    const canonicalResult = await this.questionService.createCanonicalQuestion({
+      question,
       language,
-      userContext: { role: 'farmer', userId: farmerPhone },
+      farmerPhone,
+      source,
+      imageUrl,
     });
 
     return {
       success: true,
-      question,
-      answer: groundedResult.answer,
-      confidence: groundedResult.confidence,
-      sources: groundedResult.sources,
-      language: groundedResult.language || language,
+      question: canonicalResult.question.question,
+      answer: canonicalResult.answer || canonicalResult.question.aiInitialAnswer || '',
+      confidence: canonicalResult.confidence || 'medium',
+      sources: canonicalResult.sources || [],
+      language: canonicalResult.language || canonicalResult.question.language || language,
+      questionId: canonicalResult.question._id?.toString(),
     };
   }
 }

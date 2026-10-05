@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "../../components/atoms/dropdown-menu";
 import { useQuestionTableStore } from "@/stores/all-questions";
+import { SourceBadge } from "./QuestionRow";
 
 const truncate = (s: string, n = 80) => {
   if (!s) return "";
@@ -190,7 +191,7 @@ export const MobileQuestionCard: React.FC<QuestionRowProps> = ({
 
       {visibleColumns.question && (
         <>
-      <div className="mt-1 h-6 flex items-start gap-1.5">
+      <div className="mt-1 min-h-6 flex items-start gap-1.5 flex-wrap">
         {(q.tag === "dynamic" || q.auditorReviewType === "dynamic") && (
           <Badge
             variant="outline"
@@ -215,13 +216,36 @@ export const MobileQuestionCard: React.FC<QuestionRowProps> = ({
             Duplicate
           </Badge>
         )}
+        {(q.language || q.detectedLanguage) && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 whitespace-nowrap">
+            {q.language || q.detectedLanguage}
+          </span>
+        )}
       </div>
-      <p
-        className={`font-medium break-words ${isClickable ? "hover:underline cursor-pointer" : "opacity-50"}`}
-        onClick={() => isClickable && onViewMore(q._id!)}
-      >
-        {truncate(q.question, 80)}
-      </p>
+      <div className="flex items-start gap-2 my-1">
+        {q.imageUrl && (
+          <a
+            href={q.imageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 mt-0.5"
+            title="View attached crop photo"
+          >
+            <img
+              src={q.imageUrl}
+              alt="Crop"
+              className="h-9 w-9 rounded-md object-cover border border-emerald-500/40 shadow-xs"
+            />
+          </a>
+        )}
+        <p
+          className={`font-medium break-words flex-1 ${isClickable ? "hover:underline cursor-pointer" : "opacity-50"}`}
+          onClick={() => isClickable && onViewMore(q._id!)}
+        >
+          {truncate(q.question, 80)}
+        </p>
+      </div>
 
       {/* Timer */}
       <div className="mt-1 text-xs text-muted-foreground">
@@ -287,9 +311,7 @@ export const MobileQuestionCard: React.FC<QuestionRowProps> = ({
           {visibleColumns.source && (
         <div className="truncate flex items-center gap-1">
           <span className="text-muted-foreground">Source:</span>
-          <Badge variant="outline" className="px-1 py-0 text-[10px]">
-            {q.source}
-          </Badge>
+          <SourceBadge source={q.source} />
         </div>
           )}
 

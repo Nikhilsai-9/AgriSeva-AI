@@ -11,10 +11,14 @@ import { inject, injectable } from 'inversify';
 import { AGORA_TYPES } from '../types.js';
 import { AgoraService } from '../services/AgoraService.js';
 
+import type { QuestionSource } from '#root/shared/interfaces/models.js';
+
 interface VoiceQueryDto {
   question: string;
   language?: string;
   farmerPhone?: string;
+  source?: QuestionSource;
+  imageUrl?: string;
 }
 
 @OpenAPI({
@@ -64,6 +68,8 @@ export class AgoraController {
       body.question.trim(),
       body.language || 'te-IN',
       body.farmerPhone,
+      body.source || 'AI_ASSISTANT',
+      body.imageUrl,
     );
 
     return result;

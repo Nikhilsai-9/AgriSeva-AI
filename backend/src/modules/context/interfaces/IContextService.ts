@@ -1,4 +1,4 @@
-import { IContext } from '#root/shared/interfaces/models.js';
+import { IContext, QuestionSource } from '#root/shared/interfaces/models.js';
 
 export interface IContextService {
   addContext(
@@ -9,6 +9,7 @@ export interface IContextService {
       submissionId?: string;
       user?: any;
       details?: any;
+      source?: QuestionSource;
     },
   ): Promise<{ insertedId: string; questionId?: string }>;
   getById(contextId: string): Promise<IContext | null>;

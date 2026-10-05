@@ -1,6 +1,6 @@
 import { env } from "@/config/env";
 import { apiFetch } from "../api/api-fetch";
-import type { SupportedLanguage } from "@/types";
+import type { SupportedLanguage, QuestionSource } from "@/types";
 
 const API_BASE_URL = env.apiBaseUrl();
 export class ContextService {
@@ -8,7 +8,7 @@ export class ContextService {
 
   async submitTranscript(
     transcript: string,
-    options?: { language?: string; submissionId?: string; details?: any }
+    options?: { language?: string; submissionId?: string; details?: any; source?: QuestionSource }
   ): Promise<{ insertedId: string; questionId?: string }> {
     try {
       return await apiFetch<{ insertedId: string; questionId?: string }>(this._baseUrl, {
@@ -18,6 +18,7 @@ export class ContextService {
           language: options?.language,
           submissionId: options?.submissionId,
           details: options?.details,
+          source: options?.source,
         }),
       });
     } catch (error) {

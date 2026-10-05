@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import AgoraRTC, { IAgoraRTCClient, IMicrophoneAudioTrack } from "agora-rtc-sdk-ng";
 import {
   Phone,
@@ -71,6 +72,7 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
   callerPhone,
   initialLanguage = "te-IN",
 }) => {
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
   const currentGlobalLang = useLanguageStore((s) => s.currentLanguage);
   const [callState, setCallState] = useState<"idle" | "connecting" | "connected" | "disconnected">("idle");
@@ -188,14 +190,22 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
             question: queryText,
             language: selectedLanguage,
             farmerPhone: callerPhone,
+            source: "WEB_CALLING",
           }),
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(10000),
         });
 
         if (response.ok) {
           data = await response.json();
           if (data?.answer) {
             aiReply = data.answer;
+            try {
+              queryClient.invalidateQueries({ queryKey: ["detailed_questions"] });
+              queryClient.invalidateQueries({ queryKey: ["questions"] });
+              queryClient.invalidateQueries({ queryKey: ["question-status-summary"] });
+            } catch {
+              // ignore
+            }
             break;
           }
         }

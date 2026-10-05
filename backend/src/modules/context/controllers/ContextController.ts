@@ -17,7 +17,7 @@ import { inject, injectable } from 'inversify';
 import { GLOBAL_TYPES } from '#root/types.js';
 import { verifyNotTester } from '#root/shared/functions/verifyNotTester.js';
 import { BadRequestErrorResponse } from '#shared/middleware/errorHandler.js';
-import { IUser } from '#root/shared/index.js';
+import { IUser, QuestionSource } from '#root/shared/index.js';
 import multer from 'multer';
 import { ContextResponse } from '../classes/validators/ContextValidator.js';
 import { ContextService } from '../services/ContextService.js';
@@ -66,17 +66,19 @@ export class ContextController {
   @HttpCode(201)
   @Authorized()
   async addContext(
-    @Body() body: { transcript: string; language?: string; submissionId?: string; details?: any },
+    @Body() body: { transcript: string; language?: string; submissionId?: string; details?: any; source?: QuestionSource },
     @CurrentUser() user: IUser,
   ): Promise<{ insertedId: string; questionId?: string }> {
     verifyNotTester(user);
-    const { transcript, language, submissionId, details } = body;
+    const { transcript, language, submissionId, details, source } = body;
     const userId = user._id.toString();
+    const effectiveSource = source || (user?.role === 'expert' ? 'AGENT_INTERFACE' : 'VOICE');
     return this.contextService.addContext(userId, transcript, {
       language,
       submissionId,
       user,
       details,
+      source: effectiveSource,
     });
   }
 

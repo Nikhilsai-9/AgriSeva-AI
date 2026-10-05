@@ -59,6 +59,10 @@ import {
   Copy,
   AlertCircle,
   Zap,
+  Headphones,
+  PhoneCall,
+  Image as ImageIcon,
+  LayoutDashboard,
 } from "lucide-react";
 import { useGetAllUsers } from "@/hooks/api/user/useGetAllUsers";
 import {
@@ -83,7 +87,18 @@ export type QuestionDateRangeFilter =
   | "quarter"
   | "year";
 
-export type QuestionSourceFilter = "all" | "AGRISEVA_AI" | "AGRI_EXPERT" | "WHATSAPP" | "OUTREACH";
+export type QuestionSourceFilter =
+  | "all"
+  | "AGRISEVA_AI"
+  | "AGRI_EXPERT"
+  | "WHATSAPP"
+  | "OUTREACH"
+  | "AI_ASSISTANT"
+  | "AGENT_INTERFACE"
+  | "WEB_CALLING"
+  | "VOICE"
+  | "IMAGE"
+  | "FARMER_DASHBOARD";
 // New Type
 export type QuestionPriorityFilter = "all" | "high" | "low" | "medium" | "critical";
 export type QuestionTimeRange = {
@@ -511,15 +526,14 @@ export const AdvanceFilterDialog: React.FC<AdvanceFilterDialogProps> = ({
                 </div>
               )}
 
-              <div className="space-y-2 min-w-0 cursor-not-allowed">
+              <div className="space-y-2 min-w-0">
                 <Label className="flex items-center gap-2 text-sm font-semibold">
                   <MessageSquare className="h-4 w-4 text-primary" />
                   Source
                 </Label>
                 <Select
                   value={advanceFilter.source}
-                  disabled
-                  onValueChange={(v) => handleDialogChange("source", v)}
+                  onValueChange={(v) => handleDialogChange("source", v as QuestionSourceFilter)}
                 >
                   <SelectTrigger className="bg-background w-full">
                     <SelectValue placeholder="Select Source" />
@@ -532,30 +546,72 @@ export const AdvanceFilterDialog: React.FC<AdvanceFilterDialogProps> = ({
                       </div>
                     </SelectItem>
 
+                    <SelectItem value="AI_ASSISTANT">
+                      <div className="flex items-center gap-2">
+                        <Bot className="w-4 h-4 text-emerald-600" />
+                        <span>AI Assistant</span>
+                      </div>
+                    </SelectItem>
+
+                    <SelectItem value="AGENT_INTERFACE">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-indigo-600" />
+                        <span>Agent Interface</span>
+                      </div>
+                    </SelectItem>
+
+                    <SelectItem value="WEB_CALLING">
+                      <div className="flex items-center gap-2">
+                        <PhoneCall className="w-4 h-4 text-sky-600" />
+                        <span>Web Calling</span>
+                      </div>
+                    </SelectItem>
+
+                    <SelectItem value="VOICE">
+                      <div className="flex items-center gap-2">
+                        <Headphones className="w-4 h-4 text-purple-600" />
+                        <span>Voice Query</span>
+                      </div>
+                    </SelectItem>
+
+                    <SelectItem value="IMAGE">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-amber-600" />
+                        <span>Image Query</span>
+                      </div>
+                    </SelectItem>
+
+                    <SelectItem value="FARMER_DASHBOARD">
+                      <div className="flex items-center gap-2">
+                        <LayoutDashboard className="w-4 h-4 text-teal-600" />
+                        <span>Farmer Dashboard</span>
+                      </div>
+                    </SelectItem>
+
                     <SelectItem value="AGRISEVA_AI">
                       <div className="flex items-center gap-2">
-                        <Bot className="w-4 h-4 text-primary" />
-                        <span>AgriSeva-AI </span>
+                        <Bot className="w-4 h-4 text-emerald-600" />
+                        <span>AgriSeva-AI</span>
                       </div>
                     </SelectItem>
 
                     <SelectItem value="AGRI_EXPERT">
                       <div className="flex items-center gap-2">
-                        <UserRound className="w-4 h-4 text-primary" />
+                        <UserRound className="w-4 h-4 text-violet-600" />
                         <span>Agri Expert</span>
                       </div>
                     </SelectItem>
 
                     <SelectItem value="WHATSAPP">
                       <div className="flex items-center gap-2">
-                        <UserRound className="w-4 h-4 text-primary" />
-                        <span>Whatsapp</span>
+                        <MessageSquare className="w-4 h-4 text-green-600" />
+                        <span>WhatsApp</span>
                       </div>
                     </SelectItem>
 
                     <SelectItem value="OUTREACH">
                       <div className="flex items-center gap-2">
-                        <Radio className="w-4 h-4 text-primary" />
+                        <Radio className="w-4 h-4 text-orange-600" />
                         <span>Outreach</span>
                       </div>
                     </SelectItem>

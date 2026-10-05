@@ -164,16 +164,32 @@ export type QuestionSource =
   | 'AGRISEVA_AI'
   | 'AGRI_EXPERT'
   | 'WHATSAPP'
-  | 'OUTREACH';
+  | 'OUTREACH'
+  | 'AI_ASSISTANT'
+  | 'AGENT_INTERFACE'
+  | 'WEB_CALLING'
+  | 'VOICE'
+  | 'IMAGE'
+  | 'FARMER_DASHBOARD';
 
 /** Time-bound questions (SLA-driven, handled by the time-bound reallocation cron). */
-export const TIME_BOUND_SOURCES: QuestionSource[] = ['AGRISEVA_AI', 'WHATSAPP'];
+export const TIME_BOUND_SOURCES: QuestionSource[] = [
+  'AGRISEVA_AI',
+  'WHATSAPP',
+  'AI_ASSISTANT',
+  'AGENT_INTERFACE',
+  'WEB_CALLING',
+  'VOICE',
+  'IMAGE',
+  'FARMER_DASHBOARD',
+];
 
 /** Manual / non-time-bound questions (added by moderators or via outreach). */
 export const MANUAL_SOURCES: QuestionSource[] = ['AGRI_EXPERT', 'OUTREACH'];
 export interface IQuestion {
   _id?: string | ObjectId;
   userId?: ObjectId | string;
+  imageUrl?: string;
   question: string;
   contextId?: ObjectId | string | null;
   status: QuestionStatus;

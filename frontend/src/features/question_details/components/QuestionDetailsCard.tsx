@@ -15,9 +15,14 @@ import {
   Mail,
   MapPin,
   Sprout,
+  User,
+  Phone,
+  Image as ImageIcon,
+  Languages,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { SourceBadge } from "../../question-table-page/QuestionRow";
 
 interface QuestionDetailsCardProps {
   question: IQuestionFullData;
@@ -74,9 +79,73 @@ export const QuestionDetailsCard = ({
   const metrics = question.metrics;
   const context = question.context;
 
+  const farmerName =
+    typeof question.userId === "object" && question.userId
+      ? [question.userId.firstName, question.userId.lastName].filter(Boolean).join(" ") ||
+        question.userId.name ||
+        null
+      : null;
+  const farmerPhone =
+    question.farmerPhone ||
+    (typeof question.userId === "object" && question.userId
+      ? question.userId.phoneNumber || question.userId.mobile
+      : null);
+
   return (
     <Card className="p-4 grid gap-4">
-      <p className="text-sm font-medium">Details</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">Details</p>
+        {(question.language || question.detectedLanguage) && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700">
+            {question.language || question.detectedLanguage}
+          </span>
+        )}
+      </div>
+
+      {/* Attached Crop Image Preview */}
+      {question.imageUrl && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-50/20 dark:bg-emerald-950/20 p-3 flex flex-col gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+            <ImageIcon className="w-4 h-4 text-emerald-600" />
+            <span>Attached Crop Photo</span>
+          </div>
+          <a
+            href={question.imageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block overflow-hidden rounded-md group max-w-sm"
+          >
+            <img
+              src={question.imageUrl}
+              alt="Attached Crop Diagnosis"
+              className="max-h-52 w-full object-contain rounded-md border border-border bg-black/5 dark:bg-white/5 group-hover:scale-[1.02] transition-transform cursor-pointer"
+            />
+          </a>
+        </div>
+      )}
+
+      {/* Farmer Information if known */}
+      {(farmerName || farmerPhone) && (
+        <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/40 text-xs">
+          <User className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+          <div className="flex flex-col min-w-0">
+            <span className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">
+              Farmer Identity
+            </span>
+            <div className="flex items-center gap-3 flex-wrap mt-0.5">
+              {farmerName && (
+                <span className="font-semibold text-foreground text-sm">{farmerName}</span>
+              )}
+              {farmerPhone && (
+                <span className="text-muted-foreground flex items-center gap-1 font-mono">
+                  <Phone className="w-3 h-3 text-emerald-600" />
+                  {farmerPhone}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Basic Info */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -157,13 +226,13 @@ export const QuestionDetailsCard = ({
 
       <Separator />
 
-      <div className="flex items-start justify-between gap-4 text-sm">
-        <div className="flex items-start gap-2">
+      <div className="flex items-start justify-between gap-4 text-sm flex-wrap">
+        <div className="flex items-center gap-2">
           <Link2 className="w-4 h-4 text-primary shrink-0" />
 
-          <div className="flex flex-col">
-            <span className="text-muted-foreground">Source</span>
-            <span className="truncate">{question.source || "-"}</span>
+          <div className="flex flex-col gap-1">
+            <span className="text-muted-foreground text-xs">Source Channel</span>
+            <SourceBadge source={question.source} />
           </div>
         </div>
 

@@ -3,7 +3,7 @@ import {BaseService, MongoDatabase} from '#root/shared/index.js';
 import {GLOBAL_TYPES} from '#root/types.js';
 import {inject, injectable} from 'inversify';
 import {ClientSession} from 'mongodb';
-import {IContext} from '#root/shared/interfaces/models.js';
+import {IContext, QuestionSource} from '#root/shared/interfaces/models.js';
 import {InternalServerError, BadRequestError} from 'routing-controllers';
 import { QuestionService } from '#root/modules/question/services/QuestionService.js';
 import { IContextService } from '../interfaces/IContextService.js';
@@ -31,6 +31,7 @@ export class ContextService extends BaseService implements IContextService {
       submissionId?: string;
       user?: any;
       details?: any;
+      source?: QuestionSource;
     },
   ): Promise<{ insertedId: string; questionId?: string }> {
     try {

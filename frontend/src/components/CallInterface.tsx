@@ -586,7 +586,10 @@ export const CallInterface = () => {
     }
 
     try {
-      await submitTranscript(editableTranslatedTranscript);
+      await submitTranscript({
+        transcript: editableTranslatedTranscript,
+        source: "AGENT_INTERFACE",
+      });
       setEditableTranslatedTranscript("");
       setTranscriptsList([]); // Clear the conversation view
       setQuestions([]);

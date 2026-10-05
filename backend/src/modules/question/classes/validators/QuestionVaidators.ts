@@ -360,7 +360,18 @@ class QuestionResponse {
   ])
   status?: QuestionStatus;
 
-  @IsEnum(['AGRISEVA_AI', 'AGRI_EXPERT', "WHATSAPP", "OUTREACH"])
+  @IsEnum([
+    'AGRISEVA_AI',
+    'AGRI_EXPERT',
+    'WHATSAPP',
+    'OUTREACH',
+    'AI_ASSISTANT',
+    'AGENT_INTERFACE',
+    'WEB_CALLING',
+    'VOICE',
+    'IMAGE',
+    'FARMER_DASHBOARD',
+  ])
   source!: QuestionSource;
 
   @IsOptional()
@@ -408,7 +419,18 @@ class AddQuestionBodyDto {
   priority!: 'low' | 'medium' | 'high' | 'critical';
 
   @IsOptional()
-  @IsEnum(['AGRISEVA_AI', 'AGRI_EXPERT', 'WHATSAPP', 'OUTREACH'])
+  @IsEnum([
+    'AGRISEVA_AI',
+    'AGRI_EXPERT',
+    'WHATSAPP',
+    'OUTREACH',
+    'AI_ASSISTANT',
+    'AGENT_INTERFACE',
+    'WEB_CALLING',
+    'VOICE',
+    'IMAGE',
+    'FARMER_DASHBOARD',
+  ])
   source!: QuestionSource;
 
   @IsOptional()

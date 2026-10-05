@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {toast} from "sonner";
 import { ContextService } from "../../services/contextService";
+import type { QuestionSource } from "@/types";
 
 const contextService = new ContextService();
 
@@ -9,6 +10,7 @@ export interface SubmitTranscriptInput {
   language?: string;
   submissionId?: string;
   details?: any;
+  source?: QuestionSource;
 }
 
 export const useSubmitTranscript = () => {
@@ -23,6 +25,7 @@ export const useSubmitTranscript = () => {
           language: input.language,
           submissionId: input.submissionId,
           details: input.details,
+          source: input.source,
         });
       } catch (error) {
         throw error instanceof Error ? error : new Error("Unknown error");
