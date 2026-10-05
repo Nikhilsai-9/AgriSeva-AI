@@ -7,7 +7,7 @@ import type {
   ToolCall,
   IncomingWhatsAppMessageExtra,
 } from '../interfaces/IWhatsAppService.js';
-import { InternalServerError, NotFoundError, UnauthorizedError } from 'routing-controllers';
+import { InternalServerError, NotFoundError, UnauthorizedError, ForbiddenError } from 'routing-controllers';
 import { aiConfig } from '#root/config/ai.js';
 import { IUserRepository } from '#root/shared/database/interfaces/IUserRepository.js';
 import { GLOBAL_TYPES } from '#root/types.js';
@@ -75,14 +75,171 @@ export class WhatsAppService implements IWhatsAppService {
   private readonly WHATSAPP_SERVER_URL = aiConfig.WHATSAPP_SERVER_URL;
   private readonly WA_WEBHOOK_API_KEY = appConfig.WA_WEBHOOK_API_KEY;
 
-  async getThreads(page?: number, limit?: number, search?: string): Promise<Thread[]> {
+  /**
+   * Checks whether the user has administrative / moderator privileges
+   * to view all farmer WhatsApp conversations (Requirement 20).
+   */
+  public isStaffOrAdmin(user: IUser): boolean {
+    const privilegedRoles = [
+      'admin',
+      'moderator',
+      'expert',
+      'pae_expert',
+      'call_agent',
+      'gate_keeper',
+      'auditor',
+      'district_coordinator',
+      'block_coordinator',
+    ];
+    return privilegedRoles.includes(user.role as string) || !!user.special_task_force;
+  }
+
+  /**
+   * Builds the MongoDB query filter for WhatsApp sessions based on the authenticated user.
+   * Admins and moderators receive full access ({}).
+   * Normal users receive a filter strictly matching their userId or phone number variations.
+   */
+  public buildUserSessionFilter(user: IUser): Record<string, any> {
+    if (this.isStaffOrAdmin(user)) {
+      return {};
+    }
+
+    const orConditions: Record<string, any>[] = [];
+
+    // 1. Match by userId (string or ObjectId)
+    if (user._id) {
+      const idStr = user._id.toString();
+      const userIds: any[] = [idStr];
+      if (ObjectId.isValid(idStr)) {
+        userIds.push(new ObjectId(idStr));
+      }
+      orConditions.push({ userId: { $in: userIds } });
+    }
+
+    // 2. Match by phone numbers (mobile or farmerProfile.phone)
+    const phoneVariants = new Set<string>();
+    const collectPhoneVariants = (phoneStr?: string | null) => {
+      if (!phoneStr) return;
+      const trimmed = phoneStr.trim();
+      if (!trimmed) return;
+      phoneVariants.add(trimmed);
+      const canonical = normalizePhoneNumber(trimmed);
+      if (canonical) phoneVariants.add(canonical);
+      const digitsOnly = trimmed.replace(/\D/g, '');
+      if (digitsOnly) {
+        phoneVariants.add(digitsOnly);
+        const d10 = digitsOnly.slice(-10);
+        if (d10 && d10.length === 10) {
+          phoneVariants.add(d10);
+          phoneVariants.add(`+91${d10}`);
+          phoneVariants.add(`91${d10}`);
+        }
+      }
+    };
+
+    collectPhoneVariants(user.mobile);
+    if (user.farmerProfile?.phone) {
+      collectPhoneVariants(user.farmerProfile.phone);
+    }
+
+    const phoneList = Array.from(phoneVariants);
+    if (phoneList.length > 0) {
+      orConditions.push({ phoneNumber: { $in: phoneList } });
+      orConditions.push({ rawFrom: { $in: phoneList } });
+    }
+
+    // If user has no ID and no phone, they match nothing
+    if (orConditions.length === 0) {
+      return { _id: { $exists: false } };
+    }
+
+    return { $or: orConditions };
+  }
+
+  /**
+   * Verifies whether a specific session belongs to the given user.
+   */
+  public isSessionOwnedByUser(session: IWhatsAppSession, user: IUser): boolean {
+    if (this.isStaffOrAdmin(user)) {
+      return true;
+    }
+
+    // Check direct userId match
+    if (session.userId && user._id && session.userId.toString() === user._id.toString()) {
+      return true;
+    }
+
+    // Check phone number match
+    const userPhones = new Set<string>();
+    const collectPhoneVariants = (phoneStr?: string | null) => {
+      if (!phoneStr) return;
+      const trimmed = phoneStr.trim();
+      if (!trimmed) return;
+      userPhones.add(trimmed);
+      const canonical = normalizePhoneNumber(trimmed);
+      if (canonical) userPhones.add(canonical);
+      const digitsOnly = trimmed.replace(/\D/g, '');
+      if (digitsOnly) {
+        userPhones.add(digitsOnly);
+        const d10 = digitsOnly.slice(-10);
+        if (d10 && d10.length === 10) {
+          userPhones.add(d10);
+          userPhones.add(`+91${d10}`);
+          userPhones.add(`91${d10}`);
+        }
+      }
+    };
+
+    collectPhoneVariants(user.mobile);
+    if (user.farmerProfile?.phone) {
+      collectPhoneVariants(user.farmerProfile.phone);
+    }
+
+    if (session.phoneNumber && userPhones.has(session.phoneNumber)) return true;
+    if (session.rawFrom && userPhones.has(session.rawFrom)) return true;
+
+    const sessionD10 = (session.phoneNumber || session.rawFrom || '').replace(/\D/g, '').slice(-10);
+    if (sessionD10 && userPhones.has(sessionD10)) return true;
+
+    return false;
+  }
+
+  /**
+   * Public helper to verify if a user owns a conversation given its phoneNumber or session ID
+   */
+  public async isUserConversationOwner(user: IUser, phoneNumberOrId: string): Promise<boolean> {
+    if (this.isStaffOrAdmin(user)) return true;
+    const sessionsCol = await this.getSessionsCollection();
+    const cleanPhone = phoneNumberOrId.includes('-') ? phoneNumberOrId.split('-')[0] : phoneNumberOrId;
+    const canonicalPhone = normalizePhoneNumber(cleanPhone);
+    const domestic10 = cleanPhone.replace(/\D/g, '').slice(-10);
+
+    const session = await sessionsCol.findOne({
+      $or: [
+        { phoneNumber: canonicalPhone },
+        { phoneNumber: cleanPhone },
+        { rawFrom: cleanPhone },
+        { rawFrom: domestic10 },
+        { phoneNumber: `+91${domestic10}` },
+        ...(ObjectId.isValid(phoneNumberOrId) ? [{ _id: new ObjectId(phoneNumberOrId) }] : []),
+      ],
+    });
+
+    if (!session) return false;
+    return this.isSessionOwnedByUser(session, user);
+  }
+
+  async getThreads(user: IUser, page?: number, limit?: number, search?: string): Promise<Thread[]> {
     try {
       const sessionsCol = await this.getSessionsCollection();
       const usersCol = await this.mongoDatabase.getCollection<IUser>('users');
 
-      // Fetch all sessions sorted by updatedAt / lastMessageAt descending
+      // 1. Build user-specific ownership filter (Requirement 3, 4, 5)
+      const userFilter = this.buildUserSessionFilter(user);
+
+      // Fetch user-scoped sessions sorted by updatedAt / lastMessageAt descending (Requirement 9)
       const sessions = await sessionsCol
-        .find({})
+        .find(userFilter)
         .sort({ updatedAt: -1, lastMessageAt: -1, createdAt: -1 })
         .toArray();
 
@@ -133,7 +290,9 @@ export class WhatsAppService implements IWhatsAppService {
             session.userName ||
             (matchedUser
               ? `${matchedUser.firstName || ''} ${matchedUser.lastName || ''}`.trim()
-              : undefined);
+              : (!this.isStaffOrAdmin(user)
+                  ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined
+                  : undefined));
 
           // Determine last message, timestamp, and unread state
           let lastMsg = 'No message available';
@@ -194,11 +353,11 @@ export class WhatsAppService implements IWhatsAppService {
             unreadCount: isLastFromUser ? 1 : 0,
             language: session.preferredLanguage,
             status,
-            avatar: matchedUser?.avatar,
+            avatar: matchedUser?.avatar || (!this.isStaffOrAdmin(user) ? user.avatar : undefined),
           });
         }
 
-        // Search filtering
+        // Search filtering (Requirement 7) - applied ONLY within user's conversations
         let result = threads;
         if (search) {
           const q = search.trim().toLowerCase();
@@ -210,7 +369,7 @@ export class WhatsAppService implements IWhatsAppService {
           );
         }
 
-        // Pagination
+        // Pagination (Requirement 9)
         if (page && limit) {
           const skip = (page - 1) * limit;
           result = result.slice(skip, skip + limit);
@@ -219,20 +378,29 @@ export class WhatsAppService implements IWhatsAppService {
         return result;
       }
 
-      // If no sessions found in MongoDB, attempt LangGraph fallback
-      return await this.fetchThreadsFromLangGraph();
-    } catch (error) {
-      console.error('[WhatsAppService] Error in getThreads, trying LangGraph fallback:', error);
-      try {
-        return await this.fetchThreadsFromLangGraph();
-      } catch (lgErr) {
-        console.warn('[WhatsAppService] LangGraph fallback also failed:', lgErr);
+      // If normal user has no sessions matching their filter, return empty array!
+      if (!this.isStaffOrAdmin(user)) {
         return [];
       }
+
+      // Fallback only for staff/admin if MongoDB has no sessions
+      return await this.fetchThreadsFromLangGraph();
+    } catch (error) {
+      console.error('[WhatsAppService] Error in getThreads:', error);
+      if (this.isStaffOrAdmin(user)) {
+        try {
+          return await this.fetchThreadsFromLangGraph();
+        } catch (lgErr) {
+          console.warn('[WhatsAppService] LangGraph fallback also failed:', lgErr);
+          return [];
+        }
+      }
+      return [];
     }
   }
 
   async getThreadDetails(
+    user: IUser,
     phoneNumber: string,
     date: string,
   ): Promise<Message[]> {
@@ -255,97 +423,116 @@ export class WhatsAppService implements IWhatsAppService {
         ],
       });
 
-      if (session) {
-        const messages: Message[] = [];
-        let msgIndex = 0;
-
-        // Pending first message if not yet present in history
-        if (
-          session.pendingFirstMessage?.text &&
-          (!session.history ||
-            !session.history.some(
-              (h) => h.content === session.pendingFirstMessage?.text,
-            ))
-        ) {
-          messages.push({
-            id: `msg-pending-${session.pendingFirstMessage.timestamp ? new Date(session.pendingFirstMessage.timestamp).getTime() : msgIndex++}`,
-            role: 'user',
-            content: session.pendingFirstMessage.text,
-            timestamp: session.pendingFirstMessage.timestamp
-              ? new Date(session.pendingFirstMessage.timestamp)
-              : new Date(session.createdAt || Date.now()),
-            msgType: (session.pendingFirstMessage.msgType as any) || 'text',
-            senderName: session.userName || 'Farmer',
-          });
+      if (!session) {
+        if (!this.isStaffOrAdmin(user)) {
+          throw new NotFoundError('Conversation not found');
         }
-
-        // History messages
-        if (session.history && session.history.length > 0) {
-          session.history.forEach((h, idx) => {
-            const isExpert =
-              h.role === 'expert' ||
-              (h.role === 'assistant' &&
-                h.content &&
-                (h.content.startsWith('👨‍🌾') ||
-                  h.content.includes('వ్యవసాయ నిపుణుల (PAE)')));
-
-            const role = isExpert ? 'expert' : h.role;
-            const senderName =
-              role === 'user'
-                ? session.userName || 'Farmer'
-                : isExpert
-                  ? (h.senderName || 'Agricultural Expert (PAE)')
-                  : 'AgriSeva-AI';
-
-            messages.push({
-              id: `msg-${idx}-${new Date(h.timestamp).getTime()}`,
-              role,
-              content: h.content || '',
-              timestamp: new Date(h.timestamp),
-              msgType: (h.msgType as any) || 'text',
-              mediaUrl: (h as any).mediaUrl,
-              senderName,
-            });
-          });
-        }
-
-        // Sort messages chronologically
-        messages.sort(
-          (a, b) =>
-            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-        );
-
-        // Date filtering if requested and not 'all'
-        if (date && date !== 'all') {
-          const filtered = messages.filter((m) => {
-            const msgDate = new Date(m.timestamp).toLocaleDateString('en-CA', {
-              timeZone: 'Asia/Kolkata',
-            });
-            return msgDate === date;
-          });
-
-          // Only return filtered if there are matches for that date; otherwise return all
-          if (filtered.length > 0) {
-            return filtered;
-          }
-        }
-
-        return messages;
+        return await this.fetchThreadDetailsFromLangGraph(phoneNumber, date);
       }
 
-      // If not in MongoDB, try LangGraph
-      return await this.fetchThreadDetailsFromLangGraph(phoneNumber, date);
+      // OWNERSHIP ENFORCEMENT (Requirement 6, 11, 18)
+      if (!this.isSessionOwnedByUser(session, user)) {
+        throw new ForbiddenError('You are not authorized to access this conversation');
+      }
+
+      // If session is owned by user but userId was unlinked, persist linkage now
+      if (!session.userId && user._id) {
+        session.userId = user._id.toString();
+        sessionsCol.updateOne({ _id: session._id }, { $set: { userId: user._id.toString() } }).catch(() => {});
+      }
+
+      const messages: Message[] = [];
+      let msgIndex = 0;
+
+      // Pending first message if not yet present in history
+      if (
+        session.pendingFirstMessage?.text &&
+        (!session.history ||
+          !session.history.some(
+            (h) => h.content === session.pendingFirstMessage?.text,
+          ))
+      ) {
+        messages.push({
+          id: `msg-pending-${session.pendingFirstMessage.timestamp ? new Date(session.pendingFirstMessage.timestamp).getTime() : msgIndex++}`,
+          role: 'user',
+          content: session.pendingFirstMessage.text,
+          timestamp: session.pendingFirstMessage.timestamp
+            ? new Date(session.pendingFirstMessage.timestamp)
+            : new Date(session.createdAt || Date.now()),
+          msgType: (session.pendingFirstMessage.msgType as any) || 'text',
+          senderName: session.userName || (!this.isStaffOrAdmin(user) ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Farmer') || 'Farmer',
+        });
+      }
+
+      // History messages
+      if (session.history && session.history.length > 0) {
+        session.history.forEach((h, idx) => {
+          const isExpert =
+            h.role === 'expert' ||
+            (h.role === 'assistant' &&
+              h.content &&
+              (h.content.startsWith('👨‍🌾') ||
+                h.content.includes('వ్యవసాయ నిపుణుల (PAE)')));
+
+          const role = isExpert ? 'expert' : h.role;
+          const senderName =
+            role === 'user'
+              ? (session.userName || (!this.isStaffOrAdmin(user) ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Farmer') || 'Farmer')
+              : isExpert
+                ? (h.senderName || 'Agricultural Expert (PAE)')
+                : 'AgriSeva-AI';
+
+          messages.push({
+            id: `msg-${idx}-${new Date(h.timestamp).getTime()}`,
+            role,
+            content: h.content || '',
+            timestamp: new Date(h.timestamp),
+            msgType: (h.msgType as any) || 'text',
+            mediaUrl: (h as any).mediaUrl,
+            senderName,
+          });
+        });
+      }
+
+      // Sort messages chronologically
+      messages.sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      );
+
+      // Date filtering if requested and not 'all'
+      if (date && date !== 'all') {
+        const filtered = messages.filter((m) => {
+          const msgDate = new Date(m.timestamp).toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Kolkata',
+          });
+          return msgDate === date;
+        });
+
+        // Only return filtered if there are matches for that date; otherwise return all
+        if (filtered.length > 0) {
+          return filtered;
+        }
+      }
+
+      return messages;
     } catch (error: any) {
+      if (error instanceof ForbiddenError || error instanceof NotFoundError) {
+        throw error;
+      }
       console.error(
         `[WhatsAppService] Error fetching thread details for ${phoneNumber}:`,
         error,
       );
-      try {
-        return await this.fetchThreadDetailsFromLangGraph(phoneNumber, date);
-      } catch (lgErr) {
-        console.warn('[WhatsAppService] LangGraph fallback failed:', lgErr);
-        return [];
+      if (this.isStaffOrAdmin(user)) {
+        try {
+          return await this.fetchThreadDetailsFromLangGraph(phoneNumber, date);
+        } catch (lgErr) {
+          console.warn('[WhatsAppService] LangGraph fallback failed:', lgErr);
+          return [];
+        }
       }
+      return [];
     }
   }
 

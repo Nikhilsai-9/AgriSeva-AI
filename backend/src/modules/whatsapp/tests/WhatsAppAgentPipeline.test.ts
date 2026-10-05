@@ -4,6 +4,7 @@ import { WhatsAppController } from '../controllers/WhatsAppController.js';
 import { WhatsAppService } from '../services/WhatsAppService.js';
 import type { IWhatsAppService } from '../interfaces/IWhatsAppService.js';
 import { ObjectId } from 'mongodb';
+import { IUser } from '#root/shared/index.js';
 
 describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
   describe('WhatsAppController Webhook', () => {
@@ -16,6 +17,7 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
       mockWhatsappService = {
         getThreads: vi.fn(),
         getThreadDetails: vi.fn(),
+        isUserConversationOwner: vi.fn().mockResolvedValue(true),
         sendMessage: vi.fn(),
         getInactiveUsers: vi.fn(),
         getAllUsers: vi.fn(),
@@ -210,7 +212,11 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
         findOne: vi.fn().mockImplementation(async (query: any) => {
           for (const s of sessionsMap.values()) {
             if (
-              (query.$or && query.$or.some((c: any) => c.phoneNumber === s.phoneNumber || c.rawFrom === s.rawFrom)) ||
+              (query.$or && query.$or.some((c: any) => 
+                (c.phoneNumber && (c.phoneNumber === s.phoneNumber || c.phoneNumber === s.rawFrom)) ||
+                (c.rawFrom && (c.rawFrom === s.rawFrom || c.rawFrom === s.phoneNumber)) ||
+                (c._id && s._id && c._id.toString() === s._id.toString())
+              )) ||
               s.phoneNumber === query.phoneNumber
             ) {
               return s;
@@ -230,9 +236,32 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
           sessionsMap.set(key, next);
           return { acknowledged: true };
         }),
-        find: vi.fn().mockImplementation(() => ({
+        find: vi.fn().mockImplementation((query?: any) => ({
           sort: vi.fn().mockReturnThis(),
-          toArray: vi.fn().mockImplementation(async () => Array.from(sessionsMap.values())),
+          toArray: vi.fn().mockImplementation(async () => {
+            let list = Array.from(sessionsMap.values());
+            if (query && query._id && query._id.$exists === false) {
+              return [];
+            }
+            if (query && query.$or) {
+              list = list.filter((s: any) => {
+                return query.$or.some((cond: any) => {
+                  if (cond.userId && cond.userId.$in) {
+                    const strIds = cond.userId.$in.map((x: any) => x.toString());
+                    if (s.userId && strIds.includes(s.userId.toString())) return true;
+                  }
+                  if (cond.phoneNumber && cond.phoneNumber.$in) {
+                    if (s.phoneNumber && cond.phoneNumber.$in.includes(s.phoneNumber)) return true;
+                  }
+                  if (cond.rawFrom && cond.rawFrom.$in) {
+                    if (s.rawFrom && cond.rawFrom.$in.includes(s.rawFrom)) return true;
+                  }
+                  return false;
+                });
+              });
+            }
+            return list;
+          }),
         })),
       };
 
@@ -478,7 +507,18 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
       expect(calls[0][2]).not.toEqual(calls[1][2]);
     });
 
-    it('getThreads retrieves real conversations from MongoDB and maps farmer names', async () => {
+    it('getThreads retrieves real conversations from MongoDB and maps farmer names for authenticated user', async () => {
+      const mockUser: IUser = {
+        _id: new ObjectId(),
+        firebaseUID: 'fb_ramesh',
+        email: 'ramesh@example.com',
+        firstName: 'Ramesh',
+        lastName: 'Patel',
+        role: 'user',
+        mobile: '+919876543210',
+        farmerProfile: { phone: '+919876543210' },
+      };
+
       sessionsMap.set('+919876543210', {
         phoneNumber: '+919876543210',
         rawFrom: '919876543210',
@@ -491,7 +531,7 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
         ],
       });
 
-      const threads = await service.getThreads();
+      const threads = await service.getThreads(mockUser);
       expect(threads).toBeDefined();
       expect(threads.length).toBe(1);
       expect(threads[0].phoneNumber).toBe('+919876543210');
@@ -501,7 +541,18 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
       expect(threads[0].unreadCount).toBe(0);
     });
 
-    it('getThreadDetails retrieves full chronological message history with media', async () => {
+    it('getThreadDetails retrieves full chronological message history with media for conversation owner', async () => {
+      const mockUser: IUser = {
+        _id: new ObjectId(),
+        firebaseUID: 'fb_ramesh',
+        email: 'ramesh@example.com',
+        firstName: 'Ramesh',
+        lastName: 'Patel',
+        role: 'user',
+        mobile: '+919876543210',
+        farmerProfile: { phone: '+919876543210' },
+      };
+
       sessionsMap.set('+919876543210', {
         phoneNumber: '+919876543210',
         rawFrom: '919876543210',
@@ -528,13 +579,190 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
         ],
       });
 
-      const messages = await service.getThreadDetails('+919876543210', 'all');
+      const messages = await service.getThreadDetails(mockUser, '+919876543210', 'all');
       expect(messages.length).toBe(3);
       expect(messages[0].role).toBe('user');
       expect(messages[0].msgType).toBe('image');
       expect(messages[0].mediaUrl).toBe('data:image/jpeg;base64,abc123mock');
       expect(messages[1].role).toBe('assistant');
       expect(messages[2].role).toBe('expert');
+    });
+
+    it('multi-user test: User A only sees User A conversations, User B only sees User B conversations', async () => {
+      const userAId = new ObjectId();
+      const userBId = new ObjectId();
+
+      const userA: IUser = {
+        _id: userAId,
+        firebaseUID: 'fb_user_a',
+        email: 'userA@example.com',
+        firstName: 'Farmer',
+        lastName: 'A',
+        role: 'user',
+        mobile: '+919876543210',
+        farmerProfile: { phone: '+919876543210' },
+      };
+
+      const userB: IUser = {
+        _id: userBId,
+        firebaseUID: 'fb_user_b',
+        email: 'userB@example.com',
+        firstName: 'Farmer',
+        lastName: 'B',
+        role: 'user',
+        mobile: '+919123456780',
+        farmerProfile: { phone: '+919123456780' },
+      };
+
+      sessionsMap.clear();
+
+      // Session A belongs to User A (Tomato inquiry)
+      sessionsMap.set('+919876543210', {
+        _id: new ObjectId(),
+        phoneNumber: '+919876543210',
+        rawFrom: '919876543210',
+        userId: userAId.toString(),
+        userName: 'Farmer A',
+        history: [
+          { role: 'user', content: 'Tomato inquiry', timestamp: new Date('2026-10-05T10:00:00Z') },
+        ],
+      });
+
+      // Session B belongs to User B (Cotton inquiry)
+      sessionsMap.set('+919123456780', {
+        _id: new ObjectId(),
+        phoneNumber: '+919123456780',
+        rawFrom: '919123456780',
+        userId: userBId.toString(),
+        userName: 'Farmer B',
+        history: [
+          { role: 'user', content: 'Cotton inquiry', timestamp: new Date('2026-10-05T10:05:00Z') },
+        ],
+      });
+
+      // User A queries threads
+      const threadsA = await service.getThreads(userA);
+      expect(threadsA.length).toBe(1);
+      expect(threadsA[0].phoneNumber).toBe('+919876543210');
+      expect(threadsA[0].lastMessage).toBe('Tomato inquiry');
+      // User A never sees Cotton
+      expect(threadsA.some((t) => t.phoneNumber === '+919123456780')).toBe(false);
+
+      // User B queries threads
+      const threadsB = await service.getThreads(userB);
+      expect(threadsB.length).toBe(1);
+      expect(threadsB[0].phoneNumber).toBe('+919123456780');
+      expect(threadsB[0].lastMessage).toBe('Cotton inquiry');
+      // User B never sees Tomato
+      expect(threadsB.some((t) => t.phoneNumber === '+919876543210')).toBe(false);
+    });
+
+    it('security check: User A attempting to access User B thread details is blocked with 403 Forbidden', async () => {
+      const userAId = new ObjectId();
+      const userBId = new ObjectId();
+
+      const userA: IUser = {
+        _id: userAId,
+        firebaseUID: 'fb_user_a',
+        email: 'userA@example.com',
+        firstName: 'Farmer',
+        lastName: 'A',
+        role: 'user',
+        mobile: '+919876543210',
+      };
+
+      sessionsMap.clear();
+
+      // Session B belongs to User B
+      sessionsMap.set('+919123456780', {
+        _id: new ObjectId(),
+        phoneNumber: '+919123456780',
+        rawFrom: '919123456780',
+        userId: userBId.toString(),
+        userName: 'Farmer B',
+        history: [
+          { role: 'user', content: 'Confidential cotton crop health', timestamp: new Date() },
+        ],
+      });
+
+      // User A directly requests User B's thread details
+      await expect(service.getThreadDetails(userA, '+919123456780', 'all')).rejects.toThrow(
+        /not authorized to access this conversation/i,
+      );
+    });
+
+    it('admin / moderator role separation: authorized staff can view all conversations across farmers', async () => {
+      const adminUser: IUser = {
+        _id: new ObjectId(),
+        firebaseUID: 'fb_admin',
+        email: 'admin@agriseva.org',
+        firstName: 'System',
+        lastName: 'Admin',
+        role: 'admin',
+      };
+
+      sessionsMap.clear();
+      sessionsMap.set('+919876543210', {
+        phoneNumber: '+919876543210',
+        rawFrom: '919876543210',
+        userName: 'Farmer A',
+        history: [{ role: 'user', content: 'Tomato inquiry', timestamp: new Date() }],
+      });
+      sessionsMap.set('+919123456780', {
+        phoneNumber: '+919123456780',
+        rawFrom: '919123456780',
+        userName: 'Farmer B',
+        history: [{ role: 'user', content: 'Cotton inquiry', timestamp: new Date() }],
+      });
+
+      const allThreads = await service.getThreads(adminUser);
+      expect(allThreads.length).toBe(2);
+      expect(allThreads.map((t) => t.phoneNumber)).toContain('+919876543210');
+      expect(allThreads.map((t) => t.phoneNumber)).toContain('+919123456780');
+
+      // Admin can view details of any thread
+      const messagesA = await service.getThreadDetails(adminUser, '+919876543210', 'all');
+      expect(messagesA.length).toBe(1);
+      const messagesB = await service.getThreadDetails(adminUser, '+919123456780', 'all');
+      expect(messagesB.length).toBe(1);
+    });
+
+    it('search is strictly user-scoped for normal farmers', async () => {
+      const userAId = new ObjectId();
+      const userBId = new ObjectId();
+
+      const userA: IUser = {
+        _id: userAId,
+        firebaseUID: 'fb_user_a',
+        email: 'userA@example.com',
+        firstName: 'Farmer',
+        lastName: 'A',
+        role: 'user',
+        mobile: '+919876543210',
+      };
+
+      sessionsMap.clear();
+      // User A session with "pesticide"
+      sessionsMap.set('+919876543210', {
+        phoneNumber: '+919876543210',
+        rawFrom: '919876543210',
+        userId: userAId.toString(),
+        userName: 'Farmer A',
+        history: [{ role: 'user', content: 'Need tomato pesticide', timestamp: new Date() }],
+      });
+      // User B session also with "pesticide"
+      sessionsMap.set('+919123456780', {
+        phoneNumber: '+919123456780',
+        rawFrom: '919123456780',
+        userId: userBId.toString(),
+        userName: 'Farmer B',
+        history: [{ role: 'user', content: 'Need cotton pesticide', timestamp: new Date() }],
+      });
+
+      const results = await service.getThreads(userA, undefined, undefined, 'pesticide');
+      expect(results.length).toBe(1);
+      expect(results[0].phoneNumber).toBe('+919876543210');
+      expect(results[0].lastMessage).toBe('Need tomato pesticide');
     });
 
     it('sendMessage dispatches message and appends to session history', async () => {

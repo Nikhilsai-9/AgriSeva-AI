@@ -136,49 +136,69 @@ export class WhatsAppController {
     }
   }
 
+  private ensureStaffOrAdmin(user: IUser) {
+    const privilegedRoles = [
+      'admin',
+      'moderator',
+      'expert',
+      'pae_expert',
+      'call_agent',
+      'gate_keeper',
+      'auditor',
+      'district_coordinator',
+      'block_coordinator',
+    ];
+    if (!privilegedRoles.includes(user.role as string) && !user.special_task_force) {
+      throw new ForbiddenError('Access denied: Staff or Admin role required');
+    }
+  }
+
   @OpenAPI({
-    summary: 'Get all WhatsApp threads',
-    description: 'Retrieves a list of all WhatsApp threads from database with farmer profiles.',
+    summary: 'Get WhatsApp threads for authenticated user',
+    description: 'Retrieves a list of WhatsApp threads scoped to the authenticated user.',
   })
   @Get('/threads')
   @HttpCode(200)
   @Authorized()
   async getThreads(
+    @CurrentUser() user: IUser,
     @QueryParam('page') page?: number,
     @QueryParam('limit') limit?: number,
     @QueryParam('search') search?: string,
   ) {
-    return this.whatsappService.getThreads(page, limit, search);
+    return this.whatsappService.getThreads(user, page, limit, search);
   }
 
   @OpenAPI({
     summary: 'Get WhatsApp thread details',
     description:
-      'Retrieves message history for a specific WhatsApp thread.',
+      'Retrieves message history for a specific WhatsApp thread with ownership verification.',
   })
   @Get('/threads/:threadId')
   @HttpCode(200)
   @Authorized()
   async getThreadDetailsById(
+    @CurrentUser() user: IUser,
     @Param('threadId') threadId: string,
     @QueryParam('date') date?: string,
   ) {
-    return this.whatsappService.getThreadDetails(threadId, date || 'all');
+    return this.whatsappService.getThreadDetails(user, threadId, date || 'all');
   }
 
   @OpenAPI({
     summary: 'Get WhatsApp thread details for date',
     description:
-      'Retrieves message history for a specific WhatsApp thread on a date.',
+      'Retrieves message history for a specific WhatsApp thread on a date with ownership verification.',
   })
   @Get('/threads/:threadId/:date')
   @HttpCode(200)
   @Authorized()
   async getThreadDetails(
+    @CurrentUser() user: IUser,
     @Param('threadId') threadId: string,
     @Param('date') date: string,
   ) {
-    return this.whatsappService.getThreadDetails(threadId, date);
+    return this.whatsappService.getThreadDetails(user, threadId, date);
   }
 
   @OpenAPI({
@@ -193,6 +213,11 @@ export class WhatsAppController {
     @CurrentUser() user: IUser,
   ) {
     verifyNotTester(user);
+    const isOwner = await this.whatsappService.isUserConversationOwner(user, body.phoneNumber);
+    if (!isOwner) {
+      throw new ForbiddenError('You are not authorized to send messages to this conversation');
+    }
+
     const userId = user._id.toString();
     await this.whatsappService.sendMessage(
       userId,
@@ -212,9 +237,11 @@ export class WhatsAppController {
   @HttpCode(200)
   @Authorized()
   async fetxhInactiveUsers(
+    @CurrentUser() user: IUser,
     @QueryParam('page') page = 1,
     @QueryParam('limit') limit = 2,
   ) {
+    this.ensureStaffOrAdmin(user);
     const skip = (page - 1) * limit;
     const response = await this.whatsappService.getInactiveUsers(skip, limit);
     const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
@@ -247,8 +274,9 @@ export class WhatsAppController {
   @HttpCode(200)
   @Authorized()
   async fetchUnqiueWhatsAppUsers(
+    @CurrentUser() user: IUser,
   ) {
-
+    this.ensureStaffOrAdmin(user);
     return await this.whatsappService.getUniqueUsers();
   }
 
@@ -261,7 +289,9 @@ export class WhatsAppController {
   @HttpCode(200)
   @Authorized()
   async fetchAllWhatsAppUsers(
+    @CurrentUser() user: IUser,
   ) {
+    this.ensureStaffOrAdmin(user);
     try {
       const response = await this.whatsappService.getAllUsers();
       return {

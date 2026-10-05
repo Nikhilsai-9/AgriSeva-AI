@@ -56,6 +56,41 @@ export function useWhatsAppHistory() {
 
   const { data: messages = [], isLoading: isLoadingMessages } = useThreadDetails(selectedThreadId, selectedDate);
 
+  // Requirement 15 & 16: Prevent stale cross-user selectedThreadId from persisting across logout/login
+  useEffect(() => {
+    if (!isLoadingThreads && selectedThreadId && threads.length > 0) {
+      const exists = threads.some(
+        (t) =>
+          t.id === selectedThreadId ||
+          t.phoneNumber === selectedThreadId ||
+          t.phoneNumber.replace(/\D/g, '') === selectedThreadId.replace(/\D/g, '')
+      );
+      if (!exists) {
+        // Automatically switch to this user's first available thread
+        const first = threads[0];
+        navigate({
+          to: '/whatsapp-history',
+          search: (prev: Record<string, string>) => ({
+            ...prev,
+            threadId: first.id,
+            date: first.lastMessageDate || todayIST,
+          }),
+        });
+      }
+    } else if (!isLoadingThreads && threads.length === 0 && selectedThreadId) {
+      // Clear threadId if this user has 0 conversations
+      navigate({
+        to: '/whatsapp-history',
+        search: (prev: Record<string, string>) => {
+          const next = { ...prev };
+          delete next.threadId;
+          delete next.date;
+          return next;
+        },
+      });
+    }
+  }, [threads, isLoadingThreads, selectedThreadId, navigate, todayIST]);
+
   useEffect(() => {
     if (messages.length > 0 && selectedThreadId) {
       const lastMeaningfulMsg = [...messages].reverse().find(m => m.content && m.content.length > 0);

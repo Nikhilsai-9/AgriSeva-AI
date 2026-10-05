@@ -1,4 +1,4 @@
-import { WhatsappUser, WhatsappUsersResponse } from "#root/shared/index.js";
+import { IUser, WhatsappUser, WhatsappUsersResponse } from "#root/shared/index.js";
 
 export interface ToolCall {
   name: string;
@@ -46,8 +46,9 @@ export interface IncomingWhatsAppMessageExtra {
 }
 
 export interface IWhatsAppService {
-  getThreads(page?: number, limit?: number, search?: string): Promise<Thread[]>;
-  getThreadDetails(phoneNumber: string, date: string): Promise<Message[]>;
+  getThreads(user: IUser, page?: number, limit?: number, search?: string): Promise<Thread[]>;
+  getThreadDetails(user: IUser, phoneNumber: string, date: string): Promise<Message[]>;
+  isUserConversationOwner(user: IUser, phoneNumber: string): Promise<boolean>;
   sendMessage(
     userId: string,
     phoneNumber: string,
