@@ -203,7 +203,7 @@ export interface IQuestionRepository {
    * @returns A promise that resolves to an array of detailed questions.
    */
   findDetailedQuestions(
-    query: GetDetailedQuestionsQuery & {searchEmbedding: number[] | null},
+    query: GetDetailedQuestionsQuery & { searchEmbedding: number[] | null; currentUser?: IUser },
     body?: DetailedQuestionsBodyDto,
   ): Promise<{questions: IQuestion[]; totalPages: number; totalCount: number}>;
 
@@ -487,7 +487,7 @@ export interface IQuestionRepository {
   ): Promise<IQuestion[]>;
 
   getQuestionsAndReviewLevel(
-    query: GetDetailedQuestionsQuery & {searchEmbedding: number[] | null},
+    query: GetDetailedQuestionsQuery & { searchEmbedding: number[] | null; currentUser?: IUser },
     session?: ClientSession,
   ): Promise<QuestionLevelResponse>;
 

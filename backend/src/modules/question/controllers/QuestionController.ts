@@ -1050,7 +1050,7 @@ export class QuestionController {
     if (!isStaffOrReviewer(user?.role as string) && question) {
       const qUserId = question.userId?.toString();
       const uId = user?._id?.toString();
-      const phoneMatch = user?.mobile && (question.threadId === user.mobile || (question as any).farmerPhone === user.mobile);
+      const phoneMatch = user?.mobile && ((question as any).threadId === user.mobile || (question as any).farmerPhone === user.mobile);
       if (qUserId !== uId && !phoneMatch) {
         throw new ForbiddenError('Access denied: You do not have permission to view this question.');
       }
@@ -2750,7 +2750,7 @@ export class QuestionController {
         },
         context: {
           questionId: questionId,
-          question: prevQuestion?.text || prevQuestion?.question || '',
+          question: prevQuestion?.text || (prevQuestion as any)?.question || '',
         },
         changes: {
           before: {

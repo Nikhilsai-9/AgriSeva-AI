@@ -21,7 +21,7 @@ describe('Safe Pipeline Fixes Verification Tests', () => {
     }),
   };
 
-  const mockQuestionRepo = {
+  const mockQuestionRepo: any = {
     getByContextId: vi.fn().mockImplementation(async (contextId: string) => {
       const results = [];
       for (const q of storedQuestions.values()) {
@@ -40,7 +40,7 @@ describe('Safe Pipeline Fixes Verification Tests', () => {
     updateQuestion: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
   };
 
-  const mockQuestionSubmissionRepo = {
+  const mockQuestionSubmissionRepo: any = {
     addSubmission: vi.fn().mockImplementation(async (submission: any) => {
       storedSubmissions.set(submission.questionId.toString(), submission);
       return undefined;

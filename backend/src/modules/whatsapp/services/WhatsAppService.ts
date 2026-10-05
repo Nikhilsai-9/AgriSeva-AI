@@ -1847,7 +1847,7 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
         const userObjId = session.userId ? new ObjectId(session.userId.toString()) : undefined;
 
         // Extract crop / domain if possible
-        const rawDetails = session.farmerDetails || {};
+        const rawDetails = (session as any).farmerDetails || {};
         let state = (rawDetails.state || '').trim();
         let district = (rawDetails.district || '').trim();
         let crop = (rawDetails.crop || '').trim();

@@ -615,7 +615,7 @@ export class QuestionRepository implements IQuestionRepository {
   }
 
   async findDetailedQuestions(
-    query: GetDetailedQuestionsQuery & { searchEmbedding: number[] | null },
+    query: GetDetailedQuestionsQuery & { searchEmbedding: number[] | null; currentUser?: IUser },
     body?: DetailedQuestionsBodyDto,
   ): Promise<{ questions: IQuestion[]; totalPages: number; totalCount: number }> {
     try {
@@ -5870,7 +5870,7 @@ export class QuestionRepository implements IQuestionRepository {
   }
 
   async getQuestionsAndReviewLevel(
-    query: GetDetailedQuestionsQuery & { searchEmbedding: number[] | null },
+    query: GetDetailedQuestionsQuery & { searchEmbedding: number[] | null; currentUser?: IUser },
     session?: ClientSession,
   ): Promise<QuestionLevelResponse> {
     await this.init();
