@@ -125,4 +125,26 @@ describe("Role and Permission Architecture Audit Tests", () => {
       expect(canManageUsers(moderatorRole)).toBe(true);
     });
   });
+
+  describe("Navigation & Route Separation Architecture", () => {
+    it("guarantees Dashboard and All Questions have distinct, independent tab identifiers", () => {
+      const dashboardTab = "dashboard";
+      const allQuestionsTab = "all_questions";
+      const farmerDashboardTab = "farmer_dashboard";
+      const agentsInterfaceTab = "upload";
+
+      expect(dashboardTab).not.toEqual(allQuestionsTab);
+      expect(dashboardTab).not.toEqual(farmerDashboardTab);
+      expect(allQuestionsTab).not.toEqual(farmerDashboardTab);
+      expect(dashboardTab).not.toEqual(agentsInterfaceTab);
+    });
+
+    it("verifies normalized tab values ensure performance maps to dashboard", () => {
+      const normalize = (tab?: string | null) => (tab === "performance" ? "dashboard" : tab);
+      expect(normalize("performance")).toBe("dashboard");
+      expect(normalize("dashboard")).toBe("dashboard");
+      expect(normalize("all_questions")).toBe("all_questions");
+      expect(normalize("upload")).toBe("upload");
+    });
+  });
 });

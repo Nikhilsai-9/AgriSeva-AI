@@ -91,8 +91,7 @@ export const MobileSidebar = ({
         if (search.tab === "dashboard") return "dashboard";
         return search.tab;
       }
-      if (user && isFarmerOrUserRole(user.role)) return "dashboard";
-      if (user && isModeratorRole(user.role)) return "performance";
+      if (user && (isFarmerOrUserRole(user.role) || isModeratorRole(user.role))) return "dashboard";
       if (user?.role === "expert") return "questions";
     }
     return activeTabProp || (user && isFarmerOrUserRole(user.role) ? "dashboard" : "farmer");
@@ -121,14 +120,9 @@ export const MobileSidebar = ({
   };
 
   const menuItems = [
-    // Dashboard for normal users (farmer or regular user)
-    ...(user && isFarmerOrUserRole(user.role)
+    // Dashboard for normal users, farmers, moderators, and admins
+    ...(user && (isFarmerOrUserRole(user.role) || isModeratorRole(user.role))
       ? [{ id: "dashboard", label: t("sidebar.dashboard", "Dashboard"), icon: BarChart3 }]
-      : []),
-
-    // Only moderators, admins, and testers get the performance dashboard
-    ...(user && isModeratorRole(user.role)
-      ? [{ id: "performance", label: t("sidebar.dashboard", "Dashboard"), icon: BarChart3 }]
       : []),
 
     ...(user && (user.role === "gate_keeper" || user.role === "auditor")

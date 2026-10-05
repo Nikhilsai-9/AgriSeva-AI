@@ -67,8 +67,13 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
     if (!user?.email) return null;
     return `playground_active_tab_${user.email}`;
   };
+  const normalizeTab = (tab?: string | null) => {
+    if (tab === "performance") return "dashboard";
+    return tab;
+  };
+
   const explicitSelectionTab = initialTab
-    ? initialTab
+    ? normalizeTab(initialTab)
     : selectedRequestId
       ? "request_queue"
       : selectedHistoryId
@@ -110,22 +115,19 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
           ? "call_interface"
           : user.role === "gate_keeper" || user.role === "auditor"
             ? "roleDashboard"
-            : isModeratorRole(user.role)
-              ? "performance"
-              : isFarmerOrUserRole(user.role)
-                ? "dashboard"
-                : "all_questions";
+            : "dashboard";
 
     // A tab saved before the role changed (or before roleDashboard existed) can point at
     // content this role no longer renders, leaving a blank page. Drop it in that case.
-    const savedTab = localStorage.getItem(storageKey);
+    const rawSavedTab = localStorage.getItem(storageKey);
+    const savedTab = rawSavedTab === "performance" ? "dashboard" : rawSavedTab;
     const isGateKeeperOrAuditor =
       user.role === "gate_keeper" || user.role === "auditor";
     const isModerator = isModeratorRole(user.role);
     const savedTabValid =
       !!savedTab &&
-      (isGateKeeperOrAuditor ? savedTab !== "performance" : savedTab !== "roleDashboard") &&
-      (isModerator || savedTab !== "performance");
+      (isGateKeeperOrAuditor ? savedTab !== "dashboard" : savedTab !== "roleDashboard") &&
+      (isModerator || isFarmerOrUserRole(user.role) || savedTab !== "dashboard");
 
     if (savedTab && savedTabValid) {
       setActiveTab(savedTab);
@@ -136,8 +138,9 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
   }, [user?.role, user?.email, explicitSelectionTab]);
 
   useEffect(() => {
-    if (initialTab && initialTab !== activeTab) {
-      setActiveTab(initialTab);
+    const targetTab = normalizeTab(initialTab);
+    if (targetTab && targetTab !== activeTab) {
+      setActiveTab(targetTab);
     }
   }, [initialTab]);
 
@@ -257,7 +260,7 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
       setSelectedRequestId(null);
     }
 
-    if (value !== "all_questions" && value !== "dashboard") {
+    if (value !== "all_questions") {
       setSelectedCommentId(null);
     }
     if (value !== "history") {
@@ -296,40 +299,32 @@ export const PlaygroundPage = ({ initialTab }: { initialTab?: string } = {}) => 
         <div className="h-full py-4 sm:py-6 min-w-0 max-w-[1920px] mx-auto w-full">
           <div className="grid h-full items-stretch gap-6 min-w-0">
             <div className="md:order-1 w-full min-w-0">
-              {user && isFarmerOrUserRole(user.role) && (
-                <TabsContent
-                  value="dashboard"
-                  className={cn(
-                    "mt-0 border-0 md:px-8 outline-none",
-                    "data-[state=active]:animate-in",
-                    "data-[state=active]:fade-in-0",
-                    "data-[state=active]:zoom-in-[0.98]",
-                    "data-[state=active]:slide-in-from-bottom-3",
-                    "duration-500 ease-out",
-                  )}
-                >
-                  <QuestionsPage
-                    currentUser={user!}
-                    autoOpenQuestionId={selectedCommentId || selectedQuestionId}
-                  />
-                </TabsContent>
-              )}
-              {user && isModeratorRole(user.role) && (
-                <TabsContent
-                  value="performance"
-                  className={cn(
-                    "mt-0 border-0 md:px-8 outline-none",
-                    "data-[state=active]:animate-in",
-                    "data-[state=active]:fade-in-0",
-                    "data-[state=active]:zoom-in-[0.98]",
-                    "data-[state=active]:slide-in-from-bottom-3",
-                    "duration-500 ease-out",
-                  )}
-                >
-                  {/* <PerformanceMatrics /> */}
-                  <Dashboard />
-                </TabsContent>
-              )}
+              <TabsContent
+                value="dashboard"
+                className={cn(
+                  "mt-0 border-0 md:px-8 outline-none",
+                  "data-[state=active]:animate-in",
+                  "data-[state=active]:fade-in-0",
+                  "data-[state=active]:zoom-in-[0.98]",
+                  "data-[state=active]:slide-in-from-bottom-3",
+                  "duration-500 ease-out",
+                )}
+              >
+                <Dashboard />
+              </TabsContent>
+              <TabsContent
+                value="performance"
+                className={cn(
+                  "mt-0 border-0 md:px-8 outline-none",
+                  "data-[state=active]:animate-in",
+                  "data-[state=active]:fade-in-0",
+                  "data-[state=active]:zoom-in-[0.98]",
+                  "data-[state=active]:slide-in-from-bottom-3",
+                  "duration-500 ease-out",
+                )}
+              >
+                <Dashboard />
+              </TabsContent>
               {user && (user.role === "expert" || user.role === "moderator") && (
                 <TabsContent
                   value="expertPerformance"

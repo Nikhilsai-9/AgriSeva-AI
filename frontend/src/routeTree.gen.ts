@@ -11,8 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatsappHistoryRouteImport } from './routes/whatsapp-history'
 import { Route as ModeratorRouteImport } from './routes/moderator'
+import { Route as FarmerDashboardRouteImport } from './routes/farmer-dashboard'
 import { Route as FarmerRouteImport } from './routes/farmer'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AllQuestionsRouteImport } from './routes/all-questions'
+import { Route as AgentsInterfaceRouteImport } from './routes/agents-interface'
 import { Route as AgentInterfaceRouteImport } from './routes/agent-interface'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TermsIndexRouteImport } from './routes/terms/index'
@@ -55,14 +58,29 @@ const ModeratorRoute = ModeratorRouteImport.update({
   path: '/moderator',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FarmerDashboardRoute = FarmerDashboardRouteImport.update({
+  id: '/farmer-dashboard',
+  path: '/farmer-dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FarmerRoute = FarmerRouteImport.update({
   id: '/farmer',
   path: '/farmer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AllQuestionsRoute = AllQuestionsRouteImport.update({
   id: '/all-questions',
   path: '/all-questions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentsInterfaceRoute = AgentsInterfaceRouteImport.update({
+  id: '/agents-interface',
+  path: '/agents-interface',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgentInterfaceRoute = AgentInterfaceRouteImport.update({
@@ -224,8 +242,11 @@ const FarmerBuyersBuyerIdRoute = FarmerBuyersBuyerIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agent-interface': typeof AgentInterfaceRoute
+  '/agents-interface': typeof AgentsInterfaceRoute
   '/all-questions': typeof AllQuestionsRoute
+  '/dashboard': typeof DashboardRoute
   '/farmer': typeof FarmerRouteWithChildren
+  '/farmer-dashboard': typeof FarmerDashboardRoute
   '/moderator': typeof ModeratorRoute
   '/whatsapp-history': typeof WhatsappHistoryRoute
   '/coordinator/profile': typeof CoordinatorProfileRoute
@@ -261,7 +282,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agent-interface': typeof AgentInterfaceRoute
+  '/agents-interface': typeof AgentsInterfaceRoute
   '/all-questions': typeof AllQuestionsRoute
+  '/dashboard': typeof DashboardRoute
+  '/farmer-dashboard': typeof FarmerDashboardRoute
   '/moderator': typeof ModeratorRoute
   '/whatsapp-history': typeof WhatsappHistoryRoute
   '/coordinator/profile': typeof CoordinatorProfileRoute
@@ -298,8 +322,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agent-interface': typeof AgentInterfaceRoute
+  '/agents-interface': typeof AgentsInterfaceRoute
   '/all-questions': typeof AllQuestionsRoute
+  '/dashboard': typeof DashboardRoute
   '/farmer': typeof FarmerRouteWithChildren
+  '/farmer-dashboard': typeof FarmerDashboardRoute
   '/moderator': typeof ModeratorRoute
   '/whatsapp-history': typeof WhatsappHistoryRoute
   '/coordinator/profile': typeof CoordinatorProfileRoute
@@ -337,8 +364,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agent-interface'
+    | '/agents-interface'
     | '/all-questions'
+    | '/dashboard'
     | '/farmer'
+    | '/farmer-dashboard'
     | '/moderator'
     | '/whatsapp-history'
     | '/coordinator/profile'
@@ -374,7 +404,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agent-interface'
+    | '/agents-interface'
     | '/all-questions'
+    | '/dashboard'
+    | '/farmer-dashboard'
     | '/moderator'
     | '/whatsapp-history'
     | '/coordinator/profile'
@@ -410,8 +443,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agent-interface'
+    | '/agents-interface'
     | '/all-questions'
+    | '/dashboard'
     | '/farmer'
+    | '/farmer-dashboard'
     | '/moderator'
     | '/whatsapp-history'
     | '/coordinator/profile'
@@ -448,8 +484,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentInterfaceRoute: typeof AgentInterfaceRoute
+  AgentsInterfaceRoute: typeof AgentsInterfaceRoute
   AllQuestionsRoute: typeof AllQuestionsRoute
+  DashboardRoute: typeof DashboardRoute
   FarmerRoute: typeof FarmerRouteWithChildren
+  FarmerDashboardRoute: typeof FarmerDashboardRoute
   ModeratorRoute: typeof ModeratorRoute
   WhatsappHistoryRoute: typeof WhatsappHistoryRoute
   CoordinatorProfileRoute: typeof CoordinatorProfileRoute
@@ -485,6 +524,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModeratorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/farmer-dashboard': {
+      id: '/farmer-dashboard'
+      path: '/farmer-dashboard'
+      fullPath: '/farmer-dashboard'
+      preLoaderRoute: typeof FarmerDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/farmer': {
       id: '/farmer'
       path: '/farmer'
@@ -492,11 +538,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FarmerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/all-questions': {
       id: '/all-questions'
       path: '/all-questions'
       fullPath: '/all-questions'
       preLoaderRoute: typeof AllQuestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agents-interface': {
+      id: '/agents-interface'
+      path: '/agents-interface'
+      fullPath: '/agents-interface'
+      preLoaderRoute: typeof AgentsInterfaceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agent-interface': {
@@ -779,8 +839,11 @@ const FarmerRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentInterfaceRoute: AgentInterfaceRoute,
+  AgentsInterfaceRoute: AgentsInterfaceRoute,
   AllQuestionsRoute: AllQuestionsRoute,
+  DashboardRoute: DashboardRoute,
   FarmerRoute: FarmerRouteWithChildren,
+  FarmerDashboardRoute: FarmerDashboardRoute,
   ModeratorRoute: ModeratorRoute,
   WhatsappHistoryRoute: WhatsappHistoryRoute,
   CoordinatorProfileRoute: CoordinatorProfileRoute,

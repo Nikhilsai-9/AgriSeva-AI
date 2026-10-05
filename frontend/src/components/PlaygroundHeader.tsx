@@ -35,7 +35,7 @@ export function PlaygroundHeader({
 
         <div className="flex-1 lg:flex justify-center min-w-0 hidden ">
           <TabsList className="flex gap-2 overflow-x-auto whitespace-nowrap bg-transparent p-0 no-scrollbar">
-            {user && isFarmerOrUserRole(user.role) && (
+            {user && (isFarmerOrUserRole(user.role) || isModeratorRole(user.role)) && (
               <TabsTrigger
                 value="dashboard"
                 className="px-2 md:px-3 py-1.5 rounded-lg font-medium text-sm md:text-base transition-all duration-150 flex-shrink-0"
@@ -45,16 +45,6 @@ export function PlaygroundHeader({
                 </HoverCard>
               </TabsTrigger>
             )}
-            {user && isModeratorRole(user.role) && (
-                <TabsTrigger
-                  value="performance"
-                  className="px-2 md:px-3 py-1.5 rounded-lg font-medium text-sm md:text-base transition-all duration-150 flex-shrink-0"
-                >
-                  <HoverCard openDelay={150}>
-                    <span>{t("dashboard.tabsDashboard", "Dashboard")}</span>
-                  </HoverCard>
-                </TabsTrigger>
-              )}
             {/* Gate keepers / auditors get their own role dashboard instead. */}
             {user && (user.role === "gate_keeper" || user.role === "auditor") && (
               <TabsTrigger
