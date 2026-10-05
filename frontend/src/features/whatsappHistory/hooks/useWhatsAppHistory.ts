@@ -24,13 +24,19 @@ export function useWhatsAppHistory() {
     const phoneNumber = selectedThreadId.includes('-')
       ? selectedThreadId.split('-')[0]
       : selectedThreadId;
-    return threads.find(t => t.id === phoneNumber || t.id === selectedThreadId);
+    return threads.find(
+      (t) =>
+        t.id === phoneNumber ||
+        t.id === selectedThreadId ||
+        t.phoneNumber === phoneNumber ||
+        t.phoneNumber.replace(/\D/g, '') === phoneNumber.replace(/\D/g, '')
+    );
   }, [threads, selectedThreadId]);
 
   const selectedDate = search.date ?? (selectedThread?.lastMessageDate || todayIST);
 
   const setSelectedThreadId = (threadId: string) => {
-    const thread = threads.find(t => t.id === threadId);
+    const thread = threads.find((t) => t.id === threadId || t.phoneNumber === threadId);
     navigate({
       to: '/whatsapp-history',
       search: (prev: Record<string, string>) => ({ 
@@ -70,9 +76,14 @@ export function useWhatsAppHistory() {
   }, [threads, lastMessageOverrides]);
 
   const filteredThreads = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return enrichedThreads;
     return enrichedThreads.filter(t =>
-      t.phoneNumber.includes(searchQuery) ||
-      t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+      (t.phoneNumber && t.phoneNumber.toLowerCase().includes(q)) ||
+      (t.farmerName && t.farmerName.toLowerCase().includes(q)) ||
+      (t.lastMessage && t.lastMessage.toLowerCase().includes(q)) ||
+      (t.language && t.language.toLowerCase().includes(q)) ||
+      (t.status && t.status.toLowerCase().includes(q))
     );
   }, [enrichedThreads, searchQuery]);
 

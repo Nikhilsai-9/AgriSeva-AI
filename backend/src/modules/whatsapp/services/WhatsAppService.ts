@@ -43,10 +43,13 @@ export interface IWhatsAppSession {
   createdAt?: Date;
   updatedAt?: Date;
   history?: {
-    role: 'user' | 'assistant';
+    role: 'user' | 'assistant' | 'expert' | 'system';
     content: string;
     timestamp: Date;
     msgType?: string;
+    mediaUrl?: string;
+    senderName?: string;
+    status?: string;
   }[];
 }
 
@@ -72,72 +75,160 @@ export class WhatsAppService implements IWhatsAppService {
   private readonly WHATSAPP_SERVER_URL = aiConfig.WHATSAPP_SERVER_URL;
   private readonly WA_WEBHOOK_API_KEY = appConfig.WA_WEBHOOK_API_KEY;
 
-  async getThreads(): Promise<Thread[]> {
+  async getThreads(page?: number, limit?: number, search?: string): Promise<Thread[]> {
     try {
-      const response = await axios.get(`${this.baseUrl}/threads`);
-      const data = response.data;
+      const sessionsCol = await this.getSessionsCollection();
+      const usersCol = await this.mongoDatabase.getCollection<IUser>('users');
 
-      // const threads: Thread[] = (data.threads as any[])
-      //   .filter((t: any) =>
-      //     /^\d{12}$/.test(t.thread_id) &&
-      //     t.metadata &&
-      //     Object.keys(t.metadata).length > 0 &&
-      //     t.updated_at !== null
-      //   )
-      //   .map((t: any) => ({
-      //     id: t.thread_id,
-      //     phoneNumber: t.thread_id,
-      //     lastMessage: t.metadata.thread_name || 'No message available',
-      //     lastMessageTimestamp: new Date(t.updated_at),
-      //     unreadCount: 0,
-      //   }));
-      const uniqueThreadsMap = new Map<string, Thread>();
+      // Fetch all sessions sorted by updatedAt / lastMessageAt descending
+      const sessions = await sessionsCol
+        .find({})
+        .sort({ updatedAt: -1, lastMessageAt: -1, createdAt: -1 })
+        .toArray();
 
-      (data.threads as any[])
-        .filter(
-          (t: any) =>
-            /^\d{12}(-\d{4}-\d{2}-\d{2})?$/.test(t.thread_id) &&
-            t.metadata &&
-            Object.keys(t.metadata).length > 0 &&
-            t.updated_at !== null,
-        )
-        .forEach((t: any) => {
-          const phoneNumber = t.thread_id.split('-')[0];
+      if (sessions.length > 0) {
+        // Collect phone numbers to resolve real farmer profiles
+        const phoneList: string[] = [];
+        sessions.forEach((s) => {
+          if (s.phoneNumber) phoneList.push(s.phoneNumber);
+          if (s.rawFrom) phoneList.push(s.rawFrom);
+          const d10 = (s.phoneNumber || s.rawFrom || '').replace(/\D/g, '').slice(-10);
+          if (d10) phoneList.push(d10);
+        });
 
-          // Keep latest updated thread for each phone number
-          const existing = uniqueThreadsMap.get(phoneNumber);
+        const matchedUsers = await usersCol
+          .find({
+            $or: [
+              { mobile: { $in: phoneList } },
+              { 'farmerProfile.phone': { $in: phoneList } },
+            ],
+          })
+          .toArray();
 
-          if (
-            !existing ||
-            new Date(t.updated_at) > existing.lastMessageTimestamp
-          ) {
-            let lastMessageDate = '';
-            if (t.thread_id.includes('-')) {
-              lastMessageDate = t.thread_id.split('-').slice(1).join('-');
-            } else {
-              lastMessageDate = new Date(t.updated_at).toLocaleDateString(
-                'en-CA',
-                {timeZone: 'Asia/Kolkata'},
-              );
-            }
-
-            uniqueThreadsMap.set(phoneNumber, {
-              id: phoneNumber,
-              phoneNumber,
-              lastMessage: t.metadata.thread_name || 'No message available',
-              lastMessageTimestamp: new Date(t.updated_at),
-              lastMessageDate,
-              unreadCount: 0,
-            });
+        const userByPhone = new Map<string, IUser>();
+        matchedUsers.forEach((u) => {
+          if (u.mobile) {
+            userByPhone.set(u.mobile, u);
+            userByPhone.set(u.mobile.replace(/\D/g, '').slice(-10), u);
+          }
+          if (u.farmerProfile?.phone) {
+            userByPhone.set(u.farmerProfile.phone, u);
+            userByPhone.set(u.farmerProfile.phone.replace(/\D/g, '').slice(-10), u);
           }
         });
 
-      const threads: Thread[] = Array.from(uniqueThreadsMap.values());
+        const threads: Thread[] = [];
 
-      return threads;
+        for (const session of sessions) {
+          const rawPhone = session.phoneNumber || session.rawFrom;
+          if (!rawPhone) continue;
+
+          const domestic10 = rawPhone.replace(/\D/g, '').slice(-10);
+          const matchedUser =
+            userByPhone.get(rawPhone) ||
+            userByPhone.get(session.rawFrom) ||
+            userByPhone.get(domestic10);
+
+          const farmerName =
+            session.userName ||
+            (matchedUser
+              ? `${matchedUser.firstName || ''} ${matchedUser.lastName || ''}`.trim()
+              : undefined);
+
+          // Determine last message, timestamp, and unread state
+          let lastMsg = 'No message available';
+          let lastTimestamp =
+            session.lastMessageAt ||
+            session.updatedAt ||
+            session.createdAt ||
+            new Date();
+          let isLastFromUser = false;
+
+          if (session.history && session.history.length > 0) {
+            const lastEntry = session.history[session.history.length - 1];
+            if (lastEntry.content) {
+              lastMsg = lastEntry.content;
+            }
+            if (lastEntry.timestamp) {
+              lastTimestamp = new Date(lastEntry.timestamp);
+            }
+            isLastFromUser = lastEntry.role === 'user';
+          } else if (session.pendingFirstMessage?.text) {
+            lastMsg = session.pendingFirstMessage.text;
+            if (session.pendingFirstMessage.timestamp) {
+              lastTimestamp = new Date(session.pendingFirstMessage.timestamp);
+            }
+            isLastFromUser = true;
+          }
+
+          // Format last message date in Asia/Kolkata timezone (YYYY-MM-DD)
+          const lastMessageDate = new Date(lastTimestamp).toLocaleDateString('en-CA', {
+            timeZone: 'Asia/Kolkata',
+          });
+
+          // Check if session has expert review requirement
+          const hasPaeEscalation = session.history?.some(
+            (m) =>
+              m.content &&
+              (m.content.includes('PAE') ||
+                m.content.includes('వ్యవసాయ నైపుణ్యం') ||
+                m.content.includes('వ్యవసాయ నిపుణుల') ||
+                m.content.includes('कृषि विशेषज्ञ') ||
+                m.content.includes('Agricultural Expert')),
+          );
+
+          let status = 'Active';
+          if (session.pendingFirstMessage && (!session.history || session.history.length === 0)) {
+            status = 'Awaiting Language Selection';
+          } else if (hasPaeEscalation) {
+            status = 'Expert Review Required';
+          }
+
+          threads.push({
+            id: rawPhone,
+            phoneNumber: rawPhone,
+            farmerName: farmerName || undefined,
+            lastMessage: lastMsg,
+            lastMessageTimestamp: lastTimestamp,
+            lastMessageDate,
+            unreadCount: isLastFromUser ? 1 : 0,
+            language: session.preferredLanguage,
+            status,
+            avatar: matchedUser?.avatar,
+          });
+        }
+
+        // Search filtering
+        let result = threads;
+        if (search) {
+          const q = search.trim().toLowerCase();
+          result = result.filter(
+            (t) =>
+              t.phoneNumber.toLowerCase().includes(q) ||
+              (t.farmerName && t.farmerName.toLowerCase().includes(q)) ||
+              t.lastMessage.toLowerCase().includes(q),
+          );
+        }
+
+        // Pagination
+        if (page && limit) {
+          const skip = (page - 1) * limit;
+          result = result.slice(skip, skip + limit);
+        }
+
+        return result;
+      }
+
+      // If no sessions found in MongoDB, attempt LangGraph fallback
+      return await this.fetchThreadsFromLangGraph();
     } catch (error) {
-      console.error('Error fetching threads from LangGraph:', error);
-      throw new InternalServerError('Failed to fetch threads from LangGraph');
+      console.error('[WhatsAppService] Error in getThreads, trying LangGraph fallback:', error);
+      try {
+        return await this.fetchThreadsFromLangGraph();
+      } catch (lgErr) {
+        console.warn('[WhatsAppService] LangGraph fallback also failed:', lgErr);
+        return [];
+      }
     }
   }
 
@@ -146,102 +237,234 @@ export class WhatsAppService implements IWhatsAppService {
     date: string,
   ): Promise<Message[]> {
     try {
-      let threadId = phoneNumber;
-      if (!threadId.includes('-')) {
-        threadId = `${phoneNumber}-${date}`;
-      }
+      const sessionsCol = await this.getSessionsCollection();
+      const cleanPhone = phoneNumber.includes('-')
+        ? phoneNumber.split('-')[0]
+        : phoneNumber;
+      const canonicalPhone = normalizePhoneNumber(cleanPhone);
+      const domestic10 = cleanPhone.replace(/\D/g, '').slice(-10);
 
-      const response = await axios.get(
-        `${this.baseUrl}/threads/${threadId}/state`,
-      );
-      const data = response.data;
-
-      const messages = (data.values?.messages as any[]) || [];
-      const formattedMessages: Message[] = [];
-
-      // 1. First, map all tool responses in the entire thread
-      const toolResponsesMap: Record<string, any> = {};
-      messages.forEach((msg: any) => {
-        if (msg.type === 'tool') {
-          let response =
-            msg.artifact?.structured_content?.result || msg.content;
-          if (typeof response === 'string' && response.startsWith('{')) {
-            try {
-              response = JSON.parse(response);
-            } catch (e) {}
-          }
-          toolResponsesMap[msg.tool_call_id] = response;
-        }
+      const session = await sessionsCol.findOne({
+        $or: [
+          { phoneNumber: canonicalPhone },
+          { phoneNumber: cleanPhone },
+          { rawFrom: cleanPhone },
+          { rawFrom: domestic10 },
+          { phoneNumber: `+91${domestic10}` },
+          ...(ObjectId.isValid(phoneNumber) ? [{ _id: new ObjectId(phoneNumber) }] : []),
+        ],
       });
 
-      // 2. Iterate through all messages to build the conversation
-      messages.forEach((msg: any, idx: number) => {
-        if (msg.type === 'human') {
-          formattedMessages.push({
-            id: msg.id || `h-${idx}`,
+      if (session) {
+        const messages: Message[] = [];
+        let msgIndex = 0;
+
+        // Pending first message if not yet present in history
+        if (
+          session.pendingFirstMessage?.text &&
+          (!session.history ||
+            !session.history.some(
+              (h) => h.content === session.pendingFirstMessage?.text,
+            ))
+        ) {
+          messages.push({
+            id: `msg-pending-${session.pendingFirstMessage.timestamp ? new Date(session.pendingFirstMessage.timestamp).getTime() : msgIndex++}`,
             role: 'user',
-            content: typeof msg.content === 'string' ? msg.content : '',
-            timestamp: new Date(data.created_at || Date.now()),
+            content: session.pendingFirstMessage.text,
+            timestamp: session.pendingFirstMessage.timestamp
+              ? new Date(session.pendingFirstMessage.timestamp)
+              : new Date(session.createdAt || Date.now()),
+            msgType: (session.pendingFirstMessage.msgType as any) || 'text',
+            senderName: session.userName || 'Farmer',
           });
-        } else if (msg.type === 'ai') {
-          const toolCalls: ToolCall[] =
-            msg.tool_calls?.map((tc: any) => ({
-              name: tc.name,
-              args: tc.args,
-              id: tc.id,
-              response: toolResponsesMap[tc.id],
-            })) || [];
+        }
 
-          // Only add AI message if it has content OR tool calls
-          const content =
-            typeof msg.content === 'string'
-              ? msg.content
-              : Array.isArray(msg.content)
-                ? msg.content
-                    .filter((c: any) => c.type === 'text')
-                    .map((c: any) => c.text)
-                    .join('\n')
-                : '';
+        // History messages
+        if (session.history && session.history.length > 0) {
+          session.history.forEach((h, idx) => {
+            const isExpert =
+              h.role === 'expert' ||
+              (h.role === 'assistant' &&
+                h.content &&
+                (h.content.startsWith('👨‍🌾') ||
+                  h.content.includes('వ్యవసాయ నిపుణుల (PAE)')));
 
-          if (content || toolCalls.length > 0) {
-            formattedMessages.push({
-              id: msg.id || `a-${idx}`,
-              role: 'assistant',
-              content:
-                content || (toolCalls.length > 0 ? 'Executing tools...' : ''),
-              timestamp: new Date(data.created_at || Date.now()),
-              toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+            const role = isExpert ? 'expert' : h.role;
+            const senderName =
+              role === 'user'
+                ? session.userName || 'Farmer'
+                : isExpert
+                  ? (h.senderName || 'Agricultural Expert (PAE)')
+                  : 'AgriSeva-AI';
+
+            messages.push({
+              id: `msg-${idx}-${new Date(h.timestamp).getTime()}`,
+              role,
+              content: h.content || '',
+              timestamp: new Date(h.timestamp),
+              msgType: (h.msgType as any) || 'text',
+              mediaUrl: (h as any).mediaUrl,
+              senderName,
             });
+          });
+        }
+
+        // Sort messages chronologically
+        messages.sort(
+          (a, b) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+        );
+
+        // Date filtering if requested and not 'all'
+        if (date && date !== 'all') {
+          const filtered = messages.filter((m) => {
+            const msgDate = new Date(m.timestamp).toLocaleDateString('en-CA', {
+              timeZone: 'Asia/Kolkata',
+            });
+            return msgDate === date;
+          });
+
+          // Only return filtered if there are matches for that date; otherwise return all
+          if (filtered.length > 0) {
+            return filtered;
           }
+        }
+
+        return messages;
+      }
+
+      // If not in MongoDB, try LangGraph
+      return await this.fetchThreadDetailsFromLangGraph(phoneNumber, date);
+    } catch (error: any) {
+      console.error(
+        `[WhatsAppService] Error fetching thread details for ${phoneNumber}:`,
+        error,
+      );
+      try {
+        return await this.fetchThreadDetailsFromLangGraph(phoneNumber, date);
+      } catch (lgErr) {
+        console.warn('[WhatsAppService] LangGraph fallback failed:', lgErr);
+        return [];
+      }
+    }
+  }
+
+  private async fetchThreadsFromLangGraph(): Promise<Thread[]> {
+    const response = await axios.get(`${this.baseUrl}/threads`);
+    const data = response.data;
+    const uniqueThreadsMap = new Map<string, Thread>();
+
+    (data.threads as any[])
+      .filter(
+        (t: any) =>
+          /^\d{12}(-\d{4}-\d{2}-\d{2})?$/.test(t.thread_id) &&
+          t.metadata &&
+          Object.keys(t.metadata).length > 0 &&
+          t.updated_at !== null,
+      )
+      .forEach((t: any) => {
+        const phoneNumber = t.thread_id.split('-')[0];
+        const existing = uniqueThreadsMap.get(phoneNumber);
+
+        if (
+          !existing ||
+          new Date(t.updated_at) > existing.lastMessageTimestamp
+        ) {
+          let lastMessageDate = '';
+          if (t.thread_id.includes('-')) {
+            lastMessageDate = t.thread_id.split('-').slice(1).join('-');
+          } else {
+            lastMessageDate = new Date(t.updated_at).toLocaleDateString(
+              'en-CA',
+              { timeZone: 'Asia/Kolkata' },
+            );
+          }
+
+          uniqueThreadsMap.set(phoneNumber, {
+            id: phoneNumber,
+            phoneNumber,
+            lastMessage: t.metadata.thread_name || 'No message available',
+            lastMessageTimestamp: new Date(t.updated_at),
+            lastMessageDate,
+            unreadCount: 0,
+          });
         }
       });
 
-      return formattedMessages;
-    } catch (error: any) {
-      // Thread not found
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        throw new NotFoundError(
-          `No thread history found for ${phoneNumber} on ${date}`,
-        );
-      }
+    return Array.from(uniqueThreadsMap.values());
+  }
 
-      // LangGraph server errors
-      if (axios.isAxiosError(error) && error.response?.status >= 500) {
-        throw new InternalServerError(
-          `LangGraph service is currently unavailable`,
-        );
-      }
-
-      // Network / connection issues
-      if (axios.isAxiosError(error) && !error.response) {
-        throw new InternalServerError(`Unable to connect to LangGraph service`);
-      }
-
-      // Fallback
-      throw new InternalServerError(
-        `Failed to fetch thread details for ${phoneNumber}`,
-      );
+  private async fetchThreadDetailsFromLangGraph(
+    phoneNumber: string,
+    date: string,
+  ): Promise<Message[]> {
+    let threadId = phoneNumber;
+    if (!threadId.includes('-') && date && date !== 'all') {
+      threadId = `${phoneNumber}-${date}`;
     }
+
+    const response = await axios.get(
+      `${this.baseUrl}/threads/${threadId}/state`,
+    );
+    const data = response.data;
+    const messages = (data.values?.messages as any[]) || [];
+    const formattedMessages: Message[] = [];
+
+    const toolResponsesMap: Record<string, any> = {};
+    messages.forEach((msg: any) => {
+      if (msg.type === 'tool') {
+        let resp =
+          msg.artifact?.structured_content?.result || msg.content;
+        if (typeof resp === 'string' && resp.startsWith('{')) {
+          try {
+            resp = JSON.parse(resp);
+          } catch (e) {}
+        }
+        toolResponsesMap[msg.tool_call_id] = resp;
+      }
+    });
+
+    messages.forEach((msg: any, idx: number) => {
+      if (msg.type === 'human') {
+        formattedMessages.push({
+          id: msg.id || `h-${idx}`,
+          role: 'user',
+          content: typeof msg.content === 'string' ? msg.content : '',
+          timestamp: new Date(data.created_at || Date.now()),
+        });
+      } else if (msg.type === 'ai') {
+        const toolCalls: ToolCall[] =
+          msg.tool_calls?.map((tc: any) => ({
+            name: tc.name,
+            args: tc.args,
+            id: tc.id,
+            response: toolResponsesMap[tc.id],
+          })) || [];
+
+        const content =
+          typeof msg.content === 'string'
+            ? msg.content
+            : Array.isArray(msg.content)
+              ? msg.content
+                  .filter((c: any) => c.type === 'text')
+                  .map((c: any) => c.text)
+                  .join('\n')
+              : '';
+
+        if (content || toolCalls.length > 0) {
+          formattedMessages.push({
+            id: msg.id || `a-${idx}`,
+            role: 'assistant',
+            content:
+              content || (toolCalls.length > 0 ? 'Executing tools...' : ''),
+            timestamp: new Date(data.created_at || Date.now()),
+            toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+          });
+        }
+      }
+    });
+
+    return formattedMessages;
   }
 
   async sendMessage(
@@ -257,67 +480,94 @@ export class WhatsAppService implements IWhatsAppService {
       });
 
       const user = await this.userRepo.findById(userId);
-      console.log('[WhatsAppService] User found:', user ? user._id : 'null');
-
-      if (!user || user.role == 'expert')
+      if (!user) {
         throw new UnauthorizedError(
           "You don't have permission to send message!",
         );
+      }
 
-      const sendBy = user.firstName + ' ' + user.lastName;
+      const senderName =
+        `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+        'AgriSeva Moderator';
+      const isExpert =
+        user.role === 'expert' ||
+        user.role === 'pae_expert' ||
+        (user as any).special_task_force;
 
-      const webhookUrl = appConfig.WA_SEND_MESSAGE_WEBHOOK_API_URL;
-      console.log('[WhatsAppService] Webhook URL:', webhookUrl);
-      console.log('[WhatsAppService] Webhook API Key configured:', !!appConfig.WA_WEBHOOK_API_KEY);
+      const canonicalPhone = normalizePhoneNumber(phoneNumber);
+      const rawTarget = canonicalPhone.replace(/\D/g, '');
+      const targetPhoneId = this.getDefaultPhoneId();
 
-      const payload = {
-        phoneNumber,
-        messageText,
-        sendBy,
-        userId: user._id.toString(),
+      const outboundText = isExpert
+        ? `👨‍🌾 *వ్యవసాయ నిపుణుల సలహా / Expert Advisory* (${senderName}):\n\n${messageText}\n\n━━━━━━━━━━━━━━━━\n_🌾 AgriSeva-AI_`
+        : messageText;
+
+      // 1. Dispatch outbound message via Meta WhatsApp Cloud API directly
+      try {
+        await this.sendTextMessage(rawTarget, targetPhoneId, outboundText);
+        console.log(`[WhatsAppService] Outbound message sent via Meta Cloud API to ${rawTarget}`);
+      } catch (metaErr: any) {
+        console.warn('[WhatsAppService] Direct Meta Cloud API delivery notice:', metaErr.message);
+      }
+
+      // 2. Persist to MongoDB whatsapp_sessions
+      const sessionsCol = await this.getSessionsCollection();
+      const messageEntry = {
+        role: isExpert ? ('expert' as const) : ('assistant' as const),
+        content: outboundText,
+        timestamp: new Date(),
+        msgType: 'text',
+        senderName,
       };
-      console.log('[WhatsAppService] Sending payload to webhook:', payload);
 
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-internal-api-key': appConfig.WA_WEBHOOK_API_KEY,
+      await sessionsCol.updateOne(
+        {
+          $or: [
+            { phoneNumber: canonicalPhone },
+            { phoneNumber },
+            { rawFrom: rawTarget },
+            { rawFrom: phoneNumber },
+          ],
         },
-        body: JSON.stringify(payload),
-      });
+        {
+          $push: { history: messageEntry as any },
+          $set: {
+            lastMessageAt: new Date(),
+            updatedAt: new Date(),
+          },
+        },
+        { upsert: true },
+      );
 
-      console.log('[WhatsAppService] Webhook response status:', response.status);
-      console.log('[WhatsAppService] Webhook response ok:', response.ok);
+      console.log('[WhatsAppService] Outgoing message persisted to MongoDB whatsapp_sessions');
 
-      const contentType = response.headers.get('content-type');
-      console.log('[WhatsAppService] Response content-type:', contentType);
-
-      let responseData;
-
-      if (contentType && contentType.includes('application/json')) {
-        responseData = await response.json();
-      } else {
-        responseData = await response.text();
+      // 3. Optional webhook notification if configured
+      const webhookUrl = appConfig.WA_SEND_MESSAGE_WEBHOOK_API_URL;
+      if (webhookUrl && webhookUrl.startsWith('http')) {
+        try {
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-api-key': appConfig.WA_WEBHOOK_API_KEY,
+            },
+            body: JSON.stringify({
+              phoneNumber,
+              messageText: outboundText,
+              sendBy: senderName,
+              userId: user._id.toString(),
+            }),
+          });
+        } catch (whErr: any) {
+          console.warn('[WhatsAppService] Optional webhook notification error:', whErr.message);
+        }
       }
-
-      console.log('[WhatsAppService] Webhook response data:', responseData);
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to send message: ${response.status} - ${responseData}`,
-        );
-      }
-
-      console.log('[WhatsAppService] Message sent successfully via webhook');
     } catch (error: any) {
       console.error(
         `[WhatsAppService] Error sending WhatsApp message to ${phoneNumber}:`,
-        error.response?.data || error.message,
+        error.message,
       );
-      console.error('[WhatsAppService] Full error:', error);
-      const detail = error.response?.data?.message || error.message;
-      throw new InternalServerError(`WhatsApp API Error: ${detail}`);
+      throw new InternalServerError(`WhatsApp API Error: ${error.message}`);
     }
   }
 
@@ -807,7 +1057,7 @@ ${text}
   private async generateDirectAgriculturalAnswer(
     query: string,
     langCode: string,
-    history?: { role: 'user' | 'assistant'; content: string }[],
+    history?: { role: 'user' | 'assistant' | 'expert' | 'system'; content: string }[],
   ): Promise<string> {
     const apiKey = aiConfig.geminiApiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -829,7 +1079,7 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
       const recent = history.slice(-4);
       for (const turn of recent) {
         contents.push({
-          role: turn.role === 'assistant' ? 'model' : 'user',
+          role: turn.role === 'assistant' || turn.role === 'expert' ? 'model' : 'user',
           parts: [{ text: turn.content }],
         });
       }
@@ -1044,6 +1294,7 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
     const isImageMsg = extra?.msgType === 'image' || !!extra?.image;
 
     // Handle Voice Message
+    let audioDataUrl: string | undefined;
     if (isAudioMsg) {
       const audioId = extra?.audio?.id || extra?.voice?.id;
       const mimeType = extra?.audio?.mime_type || extra?.voice?.mime_type || 'audio/ogg';
@@ -1051,6 +1302,9 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
         try {
           console.log(`[WhatsAppService] Downloading voice message ${audioId}...`);
           const { buffer } = await this.downloadMetaMedia(audioId);
+          if (buffer) {
+            audioDataUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+          }
           userQuery = await this.transcribeAudio(buffer, mimeType, currentLang);
           console.log(`[WhatsAppService] Transcribed voice query: "${userQuery}"`);
         } catch (err: any) {
@@ -1091,9 +1345,10 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
             session.history = session.history || [];
             session.history.push({
               role: 'user',
-              content: caption || '[Crop Image uploaded]',
+              content: caption || '📷 [Crop Image uploaded]',
               timestamp: new Date(),
               msgType: 'image',
+              mediaUrl: buffer ? `data:${mimeType};base64,${buffer.toString('base64')}` : undefined,
             });
             session.history.push({
               role: 'assistant',
@@ -1190,13 +1445,14 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
     // Step 9: Outbound Message Dispatch
     await this.sendTextMessage(from, targetPhoneId, formattedMessage);
 
-    // Step 10: Persist Conversation Session History (up to last 6 turns)
+    // Step 10: Persist Conversation Session History (up to 200 items for rich dashboard history)
     session.history = session.history || [];
     session.history.push({
       role: 'user',
       content: userQuery,
       timestamp: new Date(),
-      msgType: extra?.msgType || 'text',
+      msgType: extra?.msgType || (audioDataUrl ? 'audio' : 'text'),
+      mediaUrl: audioDataUrl,
     });
     session.history.push({
       role: 'assistant',
@@ -1204,8 +1460,8 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
       timestamp: new Date(),
     });
 
-    if (session.history.length > 8) {
-      session.history = session.history.slice(-8);
+    if (session.history.length > 200) {
+      session.history = session.history.slice(-200);
     }
     session.lastMessageAt = new Date();
     session.updatedAt = new Date();

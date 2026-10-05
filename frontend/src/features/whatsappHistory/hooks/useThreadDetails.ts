@@ -7,12 +7,17 @@ export function useThreadDetails(threadId: string | undefined, date: string) {
   return useQuery({
     queryKey: ['whatsapp-thread-details', threadId, date],
     queryFn: async () => {
-      if (!threadId || !date) return [];
+      if (!threadId) return [];
 
-      const data = await apiFetch<Message[]>(`${env.apiBaseUrl()}/whatsapp/threads/${threadId}/${date}`);
-      if (!data) throw new Error('Failed to fetch thread details');
-      return data;
+      const url = date
+        ? `${env.apiBaseUrl()}/whatsapp/threads/${encodeURIComponent(threadId)}/${date}`
+        : `${env.apiBaseUrl()}/whatsapp/threads/${encodeURIComponent(threadId)}`;
+
+      const data = await apiFetch<Message[]>(url);
+      return data || [];
     },
-    enabled: !!threadId && !!date, // Only run the query if threadId and date are available
+    enabled: !!threadId,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 }

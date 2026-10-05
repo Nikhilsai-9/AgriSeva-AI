@@ -8,8 +8,10 @@ export function useThreads() {
     queryKey: ['whatsapp-threads'],
     queryFn: async () => {
       const data = await apiFetch<Thread[]>(`${env.apiBaseUrl()}/whatsapp/threads`);
-      if (!data) throw new Error('Failed to fetch threads');
+      if (!data) return [];
       return data;
     },
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
   });
 }

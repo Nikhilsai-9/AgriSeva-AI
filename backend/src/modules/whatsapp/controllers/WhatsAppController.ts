@@ -138,19 +138,38 @@ export class WhatsAppController {
 
   @OpenAPI({
     summary: 'Get all WhatsApp threads',
-    description: 'Retrieves a list of all WhatsApp threads from LangGraph.',
+    description: 'Retrieves a list of all WhatsApp threads from database with farmer profiles.',
   })
   @Get('/threads')
   @HttpCode(200)
   @Authorized()
-  async getThreads() {
-    return this.whatsappService.getThreads();
+  async getThreads(
+    @QueryParam('page') page?: number,
+    @QueryParam('limit') limit?: number,
+    @QueryParam('search') search?: string,
+  ) {
+    return this.whatsappService.getThreads(page, limit, search);
   }
 
   @OpenAPI({
     summary: 'Get WhatsApp thread details',
     description:
-      'Retrieves message history for a specific WhatsApp thread from LangGraph.',
+      'Retrieves message history for a specific WhatsApp thread.',
+  })
+  @Get('/threads/:threadId')
+  @HttpCode(200)
+  @Authorized()
+  async getThreadDetailsById(
+    @Param('threadId') threadId: string,
+    @QueryParam('date') date?: string,
+  ) {
+    return this.whatsappService.getThreadDetails(threadId, date || 'all');
+  }
+
+  @OpenAPI({
+    summary: 'Get WhatsApp thread details for date',
+    description:
+      'Retrieves message history for a specific WhatsApp thread on a date.',
   })
   @Get('/threads/:threadId/:date')
   @HttpCode(200)

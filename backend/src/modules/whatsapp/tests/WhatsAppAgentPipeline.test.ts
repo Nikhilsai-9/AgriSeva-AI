@@ -219,15 +219,39 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
           return null;
         }),
         updateOne: vi.fn().mockImplementation(async (filter: any, update: any, opts: any) => {
-          const key = filter.phoneNumber;
+          const key = filter.phoneNumber || filter.$or?.[0]?.phoneNumber;
           const current = sessionsMap.get(key) || {};
-          const next = { ...current, ...(update.$set || {}) };
+          let next = { ...current };
+          if (update.$set) next = { ...next, ...update.$set };
+          if (update.$push?.history) {
+            next.history = next.history || [];
+            next.history.push(update.$push.history);
+          }
           sessionsMap.set(key, next);
           return { acknowledged: true };
         }),
+        find: vi.fn().mockImplementation(() => ({
+          sort: vi.fn().mockReturnThis(),
+          toArray: vi.fn().mockImplementation(async () => Array.from(sessionsMap.values())),
+        })),
       };
 
       const mockUsersCol = {
+        find: vi.fn().mockImplementation(() => ({
+          toArray: vi.fn().mockResolvedValue([
+            {
+              _id: new ObjectId(),
+              firstName: 'Ramesh',
+              lastName: 'Patel',
+              mobile: '+919876543210',
+              farmerProfile: {
+                phone: '+919876543210',
+                preferredLanguage: 'te-IN',
+                state: 'Andhra Pradesh',
+              },
+            },
+          ]),
+        })),
         findOne: vi.fn().mockImplementation(async (query: any) => {
           // Mock an authenticated user with phone 919876543210 and preferredLanguage "te-IN"
           if (query.$or) {
@@ -452,6 +476,88 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
       expect(calls[0][2]).toContain('tomato');
       expect(calls[1][2]).toContain('zinc');
       expect(calls[0][2]).not.toEqual(calls[1][2]);
+    });
+
+    it('getThreads retrieves real conversations from MongoDB and maps farmer names', async () => {
+      sessionsMap.set('+919876543210', {
+        phoneNumber: '+919876543210',
+        rawFrom: '919876543210',
+        userName: 'Ramesh Patel',
+        preferredLanguage: 'te-IN',
+        lastMessageAt: new Date('2026-10-05T10:00:00Z'),
+        history: [
+          { role: 'user', content: 'What is tomato price?', timestamp: new Date('2026-10-05T09:59:00Z') },
+          { role: 'assistant', content: 'Tomato is ₹22/kg', timestamp: new Date('2026-10-05T10:00:00Z') },
+        ],
+      });
+
+      const threads = await service.getThreads();
+      expect(threads).toBeDefined();
+      expect(threads.length).toBe(1);
+      expect(threads[0].phoneNumber).toBe('+919876543210');
+      expect(threads[0].farmerName).toBe('Ramesh Patel');
+      expect(threads[0].lastMessage).toBe('Tomato is ₹22/kg');
+      expect(threads[0].language).toBe('te-IN');
+      expect(threads[0].unreadCount).toBe(0);
+    });
+
+    it('getThreadDetails retrieves full chronological message history with media', async () => {
+      sessionsMap.set('+919876543210', {
+        phoneNumber: '+919876543210',
+        rawFrom: '919876543210',
+        userName: 'Ramesh Patel',
+        preferredLanguage: 'te-IN',
+        history: [
+          {
+            role: 'user',
+            content: 'Crop image problem',
+            msgType: 'image',
+            mediaUrl: 'data:image/jpeg;base64,abc123mock',
+            timestamp: new Date('2026-10-05T09:00:00Z'),
+          },
+          {
+            role: 'assistant',
+            content: 'Diagnosed as early blight.',
+            timestamp: new Date('2026-10-05T09:01:00Z'),
+          },
+          {
+            role: 'expert',
+            content: '👨‍🌾 [Expert Reply] Please spray Mancozeb @ 2g/L.',
+            timestamp: new Date('2026-10-05T09:10:00Z'),
+          },
+        ],
+      });
+
+      const messages = await service.getThreadDetails('+919876543210', 'all');
+      expect(messages.length).toBe(3);
+      expect(messages[0].role).toBe('user');
+      expect(messages[0].msgType).toBe('image');
+      expect(messages[0].mediaUrl).toBe('data:image/jpeg;base64,abc123mock');
+      expect(messages[1].role).toBe('assistant');
+      expect(messages[2].role).toBe('expert');
+    });
+
+    it('sendMessage dispatches message and appends to session history', async () => {
+      mockUserRepo.findById.mockResolvedValueOnce({
+        _id: new ObjectId(),
+        firstName: 'Dr. Sunita',
+        lastName: 'Sharma',
+        role: 'pae_expert',
+      });
+
+      sessionsMap.set('+919876543210', {
+        phoneNumber: '+919876543210',
+        rawFrom: '919876543210',
+        history: [],
+      });
+
+      await service.sendMessage('user_123', '+919876543210', 'Recommended watering schedule is 2x weekly.');
+
+      const session = sessionsMap.get('+919876543210');
+      expect(session).toBeDefined();
+      expect(session.history.length).toBe(1);
+      expect(session.history[0].role).toBe('expert');
+      expect(session.history[0].content).toContain('Recommended watering schedule');
     });
   });
 });

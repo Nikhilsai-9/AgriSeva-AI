@@ -106,50 +106,80 @@ export function ChatWindow({
   return (
     <div className="flex-1 flex flex-col h-full bg-background relative overflow-hidden">
       {/* Header */}
-
       <div className="px-4 py-2.5 border-b border-border bg-card flex justify-between items-center shrink-0">
-
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-green-50 dark:bg-green-950 flex items-center justify-center shrink-0">
-            <span className="text-xs font-semibold text-green-700 dark:text-green-300">
-              +{selectedThread.phoneNumber.slice(0, 2)}
+          <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center shrink-0 border border-green-200 dark:border-green-800">
+            <span className="text-sm font-semibold text-green-700 dark:text-green-300">
+              {selectedThread.farmerName ? selectedThread.farmerName.charAt(0).toUpperCase() : '+'}
             </span>
           </div>
 
           <div>
-            <h3 className="font-semibold text-sm leading-none">
-              {formatPhoneNumber(selectedThread.phoneNumber)}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-sm leading-none text-foreground">
+                {selectedThread.farmerName || formatPhoneNumber(selectedThread.phoneNumber)}
+              </h3>
+              {selectedThread.farmerName && (
+                <span className="text-xs text-muted-foreground font-normal">
+                  {formatPhoneNumber(selectedThread.phoneNumber)}
+                </span>
+              )}
+            </div>
 
-            <div className="flex items-center gap-1.5 mt-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              <span className="text-[10px] text-green-600 dark:text-green-400">
-                WhatsApp thread
-              </span>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[11px] text-green-700 dark:text-green-400 font-medium">
+                  WhatsApp Conversation
+                </span>
+              </div>
+              {selectedThread.language && (
+                <>
+                  <span className="text-muted-foreground text-[10px]">•</span>
+                  <span className="text-[10px] text-muted-foreground font-mono bg-muted px-1 rounded">
+                    {selectedThread.language}
+                  </span>
+                </>
+              )}
+              {selectedThread.status === 'Expert Review Required' && (
+                <>
+                  <span className="text-muted-foreground text-[10px]">•</span>
+                  <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-1.5 py-0.5 rounded font-semibold border border-amber-300 dark:border-amber-800">
+                    PAE Review
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
 
         {/* Date Filter */}
-        <div className="group relative flex items-center overflow-hidden rounded-xl border border-border bg-background/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:border-green-400/40 hover:shadow-md hover:shadow-green-500/5 focus-within:border-green-500 focus-within:shadow-lg focus-within:shadow-green-500/10">
+        <div className="flex items-center gap-2">
+          {selectedDate !== 'all' ? (
+            <button
+              onClick={() => onDateChange?.('all')}
+              className="px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted hover:bg-accent rounded-lg border border-border transition-colors"
+            >
+              All history
+            </button>
+          ) : (
+            <button
+              onClick={() => onDateChange?.(today)}
+              className="px-2.5 py-1.5 text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800 font-medium"
+            >
+              All history active
+            </button>
+          )}
 
-          {/* Animated glow */}
-          <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-green-500/5 to-green-500/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-
-          {/* Input */}
-          <input
-            type="date"
-            value={selectedDate || today}
-            max={today}
-            onChange={(e) => onDateChange?.(e.target.value)}
-            className="
-      relative h-10 w-[170px] bg-transparent px-3 text-sm
-      outline-none border-0
-      text-foreground
-      transition-all duration-300
-      [color-scheme:light_dark]
-    "
-          />
+          <div className="group relative flex items-center overflow-hidden rounded-xl border border-border bg-background/80 backdrop-blur-sm shadow-sm transition-all duration-300 hover:border-green-400/40">
+            <input
+              type="date"
+              value={selectedDate === 'all' ? '' : (selectedDate || today)}
+              max={today}
+              onChange={(e) => onDateChange?.(e.target.value)}
+              className="relative h-9 w-[150px] bg-transparent px-3 text-xs outline-none border-0 text-foreground [color-scheme:light_dark]"
+            />
+          </div>
         </div>
       </div>
 

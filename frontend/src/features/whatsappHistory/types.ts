@@ -8,11 +8,14 @@ export interface ToolCall {
 
 export interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'expert' | 'system';
   content: string;
   timestamp: Date;
   toolCalls?: ToolCall[];
-  status?: 'sending' | 'sent' | 'error';
+  status?: 'sending' | 'sent' | 'error' | 'delivered';
+  msgType?: 'text' | 'image' | 'audio' | 'voice';
+  mediaUrl?: string;
+  senderName?: string;
 }
 
 export interface Thread {
@@ -22,4 +25,8 @@ export interface Thread {
   lastMessageTimestamp: Date;
   lastMessageDate?: string;
   unreadCount?: number;
+  farmerName?: string;
+  language?: string;
+  status?: string;
+  avatar?: string;
 }

@@ -9,10 +9,14 @@ export interface ToolCall {
 
 export interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'expert' | 'system';
   content: string;
   timestamp: Date;
   toolCalls?: ToolCall[];
+  msgType?: string;
+  mediaUrl?: string;
+  senderName?: string;
+  status?: 'sending' | 'sent' | 'error' | 'delivered';
 }
 
 export interface Thread {
@@ -22,6 +26,10 @@ export interface Thread {
   lastMessageTimestamp: Date;
   lastMessageDate?: string;
   unreadCount?: number;
+  farmerName?: string;
+  language?: string;
+  status?: string;
+  avatar?: string;
 }
 
 export interface IncomingWhatsAppMessageExtra {
@@ -38,7 +46,7 @@ export interface IncomingWhatsAppMessageExtra {
 }
 
 export interface IWhatsAppService {
-  getThreads(): Promise<Thread[]>;
+  getThreads(page?: number, limit?: number, search?: string): Promise<Thread[]>;
   getThreadDetails(phoneNumber: string, date: string): Promise<Message[]>;
   sendMessage(
     userId: string,
