@@ -199,7 +199,7 @@ const FEATURE_REGISTRY: AppFeature[] = [
 ];
 
 export function GlobalCommunicationActions() {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -448,7 +448,7 @@ export function GlobalCommunicationActions() {
   const handleCopyHelpline = () => {
     navigator.clipboard.writeText(AGRISEVA_HELPLINE_NUMBER);
     setCopiedHelpline(true);
-    toast.success("Helpline number copied to clipboard");
+    toast.success(t("common.adviceCopied", "Helpline number copied to clipboard"));
     setTimeout(() => setCopiedHelpline(false), 2500);
   };
 
@@ -462,7 +462,10 @@ export function GlobalCommunicationActions() {
     {
       id: "welcome-1",
       sender: "ai",
-      text: "Namaste! I am your AgriSeva AI Assistant. Ask me anything about crop diseases, pest control, Mandi prices, or navigating AgriSeva-AI.",
+      text: t(
+        "common.assistantWelcome",
+        "Namaste! I am your AgriSeva AI Assistant. Ask me anything about crop diseases, pest control, Mandi prices, or navigating AgriSeva-AI."
+      ),
       timestamp: "Just now",
     },
   ]);
@@ -500,7 +503,11 @@ export function GlobalCommunicationActions() {
         const response = await fetch(`${env.apiBaseUrl()}/agora/voice-query`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: text, language: "en-IN", farmerPhone: user?.phoneNumber }),
+          body: JSON.stringify({
+            question: text,
+            language: currentLanguage?.code || "en-IN",
+            farmerPhone: user?.phoneNumber,
+          }),
           signal: AbortSignal.timeout(3000),
         });
         if (response.ok) {
@@ -549,7 +556,12 @@ export function GlobalCommunicationActions() {
   const handleToggleVoiceInput = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      toast.warning("Browser voice input is not supported in this browser. Please use Chrome or Edge.");
+      toast.warning(
+        t(
+          "common.browserVoiceNotSupported",
+          "Browser voice input is not supported in this browser. Please use Chrome or Edge."
+        )
+      );
       return;
     }
 
@@ -562,11 +574,11 @@ export function GlobalCommunicationActions() {
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = "en-IN";
+      recognition.lang = currentLanguage?.code || "en-IN";
 
       recognition.onstart = () => {
         setIsVoiceListening(true);
-        toast.info("Listening... speak your crop question");
+        toast.info(t("common.listeningVoice", "Listening... speak your crop question"));
       };
 
       recognition.onresult = (event: any) => {
@@ -707,7 +719,7 @@ export function GlobalCommunicationActions() {
                 </div>
               </div>
               <Badge className="bg-white/20 text-white hover:bg-white/30 border-none text-[11px] px-2 py-0.5">
-                24x7 Live
+                {t("common.live24x7", "24x7 Live")}
               </Badge>
             </div>
           </div>
@@ -734,20 +746,23 @@ export function GlobalCommunicationActions() {
                       </div>
                       <div>
                         <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">
-                          Live AI Web Voice Call
+                          {t("common.webCallTitle", "Live AI Web Voice Call")}
                         </span>
                         <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                          Agora RTC • 10,000 Free Min/Mo
+                          {t("common.webCallFreeBadge", "Agora RTC • 10,000 Free Min/Mo")}
                         </span>
                       </div>
                     </div>
                     <Badge className="bg-emerald-600 text-white text-[10px] px-2 py-0.5">
-                      100% Free
+                      {t("common.free100", "100% Free")}
                     </Badge>
                   </div>
 
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Talk live to AgriSeva AI right in your browser. No SIM card needed, no mobile balance consumed, and zero phone call charges.
+                    {t(
+                      "common.webCallDesc",
+                      "Talk live to AgriSeva AI right in your browser. No SIM card needed, no mobile balance consumed, and zero phone call charges."
+                    )}
                   </p>
 
                   <Button
@@ -759,7 +774,7 @@ export function GlobalCommunicationActions() {
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center justify-center gap-2 h-9 shadow-md shadow-emerald-950/20"
                   >
                     <Headphones className="h-4 w-4" />
-                    <span>Start Free Web Voice Call</span>
+                    <span>{t("common.webCallButton", "Start Free Web Voice Call")}</span>
                   </Button>
                 </div>
 
@@ -768,7 +783,7 @@ export function GlobalCommunicationActions() {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs font-semibold text-primary uppercase tracking-wider block">
-                        AgriSeva AI Helpline
+                        {t("common.helplineNumberTitle", "AgriSeva AI Helpline")}
                       </span>
                       <span className="text-base font-bold text-foreground">
                         {formatPhoneNumber(AGRISEVA_HELPLINE_NUMBER)}
@@ -780,7 +795,7 @@ export function GlobalCommunicationActions() {
                         variant="outline"
                         onClick={handleCopyHelpline}
                         className="h-8 w-8 rounded-lg"
-                        title="Copy Number"
+                        title={t("common.copyNumber", "Copy Number")}
                       >
                         {copiedHelpline ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                       </Button>
@@ -789,15 +804,18 @@ export function GlobalCommunicationActions() {
                         onClick={() => handleStartCall(AGRISEVA_HELPLINE_NUMBER, true)}
                         variant="outline"
                         className="border-emerald-600 text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5 h-8 px-3 shadow-sm"
-                        title="Dial on phone"
+                        title={t("common.dial", "Dial")}
                       >
                         <Phone className="h-3.5 w-3.5" />
-                        <span>Dial</span>
+                        <span>{t("common.dial", "Dial")}</span>
                       </Button>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Official AgriSeva contact number. Dial from any phone to reach our automated helpline.
+                    {t(
+                      "common.helplineNumberDesc",
+                      "Official AgriSeva contact number. Dial from any phone to reach our automated helpline."
+                    )}
                   </p>
                 </div>
 
@@ -805,7 +823,7 @@ export function GlobalCommunicationActions() {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider block">
-                        Kisan Call Center (Toll-Free)
+                        {t("common.kisanCallCenterTitle", "Kisan Call Center (Toll-Free)")}
                       </span>
                       <span className="text-base font-bold text-foreground">
                         {KISAN_TOLLFREE_NUMBER}
@@ -818,11 +836,14 @@ export function GlobalCommunicationActions() {
                       className="font-semibold flex items-center gap-1.5 h-8 px-3.5"
                     >
                       <Phone className="h-3.5 w-3.5 text-amber-600" />
-                      <span>Call</span>
+                      <span>{t("common.callAction", "Call")}</span>
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    National agricultural advisory service by Ministry of Agriculture & Farmers Welfare.
+                    {t(
+                      "common.kisanCallCenterDesc",
+                      "National agricultural advisory service by Ministry of Agriculture & Farmers Welfare."
+                    )}
                   </p>
                 </div>
 
@@ -868,7 +889,7 @@ export function GlobalCommunicationActions() {
                 {isCheckingFarmer && (
                   <div className="text-xs text-muted-foreground flex items-center gap-1.5 py-1">
                     <span className="h-3 w-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                    <span>Checking registered farmer profile...</span>
+                    <span>{t("common.checkingFarmer", "Checking registered farmer profile...")}</span>
                   </div>
                 )}
 
@@ -876,7 +897,7 @@ export function GlobalCommunicationActions() {
                   <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-3 space-y-1.5">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
                       <User className="h-3.5 w-3.5" />
-                      <span>{farmerProfile.farmerName || "Registered Farmer"}</span>
+                      <span>{farmerProfile.farmerName || t("common.registeredFarmer", "Registered Farmer")}</span>
                       <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-600" />
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -929,16 +950,16 @@ export function GlobalCommunicationActions() {
                 </div>
                 <div>
                   <DialogTitle className="text-lg font-bold tracking-tight text-white">
-                    AgriSeva WhatsApp Connect
+                    {t("common.whatsAppModalTitle", "AgriSeva WhatsApp Connect")}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-white/85">
-                    Chat with AI advisory & send farmer updates
+                    {t("common.whatsAppModalDesc", "Chat with AI advisory & send farmer updates")}
                   </DialogDescription>
                 </div>
               </div>
               <Badge className="bg-white/20 text-white hover:bg-white/30 border-none text-[11px] px-2 py-0.5 flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
-                Official Bot
+                {t("common.officialBot", "Official Bot")}
               </Badge>
             </div>
           </div>
@@ -947,10 +968,10 @@ export function GlobalCommunicationActions() {
             <Tabs defaultValue="chatbot" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-4 bg-muted/60 p-1">
                 <TabsTrigger value="chatbot" className="text-xs font-semibold">
-                  AgriSeva AI Bot
+                  {t("common.aiBotTab", "AgriSeva AI Bot")}
                 </TabsTrigger>
                 <TabsTrigger value="direct" className="text-xs font-semibold">
-                  Message a Farmer
+                  {t("common.messageFarmerTab", "Message a Farmer")}
                 </TabsTrigger>
               </TabsList>
 
@@ -963,10 +984,13 @@ export function GlobalCommunicationActions() {
                     </div>
                     <div>
                       <h4 className="text-sm font-semibold text-foreground">
-                        Instant WhatsApp Agricultural Advisory
+                        {t("common.waAdvisoryTitle", "Instant WhatsApp Agricultural Advisory")}
                       </h4>
                       <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                        Send questions, crop photos, or voice notes on WhatsApp to receive real-time disease diagnosis, mandi rates, and pest management.
+                        {t(
+                          "common.waAdvisoryDesc",
+                          "Send questions, crop photos, or voice notes on WhatsApp to receive real-time disease diagnosis, mandi rates, and pest management."
+                        )}
                       </p>
                     </div>
                   </div>
@@ -974,7 +998,7 @@ export function GlobalCommunicationActions() {
                   <div className="pt-2 border-t border-border/60 flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block uppercase tracking-wider">
-                        AgriSeva AI WhatsApp
+                        {t("common.agriSevaAiWhatsApp", "AgriSeva AI WhatsApp")}
                       </span>
                       <span className="text-xs font-mono font-bold text-foreground">
                         {formatPhoneNumber(AGRISEVA_WHATSAPP_NUMBER)}
@@ -989,7 +1013,7 @@ export function GlobalCommunicationActions() {
                       className="bg-[#25D366] hover:bg-[#20BA5C] text-white font-semibold flex items-center gap-1.5 h-8 px-4 shadow-sm"
                     >
                       <MessageSquare className="h-3.5 w-3.5" />
-                      <span>Chat on WhatsApp</span>
+                      <span>{t("common.chatOnWhatsApp", "Chat on WhatsApp")}</span>
                       <ExternalLink className="h-3 w-3 ml-0.5" />
                     </Button>
                   </div>
@@ -1041,7 +1065,10 @@ export function GlobalCommunicationActions() {
                     id="wa-message-text"
                     value={waMessage}
                     onChange={(e) => setWaMessage(e.target.value)}
-                    placeholder="Enter agricultural advice or advisory text to send to farmer..."
+                    placeholder={t(
+                      "common.waMessagePlaceholder",
+                      "Enter agricultural advice or advisory text to send to farmer..."
+                    )}
                     rows={3}
                     className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-500/40"
                   />
@@ -1105,13 +1132,15 @@ export function GlobalCommunicationActions() {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-white truncate">AgriSeva AI Assistant</span>
+                  <span className="text-xs font-bold text-white truncate">
+                    {t("common.aiAssistantTitle", "AgriSeva AI Assistant")}
+                  </span>
                   <Badge className="bg-emerald-500/30 text-emerald-200 border-none text-[9px] px-1 py-0 font-medium">
-                    Online
+                    {t("common.onlineBadge", "Online")}
                   </Badge>
                 </div>
                 <p className="text-[10px] text-emerald-200/90 truncate font-serif italic">
-                  Every Farmer a King, with AI by their side.
+                  {t("common.slogan", "Every Farmer a King, with AI by their side.")}
                 </p>
               </div>
             </div>
@@ -1121,8 +1150,8 @@ export function GlobalCommunicationActions() {
                 type="button"
                 onClick={() => setAssistantMessages([assistantMessages[0]])}
                 className="p-1 rounded-md text-emerald-200 hover:text-white hover:bg-white/10 transition-colors"
-                title="Reset conversation"
-                aria-label="Reset conversation"
+                title={t("common.resetConversation", "Reset conversation")}
+                aria-label={t("common.resetConversation", "Reset conversation")}
               >
                 <RotateCcw className="h-3.5 w-3.5" />
               </button>
@@ -1130,8 +1159,8 @@ export function GlobalCommunicationActions() {
                 type="button"
                 onClick={() => setHelperDialogOpen(false)}
                 className="p-1 rounded-md text-emerald-200 hover:text-white hover:bg-white/10 transition-colors"
-                title="Close AI Assistant"
-                aria-label="Close AI Assistant"
+                title={t("common.closeAssistant", "Close AI Assistant")}
+                aria-label={t("common.closeAssistant", "Close AI Assistant")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1145,7 +1174,9 @@ export function GlobalCommunicationActions() {
                 <Compass className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="font-semibold truncate">{currentPageContext.name}</span>
               </div>
-              <span className="text-[10px] text-muted-foreground shrink-0">Active Tip</span>
+              <span className="text-[10px] text-muted-foreground shrink-0">
+                {t("common.activeTip", "Active Tip")}
+              </span>
             </div>
           )}
 
@@ -1190,7 +1221,7 @@ export function GlobalCommunicationActions() {
             {assistantMessages.length === 1 && (
               <div className="pt-1 space-y-1.5">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-0.5">
-                  Frequently Asked
+                  {t("common.frequentlyAsked", "Frequently Asked")}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {[
@@ -1215,7 +1246,7 @@ export function GlobalCommunicationActions() {
             {isAiThinking && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground p-2 rounded-xl bg-muted/40 w-fit">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-                <span>Consulting ICAR agronomic database...</span>
+                <span>{t("common.aiThinking", "Consulting ICAR agronomic database...")}</span>
               </div>
             )}
 
@@ -1224,7 +1255,7 @@ export function GlobalCommunicationActions() {
 
           {/* Quick Helplines Gateway inside Footer */}
           <div className="px-3 py-1.5 bg-muted/20 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground shrink-0">
-            <span>Need human agent?</span>
+            <span>{t("common.needHumanAgent", "Need human agent?")}</span>
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
@@ -1235,7 +1266,7 @@ export function GlobalCommunicationActions() {
                 className="text-emerald-700 dark:text-emerald-400 font-semibold hover:underline flex items-center gap-0.5"
               >
                 <Phone className="h-3 w-3" />
-                <span>Call</span>
+                <span>{t("common.callAction", "Call")}</span>
               </button>
               <span>•</span>
               <button
@@ -1247,7 +1278,7 @@ export function GlobalCommunicationActions() {
                 className="text-green-600 dark:text-green-400 font-semibold hover:underline flex items-center gap-0.5"
               >
                 <MessageSquare className="h-3 w-3" />
-                <span>WhatsApp</span>
+                <span>{t("common.whatsAppAction", "WhatsApp")}</span>
               </button>
             </div>
           </div>
@@ -1270,8 +1301,8 @@ export function GlobalCommunicationActions() {
                   ? "bg-red-500 text-white animate-pulse"
                   : "text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
               }`}
-              title="Voice Input (Speech to text)"
-              aria-label="Voice Input"
+              title={t("common.voiceRecorder", "Voice Input (Speech to text)")}
+              aria-label={t("common.voiceRecorder", "Voice Input")}
             >
               <Headphones className="h-4 w-4" />
             </Button>
@@ -1281,7 +1312,10 @@ export function GlobalCommunicationActions() {
               id="ai-assistant-input"
               value={assistantInput}
               onChange={(e) => setAssistantInput(e.target.value)}
-              placeholder="Ask farming query or app guidance..."
+              placeholder={t(
+                "common.assistantInputPlaceholder",
+                "Ask farming query or app guidance..."
+              )}
               className="h-8 text-xs bg-muted/40 border-border focus:ring-1 focus:ring-emerald-500 rounded-lg px-2.5"
             />
 
@@ -1290,8 +1324,8 @@ export function GlobalCommunicationActions() {
               size="icon"
               disabled={!assistantInput.trim() || isAiThinking}
               className="h-8 w-8 shrink-0 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-40 transition-colors"
-              title="Send Query"
-              aria-label="Send Query"
+              title={t("common.sendQuery", "Send Query")}
+              aria-label={t("common.sendQuery", "Send Query")}
             >
               <Send className="h-3.5 w-3.5" />
             </Button>

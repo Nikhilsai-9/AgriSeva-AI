@@ -36,6 +36,8 @@ import {
 } from "./atoms/select";
 import { env } from "@/config/env";
 import { toast } from "sonner";
+import { useTranslation } from "@/locales";
+import { useLanguageStore } from "@/stores/language-store";
 
 interface AgoraVoiceCallModalProps {
   open: boolean;
@@ -69,10 +71,20 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
   callerPhone,
   initialLanguage = "te-IN",
 }) => {
+  const { t } = useTranslation();
+  const currentGlobalLang = useLanguageStore((s) => s.currentLanguage);
   const [callState, setCallState] = useState<"idle" | "connecting" | "connected" | "disconnected">("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState(initialLanguage);
+  const [selectedLanguage, setSelectedLanguage] = useState(
+    currentGlobalLang?.code || initialLanguage
+  );
+
+  useEffect(() => {
+    if (open && currentGlobalLang?.code) {
+      setSelectedLanguage(currentGlobalLang.code);
+    }
+  }, [open, currentGlobalLang]);
   const [callDuration, setCallDuration] = useState(0);
   const [aiStatus, setAiStatus] = useState<"listening" | "thinking" | "speaking" | "idle">("idle");
   const [messages, setMessages] = useState<MessageBubble[]>([]);
@@ -470,17 +482,19 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
               </div>
               <div>
                 <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-                  <span>AgriSeva AI Web Call</span>
+                  <span>{t("common.webCallTitle", "AgriSeva AI Web Call")}</span>
                   <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] px-2">
-                    Agora 10,000 Min Free
+                    {t("common.webCallFreeBadge", "Agora 10,000 Min Free")}
                   </Badge>
                 </DialogTitle>
                 <DialogDescription className="text-xs text-zinc-300">
                   {callState === "connected"
-                    ? `Duration: ${formatDuration(callDuration)} • 100% Free Web Call`
+                    ? t("common.webCallDuration", "Duration: {time} • 100% Free Web Call", {
+                        time: formatDuration(callDuration),
+                      })
                     : callState === "connecting"
-                    ? "Establishing Agora audio channel..."
-                    : "Call ended"}
+                    ? t("common.webCallConnecting", "Establishing Agora audio channel...")
+                    : t("common.webCallEnded", "Call ended")}
                 </DialogDescription>
               </div>
             </div>
@@ -510,9 +524,13 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
                 aiStatus === "listening" ? "bg-cyan-400 animate-pulse" : "bg-zinc-500"
               }`} />
               <span className="text-xs font-medium text-zinc-200">
-                {aiStatus === "speaking" ? "AI Speaking to you..." :
-                 aiStatus === "thinking" ? "AI Diagnosing with ICAR data..." :
-                 aiStatus === "listening" ? "Listening to your voice..." : "Ready"}
+                {aiStatus === "speaking"
+                  ? t("common.aiSpeaking", "AI Speaking to you...")
+                  : aiStatus === "thinking"
+                  ? t("common.aiThinking", "AI Diagnosing with ICAR data...")
+                  : aiStatus === "listening"
+                  ? t("common.aiListening", "Listening to your voice...")
+                  : t("common.aiReady", "Ready")}
               </span>
             </div>
 
@@ -542,8 +560,15 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-6 text-zinc-400 space-y-2">
                 <Mic className="h-8 w-8 text-emerald-400 animate-bounce" />
-                <p className="text-xs font-semibold text-zinc-300">Speak into your microphone</p>
-                <p className="text-[11px] text-zinc-500">Ask any crop disease, pesticide dosage, or Mandi price question in your language.</p>
+                <p className="text-xs font-semibold text-zinc-300">
+                  {t("common.speakMicTitle", "Speak into your microphone")}
+                </p>
+                <p className="text-[11px] text-zinc-500">
+                  {t(
+                    "common.speakMicDesc",
+                    "Ask any crop disease, pesticide dosage, or Mandi price question in your language."
+                  )}
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -555,7 +580,7 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
                     <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mb-1 px-1">
                       {msg.sender === "user" ? (
                         <>
-                          <span>You (Farmer)</span>
+                          <span>{t("common.youFarmer", "You (Farmer)")}</span>
                           <User className="h-3 w-3 text-cyan-400" />
                         </>
                       ) : (
@@ -617,7 +642,7 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
               className={`h-10 w-10 rounded-full border border-white/20 ${
                 isMuted ? "bg-red-500/20 text-red-400 border-red-500/40" : "bg-white/10 text-white hover:bg-white/20"
               }`}
-              title={isMuted ? "Unmute Mic" : "Mute Mic"}
+              title={isMuted ? t("common.micMuted", "Mute Mic") : t("common.micActive", "Unmute Mic")}
             >
               {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
             </Button>
@@ -633,13 +658,13 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
                 if (next && typeof window !== "undefined" && "speechSynthesis" in window) {
                   window.speechSynthesis.cancel();
                 }
-                toast.info(next ? "AI Audio muted" : "AI Audio active");
+                toast.info(next ? t("common.speakerMuted", "AI Audio muted") : t("common.speakerActive", "AI Audio active"));
               }}
               disabled={callState !== "connected"}
               className={`h-10 w-10 rounded-full border border-white/20 ${
                 isSpeakerMuted ? "bg-red-500/20 text-red-400 border-red-500/40" : "bg-white/10 text-white hover:bg-white/20"
               }`}
-              title={isSpeakerMuted ? "Unmute Speaker" : "Mute Speaker"}
+              title={isSpeakerMuted ? t("common.unmuteSpeaker", "Unmute Speaker") : t("common.muteSpeaker", "Mute Speaker")}
             >
               {isSpeakerMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
             </Button>
@@ -653,7 +678,7 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
               className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-6 py-2.5 rounded-full flex items-center gap-2 shadow-lg shadow-red-950/40"
             >
               <PhoneOff className="h-4 w-4" />
-              <span>End Call</span>
+              <span>{t("common.endCall", "End Call")}</span>
             </Button>
           ) : (
             <Button
@@ -662,7 +687,7 @@ export const AgoraVoiceCallModal: React.FC<AgoraVoiceCallModalProps> = ({
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 py-2.5 rounded-full flex items-center gap-2 shadow-lg shadow-emerald-950/40"
             >
               <Phone className="h-4 w-4" />
-              <span>Start Web Call</span>
+              <span>{t("common.startWebCall", "Start Web Call")}</span>
             </Button>
           )}
         </div>

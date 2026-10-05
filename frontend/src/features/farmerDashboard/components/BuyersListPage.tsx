@@ -106,13 +106,15 @@ export function BuyersListPage() {
             {/* Crop Filter */}
             <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-50 border border-stone-200/60 text-xs">
               <Filter className="h-3.5 w-3.5 text-emerald-700" />
-              <span className="font-semibold text-emerald-900/70">Crop:</span>
+              <span className="font-semibold text-emerald-900/70">
+                {t("farmer.buyers.cropLabel", "Crop:")}
+              </span>
               <select
                 value={selectedCrop}
                 onChange={(e) => setSelectedCrop(e.target.value)}
                 className="bg-transparent font-bold text-emerald-950 outline-none cursor-pointer"
               >
-                <option value="all">All Crops</option>
+                <option value="all">{t("farmer.buyers.allCropsOption", "All Crops")}</option>
                 {COMMODITIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
@@ -121,13 +123,15 @@ export function BuyersListPage() {
 
             {/* State Filter */}
             <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-50 border border-stone-200/60 text-xs">
-              <span className="font-semibold text-emerald-900/70">State:</span>
+              <span className="font-semibold text-emerald-900/70">
+                {t("farmer.buyers.stateLabel", "State:")}
+              </span>
               <select
                 value={selectedState}
                 onChange={(e) => setSelectedState(e.target.value)}
                 className="bg-transparent font-bold text-emerald-950 outline-none cursor-pointer max-w-[130px] truncate"
               >
-                <option value="all">All States</option>
+                <option value="all">{t("farmer.buyers.allStatesOption", "All States")}</option>
                 {INDIAN_STATES.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
@@ -138,7 +142,9 @@ export function BuyersListPage() {
 
         {selectedCrop !== "all" && (
           <div className="flex items-center gap-2 pt-1 text-xs text-emerald-800">
-            <span className="font-semibold">Showing verified buyers actively procuring:</span>
+            <span className="font-semibold">
+              {t("farmer.buyers.showingProcuring", "Showing verified buyers actively procuring:")}
+            </span>
             <span className="font-bold bg-emerald-100 text-emerald-950 px-2 py-0.5 rounded-full">
               {selectedCrop}
             </span>
@@ -146,7 +152,7 @@ export function BuyersListPage() {
               onClick={() => setSelectedCrop("all")}
               className="text-emerald-700 underline text-[11px] hover:text-emerald-900"
             >
-              Clear filter
+              {t("farmer.buyers.clearFilter", "Clear filter")}
             </button>
           </div>
         )}
@@ -186,7 +192,7 @@ export function BuyersListPage() {
               onClick={() => setSelectedCrop("all")}
               className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
             >
-              Show all buyers
+              {t("farmer.buyers.showAllBuyers", "Show all buyers")}
             </button>
           )}
         </FarmerCard>
@@ -211,7 +217,7 @@ export function BuyersListPage() {
                           {buyer.name}
                         </p>
                         <p className="text-xs text-emerald-900/60 truncate">
-                          {buyer.businessType || buyer.type || "Commercial Buyer"}
+                          {buyer.businessType || buyer.type || t("farmer.home.buyerTypeDefault", "Commercial Buyer")}
                         </p>
                       </div>
                     </div>
@@ -225,7 +231,9 @@ export function BuyersListPage() {
                             : "bg-stone-100 text-stone-700"
                       )}
                     >
-                      {score}% match
+                      {t("farmer.buyers.matchPercent", "{score}% match", {
+                        score: String(score),
+                      })}
                     </span>
                   </div>
 
@@ -236,7 +244,12 @@ export function BuyersListPage() {
                     </p>
                     <p className="text-emerald-900/70 flex items-center gap-1.5">
                       <Star className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                      <span>{buyer.rating.toFixed(1)} • {buyer.completedDeals} deals fulfilled</span>
+                      <span>
+                        {buyer.rating.toFixed(1)} •{" "}
+                        {t("farmer.buyers.dealsCount", "{count} deals fulfilled", {
+                          count: String(buyer.completedDeals),
+                        })}
+                      </span>
                     </p>
                     {buyer.verified && (
                       <p className="text-emerald-700 flex items-center gap-1 font-semibold">
@@ -254,7 +267,7 @@ export function BuyersListPage() {
 
                   <div className="mt-3 pt-2.5 border-t border-emerald-50">
                     <span className="text-[10px] font-semibold text-emerald-900/60 uppercase tracking-wider block mb-1">
-                      Crops Procured:
+                      {t("farmer.buyers.cropsProcured", "Crops Procured:")}
                     </span>
                     <div className="flex flex-wrap gap-1">
                       {buyer.cropsInterested.map((c) => (
@@ -276,7 +289,7 @@ export function BuyersListPage() {
 
                 <div className="mt-4 pt-2 border-t border-emerald-100/60 flex items-center justify-between text-xs">
                   <span className="text-emerald-700 font-bold group-hover:underline">
-                    View Buyer Profile →
+                    {t("farmer.buyers.viewProfile", "View Buyer Profile →")}
                   </span>
                   <span className="text-[11px] text-emerald-900/50">
                     ID: {buyer.id}

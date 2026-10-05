@@ -238,11 +238,11 @@ export function CreateLotPage() {
       return;
     }
     if (!state) {
-      setError("Please select a state.");
+      setError(t("farmer.createLot.selectStatePrompt", "Please select a state."));
       return;
     }
     if (!district.trim()) {
-      setError("Please enter your district.");
+      setError(t("farmer.createLot.enterDistrictPrompt", "Please enter your district."));
       return;
     }
     if (!harvestDate) {
@@ -310,7 +310,12 @@ export function CreateLotPage() {
       {success && (
         <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-300 rounded-2xl text-emerald-900 text-sm font-semibold animate-in fade-in">
           <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-          <span>Lot created and published successfully! Redirecting to your lots…</span>
+          <span>
+            {t(
+              "farmer.createLot.lotCreatedSuccess",
+              "Lot created and published successfully! Redirecting to your lots…"
+            )}
+          </span>
         </div>
       )}
 
@@ -350,7 +355,7 @@ export function CreateLotPage() {
             <label className="block">
               <span className="block text-sm font-semibold text-emerald-950 mb-1.5 flex items-center gap-1">
                 <MapPin className="h-3.5 w-3.5 text-emerald-600" />
-                State *
+                {t("farmer.createLot.stateLabel", "State *")}
               </span>
               <select
                 required
@@ -358,7 +363,7 @@ export function CreateLotPage() {
                 onChange={(e) => setState(e.target.value)}
                 className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
-                <option value="">Select state…</option>
+                <option value="">{t("farmer.createLot.selectState", "Select state…")}</option>
                 {INDIAN_STATES.map((s) => (
                   <option key={s} value={s}>
                     {s}
@@ -369,27 +374,27 @@ export function CreateLotPage() {
 
             <label className="block">
               <span className="block text-sm font-semibold text-emerald-950 mb-1.5">
-                District *
+                {t("farmer.createLot.districtLabel", "District *")}
               </span>
               <input
                 type="text"
                 required
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                placeholder="e.g. Nashik, Pune, Kolar…"
+                placeholder={t("farmer.createLot.districtPlaceholder", "e.g. Nashik, Pune, Kolar…")}
                 className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </label>
 
             <label className="block">
               <span className="block text-sm font-semibold text-emerald-950 mb-1.5">
-                Village / Tehsil (Optional)
+                {t("farmer.createLot.villageLabel", "Village / Tehsil (Optional)")}
               </span>
               <input
                 type="text"
                 value={village}
                 onChange={(e) => setVillage(e.target.value)}
-                placeholder="e.g. Dindori, Yeola…"
+                placeholder={t("farmer.createLot.villagePlaceholder", "e.g. Dindori, Yeola…")}
                 className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </label>
@@ -401,16 +406,16 @@ export function CreateLotPage() {
               <label className="block">
                 <span className="block text-sm font-semibold text-emerald-950 mb-1.5 flex items-center gap-1.5">
                   <Store className="h-4 w-4 text-emerald-600" />
-                  {t("farmer.createLot.mandi", "Target Mandi / Market")}
+                  {t("farmer.createLot.targetMandi", "Target Mandi / Market")}
                   <span className="text-xs font-normal text-emerald-700">
-                    {state ? `(${state} official data)` : ""}
+                    {state ? `(${state})` : ""}
                   </span>
                 </span>
 
                 {isCropPricesLoading ? (
                   <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm text-emerald-900/60">
                     <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
-                    <span>Loading verified Agmarknet mandis…</span>
+                    <span>{t("farmer.createLot.loadingMandis", "Loading verified Agmarknet mandis…")}</span>
                   </div>
                 ) : (
                   <select
@@ -418,7 +423,7 @@ export function CreateLotPage() {
                     onChange={(e) => setSelectedMandi(e.target.value)}
                     className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option value="">Select market for pricing reference…</option>
+                    <option value="">{t("farmer.createLot.selectMandiPlaceholder", "Select market for pricing reference…")}</option>
                     {availableMandis.map((m) => (
                       <option key={m.id} value={m.market}>
                         {m.market} ({m.district || m.state})
@@ -427,7 +432,7 @@ export function CreateLotPage() {
                           : ""}
                       </option>
                     ))}
-                    <option value="other">Other / Local Mandi (Type manually)</option>
+                    <option value="other">{t("farmer.createLot.otherMandiOption", "Other / Local Mandi (Type manually)")}</option>
                   </select>
                 )}
               </label>
@@ -435,7 +440,7 @@ export function CreateLotPage() {
               {selectedMandi === "other" && (
                 <label className="block animate-in fade-in">
                   <span className="block text-xs font-semibold text-emerald-900/70 mb-1">
-                    Enter Local Mandi Name
+                    {t("farmer.createLot.enterCustomMandi", "Enter Local Mandi Name")}
                   </span>
                   <input
                     type="text"
@@ -454,7 +459,7 @@ export function CreateLotPage() {
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-emerald-600" />
                       <p className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
-                        Verified Mandi Market Data
+                        {t("farmer.createLot.verifiedMandiData", "Verified Mandi Market Data")}
                       </p>
                     </div>
                     <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
@@ -464,7 +469,9 @@ export function CreateLotPage() {
 
                   <div className="grid grid-cols-3 gap-3 text-xs">
                     <div className="bg-white/80 rounded-xl p-2.5 border border-emerald-100">
-                      <p className="text-[10px] uppercase font-semibold text-emerald-900/60">Min Price</p>
+                      <p className="text-[10px] uppercase font-semibold text-emerald-900/60">
+                        {t("farmer.createLot.minPrice", "Min Price")}
+                      </p>
                       <p className="font-bold text-emerald-900 text-sm">
                         {selectedMandiPrice.minPrice > 0
                           ? `₹${selectedMandiPrice.minPrice.toLocaleString("en-IN")}`
@@ -474,7 +481,9 @@ export function CreateLotPage() {
                     </div>
 
                     <div className="bg-emerald-50/80 rounded-xl p-2.5 border border-emerald-200">
-                      <p className="text-[10px] uppercase font-semibold text-emerald-800">Modal Price</p>
+                      <p className="text-[10px] uppercase font-semibold text-emerald-800">
+                        {t("farmer.createLot.modalPrice", "Modal Price")}
+                      </p>
                       <p className="font-bold text-emerald-950 text-base">
                         {selectedMandiPrice.modalPrice > 0
                           ? `₹${selectedMandiPrice.modalPrice.toLocaleString("en-IN")}`
@@ -484,7 +493,9 @@ export function CreateLotPage() {
                     </div>
 
                     <div className="bg-white/80 rounded-xl p-2.5 border border-emerald-100">
-                      <p className="text-[10px] uppercase font-semibold text-emerald-900/60">Max Price</p>
+                      <p className="text-[10px] uppercase font-semibold text-emerald-900/60">
+                        {t("farmer.createLot.maxPrice", "Max Price")}
+                      </p>
                       <p className="font-bold text-emerald-900 text-sm">
                         {selectedMandiPrice.maxPrice > 0
                           ? `₹${selectedMandiPrice.maxPrice.toLocaleString("en-IN")}`
@@ -496,10 +507,16 @@ export function CreateLotPage() {
 
                   <div className="flex items-center justify-between text-[11px] text-emerald-900/60 mt-3 pt-2 border-t border-emerald-100">
                     <span>
-                      Auction Date: <strong>{selectedMandiPrice.arrivalDate || "Latest available"}</strong>
+                      {t("farmer.createLot.auctionDate", "Auction Date")}:{" "}
+                      <strong>
+                        {selectedMandiPrice.arrivalDate ||
+                          t("farmer.createLot.latestAvailable", "Latest available")}
+                      </strong>
                     </span>
                     {selectedMandiPrice.isAggregate && (
-                      <span className="text-amber-700 font-medium">State Aggregate Benchmark</span>
+                      <span className="text-amber-700 font-medium">
+                        {t("farmer.createLot.stateBenchmark", "State Aggregate Benchmark")}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -529,8 +546,8 @@ export function CreateLotPage() {
                   onChange={(e) => setQuantityUnit(e.target.value as "quintal" | "kg")}
                   className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="quintal">Quintals (qtl)</option>
-                  <option value="kg">Kilograms (kg)</option>
+                  <option value="quintal">{t("farmer.createLot.unitQuintal", "Quintals (qtl)")}</option>
+                  <option value="kg">{t("farmer.createLot.unitKg", "Kilograms (kg)")}</option>
                 </select>
               </div>
               {quantity && quantityUnit === "quintal" && (
@@ -550,9 +567,9 @@ export function CreateLotPage() {
                 onChange={(e) => setQualityGrade(e.target.value as QualityGrade)}
                 className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
-                <option value="A">Grade A — Premium / Export Quality</option>
-                <option value="B">Grade B — Standard Commercial Grade</option>
-                <option value="C">Grade C — Fair Average Quality (FAQ)</option>
+                <option value="A">{t("farmer.createLot.gradeA", "Grade A — Premium / Export Quality")}</option>
+                <option value="B">{t("farmer.createLot.gradeB", "Grade B — Standard Commercial Grade")}</option>
+                <option value="C">{t("farmer.createLot.gradeC", "Grade C — Fair Average Quality (FAQ)")}</option>
               </select>
             </label>
           </div>
@@ -605,7 +622,7 @@ export function CreateLotPage() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="e.g. Organic certified, sorted, dry storage…"
+              placeholder={t("farmer.createLot.notesPlaceholder", "e.g. Organic certified, sorted, dry storage…")}
             />
           </label>
 
@@ -618,7 +635,7 @@ export function CreateLotPage() {
             {isBusy
               ? t("farmer.createLot.submitting", "Publishing…")
               : success
-              ? "Lot Created!"
+              ? t("farmer.createLot.lotCreatedBtn", "Lot Created!")
               : t("farmer.createLot.submit", "Create & Publish Lot")}
           </button>
 
@@ -651,7 +668,10 @@ export function CreateLotPage() {
 
         {!preview ? (
           <p className="text-sm text-emerald-900/60 py-2">
-            Select crop and quantity to view fair value and recommended buyer match.
+            {t(
+              "farmer.createLot.previewEmptyPrompt",
+              "Select crop and quantity to view fair value and recommended buyer match."
+            )}
           </p>
         ) : (
           <div className="space-y-4 pt-2">
@@ -688,7 +708,12 @@ export function CreateLotPage() {
               <span className="font-semibold text-emerald-900">
                 {t("farmer.createLot.previewBuyer", "Commercial Buyer Interest")}:
               </span>{" "}
-              {preview.buyer ? preview.buyer.name : "Active regional aggregators available"}
+              {preview.buyer
+                ? preview.buyer.name
+                : t(
+                    "farmer.createLot.regionalAggregatorsAvailable",
+                    "Active regional aggregators available"
+                  )}
             </div>
           </div>
         )}

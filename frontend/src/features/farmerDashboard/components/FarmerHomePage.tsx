@@ -53,11 +53,11 @@ import { ReliabilityChip, LowReliabilityBanner } from "./MarketReliabilityChip";
 import { cn } from "@/lib/utils";
 
 const QUICK_ACTIONS = [
-  { to: "/farmer/lots/new", icon: Plus, accent: "emerald", key: "addLot", title: "New Lot", subtitle: "Post fresh crop harvest" },
-  { to: "/farmer/prices", icon: TrendingUp, accent: "emerald", key: "marketPrices", title: "Prices", subtitle: "Real mandi auction rates" },
-  { to: "/farmer/buyers", icon: Factory, accent: "amber", key: "findBuyers", title: "Buyers", subtitle: "Commercial aggregators" },
-  { to: "/farmer/lots", icon: Sprout, accent: "rose", key: "myLots", title: "My Lots", subtitle: "Manage active harvests" },
-  { to: "/farmer/offers", icon: Handshake, accent: "sky", key: "myOffers", title: "Offers", subtitle: "Incoming buyer bids" },
+  { to: "/farmer/lots/new", icon: Plus, accent: "emerald", key: "addLot", titleKey: "farmer.lots.new", title: "New Lot", subtitleKey: "farmer.home.addLot", subtitle: "Post fresh crop harvest" },
+  { to: "/farmer/prices", icon: TrendingUp, accent: "emerald", key: "marketPrices", titleKey: "farmer.nav.prices", title: "Prices", subtitleKey: "farmer.home.marketPricesHint", subtitle: "Real mandi auction rates" },
+  { to: "/farmer/buyers", icon: Factory, accent: "amber", key: "findBuyers", titleKey: "farmer.nav.buyers", title: "Buyers", subtitleKey: "farmer.home.findBuyersHint", subtitle: "Commercial aggregators" },
+  { to: "/farmer/lots", icon: Sprout, accent: "rose", key: "myLots", titleKey: "farmer.home.myLots", title: "My Lots", subtitleKey: "farmer.home.myLotsHint", subtitle: "Manage active harvests" },
+  { to: "/farmer/offers", icon: Handshake, accent: "sky", key: "myOffers", titleKey: "farmer.nav.offers", title: "Offers", subtitleKey: "farmer.home.myOffersHint", subtitle: "Incoming buyer bids" },
 ];
 
 export function FarmerHomePage() {
@@ -217,14 +217,19 @@ export function FarmerHomePage() {
               {t("farmer.home.todaysInsight", "Today's Verified Market Insight")}
             </h2>
             <p className="text-xs text-emerald-900/60 mt-0.5">
-              Official mandi rates from Government of India Agmarknet and eNAM registries.
+              {t(
+                "farmer.home.officialMandiRatesSub",
+                "Official mandi rates from Government of India Agmarknet and eNAM registries."
+              )}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Commodity Selector */}
             <div className="flex items-center gap-1.5 bg-emerald-50/80 px-3 py-1.5 rounded-xl border border-emerald-200/70">
-              <span className="text-[11px] font-semibold text-emerald-800">Crop:</span>
+              <span className="text-[11px] font-semibold text-emerald-800">
+                {t("farmer.home.cropLabel", "Crop:")}
+              </span>
               <select
                 value={selectedCrop}
                 onChange={(e) => setSelectedCrop(e.target.value)}
@@ -240,7 +245,9 @@ export function FarmerHomePage() {
 
             {/* State Selector */}
             <div className="flex items-center gap-1.5 bg-emerald-50/80 px-3 py-1.5 rounded-xl border border-emerald-200/70">
-              <span className="text-[11px] font-semibold text-emerald-800">State:</span>
+              <span className="text-[11px] font-semibold text-emerald-800">
+                {t("farmer.home.stateLabel", "State:")}
+              </span>
               <select
                 value={selectedState}
                 onChange={(e) => setSelectedState(e.target.value)}
@@ -259,22 +266,39 @@ export function FarmerHomePage() {
         {isInsightLoading || isInsightFetching ? (
           <div className="py-8 flex flex-col items-center justify-center gap-2 text-emerald-800">
             <RefreshCw className="h-6 w-6 animate-spin text-emerald-600" />
-            <p className="text-xs font-medium">Fetching verified {selectedCrop} rates in {selectedState}…</p>
+            <p className="text-xs font-medium">
+              {t(
+                "farmer.home.fetchingRates",
+                "Fetching verified {crop} rates in {state}…",
+                { crop: selectedCrop, state: selectedState }
+              )}
+            </p>
           </div>
         ) : !insight ? (
           <div className="py-6 text-left space-y-2 bg-stone-50/70 p-4 rounded-2xl border border-stone-200/70">
             <div className="flex items-center gap-2 text-emerald-950 font-semibold text-sm">
               <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-              <span>No verified mandi auction reported for {selectedCrop} in {selectedState} today.</span>
+              <span>
+                {t(
+                  "farmer.home.noAuctionReported",
+                  "No verified mandi auction reported for {crop} in {state} today.",
+                  { crop: selectedCrop, state: selectedState }
+                )}
+              </span>
             </div>
             <p className="text-xs text-emerald-900/60">
-              Mandis report auctions on active trading days. You can change state/crop above or view historical & multi-mandi records on the Prices page.
+              {t(
+                "farmer.home.noAuctionHint",
+                "Mandis report auctions on active trading days. You can change state/crop above or view historical & multi-mandi records on the Prices page."
+              )}
             </p>
             <Link
               to="/farmer/prices"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline pt-1"
             >
-              <span>Explore all mandis on Prices page</span>
+              <span>
+                {t("farmer.home.explorePricesLink", "Explore all mandis on Prices page")}
+              </span>
               <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -285,7 +309,9 @@ export function FarmerHomePage() {
                 <div className="flex flex-wrap items-center gap-2 mb-1.5">
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900">
                     <Tag className="h-3 w-3" />
-                    Crop: {insight.commodity || selectedCrop}
+                    {t("farmer.home.cropTag", "Crop: {crop}", {
+                      crop: insight.commodity || selectedCrop,
+                    })}
                   </span>
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800">
                     {insight.source ? insight.source.toUpperCase() : "AGMARKNET"}
@@ -298,21 +324,23 @@ export function FarmerHomePage() {
                     {formatRupees(insight.modalPrice)}
                   </p>
                   <span className="text-sm font-semibold text-emerald-900/70">
-                    /quintal (Modal Price)
+                    {t("farmer.home.modalPriceTag", "/quintal (Modal Price)")}
                   </span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 text-xs text-emerald-900/80 mt-2">
                   <span className="flex items-center gap-1 font-medium">
                     <MapPin className="h-3.5 w-3.5 text-emerald-700" />
-                    Market: {insight.market}
-                    {insight.district ? `, ${insight.district}` : ""}
-                    {insight.state ? `, ${insight.state}` : ""}
+                    {t("farmer.home.marketTag", "Market: {market}", {
+                      market: `${insight.market}${insight.district ? `, ${insight.district}` : ""}${insight.state ? `, ${insight.state}` : ""}`,
+                    })}
                   </span>
                   {insight.arrivalDate && (
                     <span className="flex items-center gap-1 text-emerald-900/60">
                       <Calendar className="h-3.5 w-3.5 text-emerald-700" />
-                      Date: {insight.arrivalDate}
+                      {t("farmer.home.dateTag", "Date: {date}", {
+                        date: insight.arrivalDate,
+                      })}
                     </span>
                   )}
                 </div>
@@ -321,12 +349,16 @@ export function FarmerHomePage() {
               {insight.minPrice != null && insight.maxPrice != null && (
                 <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center gap-4 text-xs shrink-0">
                   <div>
-                    <span className="text-[10px] uppercase font-semibold text-emerald-900/60 block">Min Price</span>
+                    <span className="text-[10px] uppercase font-semibold text-emerald-900/60 block">
+                      {t("farmer.home.minPrice", "Min Price")}
+                    </span>
                     <span className="text-sm font-bold text-emerald-950">{formatRupees(insight.minPrice)}</span>
                   </div>
                   <div className="w-px h-6 bg-emerald-200" />
                   <div>
-                    <span className="text-[10px] uppercase font-semibold text-emerald-900/60 block">Max Price</span>
+                    <span className="text-[10px] uppercase font-semibold text-emerald-900/60 block">
+                      {t("farmer.home.maxPrice", "Max Price")}
+                    </span>
                     <span className="text-sm font-bold text-emerald-950">{formatRupees(insight.maxPrice)}</span>
                   </div>
                 </div>
@@ -441,13 +473,19 @@ export function FarmerHomePage() {
 
         {isCropBuyersLoading ? (
           <div className="py-6 text-center text-xs text-emerald-900/60 animate-pulse">
-            Loading matching buyers…
+            {t("farmer.home.loadingMatchingBuyers", "Loading matching buyers…")}
           </div>
         ) : !cropBuyers || cropBuyers.length === 0 ? (
           <div className="py-6 text-center text-emerald-900/70 text-xs space-y-1">
-            <p>No regional buyers currently registered specifically for {selectedCrop} in {selectedState}.</p>
+            <p>
+              {t(
+                "farmer.home.noRegionalBuyers",
+                "No regional buyers currently registered specifically for {crop} in {state}.",
+                { crop: selectedCrop, state: selectedState }
+              )}
+            </p>
             <Link to="/farmer/buyers" className="inline-block text-emerald-700 font-semibold hover:underline">
-              Browse all buyers across India →
+              {t("farmer.home.browseAllBuyers", "Browse all buyers across India →")}
             </Link>
           </div>
         ) : (
@@ -462,12 +500,12 @@ export function FarmerHomePage() {
                 <div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-900">
-                      {buyer.businessType || "Buyer"}
+                      {buyer.businessType || t("farmer.home.buyerTypeDefault", "Buyer")}
                     </span>
                     {buyer.verificationStatus === "verified" && (
                       <span className="flex items-center gap-0.5 text-[10px] text-emerald-700 font-semibold">
                         <ShieldCheck className="h-3 w-3" />
-                        Verified
+                        {t("farmer.home.verifiedBadge", "Verified")}
                       </span>
                     )}
                   </div>
@@ -497,10 +535,10 @@ export function FarmerHomePage() {
 
                 <div className="pt-3 mt-3 border-t border-emerald-50 flex items-center justify-between text-xs">
                   <span className="text-emerald-900/60 text-[11px]">
-                    ⭐ {buyer.rating.toFixed(1)} ({buyer.completedDeals} deals)
+                    ⭐ {buyer.rating.toFixed(1)} ({buyer.completedDeals} {t("farmer.home.dealsFulfilled", "deals fulfilled")})
                   </span>
                   <span className="text-emerald-700 font-bold text-[11px] hover:underline">
-                    View & Offer →
+                    {t("farmer.home.viewAndOffer", "View & Offer →")}
                   </span>
                 </div>
               </Link>
@@ -533,14 +571,14 @@ export function FarmerHomePage() {
             </span>
             <div>
               <p className="text-sm sm:text-base font-bold text-emerald-900">
-                {a.title}
+                {t(a.titleKey, a.title)}
               </p>
               <p className="text-xs text-emerald-900/60 mt-0.5">
                 {a.key === "myLots"
-                  ? `${activeLots.length} active`
+                  ? `${activeLots.length} ${t("farmer.home.active", "active")}`
                   : a.key === "myOffers"
-                  ? `${pendingOffers.length} pending`
-                  : a.subtitle}
+                  ? `${pendingOffers.length} ${t("farmer.home.pending", "pending")}`
+                  : t(a.subtitleKey, a.subtitle)}
               </p>
             </div>
           </Link>
