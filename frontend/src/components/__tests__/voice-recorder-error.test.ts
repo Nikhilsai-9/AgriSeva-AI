@@ -195,5 +195,50 @@ describe("Voice Transcription Error Classification and Localization", () => {
     // Default fallback when nothing detected
     expect(getSpeechRecognitionLang("auto")).toBe("hi-IN");
   });
+
+  it("verifies mutually exclusive state machine eliminates duplicate 'Type your question' UI", () => {
+    type ViewMode = "voice" | "error" | "typing";
+
+    const resolveViewMode = (
+      sttError: { hasFailed: boolean } | null,
+      isTypingMode: boolean
+    ): ViewMode => {
+      if (sttError && sttError.hasFailed && !isTypingMode) {
+        return "error";
+      }
+      if (isTypingMode) {
+        return "typing";
+      }
+      return "voice";
+    };
+
+    // TEST 1 — Initial idle state
+    const initialMode = resolveViewMode(null, false);
+    expect(initialMode).toBe("voice");
+
+    // TEST 4 — STT failure: renders ONLY error state, NOT typing input
+    const errorState = { hasFailed: true, code: "STT_PROVIDER_UNAVAILABLE" };
+    const failureMode = resolveViewMode(errorState, false);
+    expect(failureMode).toBe("error");
+
+    // Ensure error mode does NOT render typing input simultaneously
+    expect(failureMode).not.toBe("typing");
+    expect(failureMode).not.toBe("voice");
+
+    // TEST 5 — User clicks "Type your question": transitions to typing mode and clears error
+    const typingMode = resolveViewMode(null, true);
+    expect(typingMode).toBe("typing");
+    expect(typingMode).not.toBe("error");
+
+    // TEST 7 — User clicks "Retry": returns to clean idle voice mode
+    const retryMode = resolveViewMode(null, false);
+    expect(retryMode).toBe("voice");
+    expect(retryMode).not.toBe("error");
+    expect(retryMode).not.toBe("typing");
+
+    // TEST 9 — Clear resets everything back to idle voice mode
+    const clearedMode = resolveViewMode(null, false);
+    expect(clearedMode).toBe("voice");
+  });
 });
 

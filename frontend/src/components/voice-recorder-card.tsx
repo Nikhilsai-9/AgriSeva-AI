@@ -306,7 +306,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
         canRetry: false,
         hasFailed: true,
       });
-      setIsTypingMode(true);
+      setIsTypingMode(false);
       return;
     }
 
@@ -343,6 +343,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
           canRetry: true,
           hasFailed: true,
         });
+        setIsTypingMode(false);
         return;
       }
     }
@@ -388,6 +389,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
 
       recognition.onerror = (event: any) => {
         console.warn("Speech recognition error:", event.error);
+        setIsTypingMode(false);
         if (event.error === "not-allowed" || event.error === "service-not-allowed") {
           setSttError({
             code: "MIC_PERMISSION_DENIED",
@@ -447,6 +449,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
       setIsListening(true);
     } catch (err: any) {
       console.error("Failed to start speech recognition:", err);
+      setIsTypingMode(false);
       setSttError({
         code: "SPEECH_START_ERROR",
         category: "recognition",
@@ -465,14 +468,20 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
     if (isRecordingRef.current) {
       stopRecording();
     } else {
+      setIsTypingMode(false);
+      setSttError(null);
       startRecording();
     }
   };
 
   const handleRetry = () => {
+    stopRecording();
     setSttError(null);
+    setTranscript("");
+    accumulatedTranscriptRef.current = "";
+    lastTranscriptRef.current = "";
+    setIsTypingMode(false);
     setRetryCount((prev) => prev + 1);
-    startRecording();
   };
 
   // Cleanup on unmount
@@ -668,8 +677,12 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                 </div>
               </div>
 
-              {sttError && sttError.hasFailed && (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 sm:p-4 text-sm text-foreground space-y-3 animate-in fade-in-50 duration-200">
+              {sttError && sttError.hasFailed && !isTypingMode ? (
+                /* STATE 1: Error & Fallback Action Card - ONLY ONE CARD, NO DUPLICATE INPUT BELOW */
+                <div
+                  role="alert"
+                  className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 sm:p-4 text-sm text-foreground space-y-3 animate-in fade-in-50 duration-200"
+                >
                   <div className="flex items-start gap-2.5">
                     <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div className="space-y-1 flex-1 min-w-0">
@@ -707,36 +720,95 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                     )}
                   </div>
                 </div>
-              )}
+              ) : isTypingMode ? (
+                /* STATE 2: ONE Canonical Manual Question Input */
+                <div className="space-y-2 animate-in fade-in-50 duration-200">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">
+                      {t("voice.typeQuestion", "Your Question")}
+                    </Label>
+                    {transcript.length > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {transcript.length} {t("common.chars", "chars")}
+                      </span>
+                    )}
+                  </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">
-                    {isTypingMode ? t("voice.typeQuestion", "Your Question") : t("common.transcript", "Transcript")}
-                  </Label>
-                  {transcript.length > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      {transcript.length} {t("common.chars", "chars")}
-                    </span>
-                  )}
-                </div>
-
-                <div className="h-40 relative">
-                  {isTypingMode ? (
+                  <div className="h-40 relative">
                     <Textarea
                       value={transcript}
                       onChange={(e) => {
                         setTranscript(e.target.value);
                         accumulatedTranscriptRef.current = e.target.value;
-                        if (sttError?.hasFailed) {
-                          setSttError(null);
-                        }
                       }}
                       placeholder={t("voice.typeYourQuestionHere", "Type your question here...")}
                       className="h-full w-full resize-none p-3 text-sm focus-visible:ring-primary rounded-md border bg-background/50"
                       autoFocus
                     />
-                  ) : (
+                  </div>
+
+                  {/* Action buttons for typing mode */}
+                  <div className="flex flex-wrap items-center justify-between mt-2 gap-2">
+                    <div>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setIsTypingMode(false);
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                      >
+                        <Mic className="h-3.5 w-3.5" />
+                        <span>{t("common.voiceRecorder", "Use voice")}</span>
+                      </Button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        onClick={handleClear}
+                        variant="outline"
+                        size="sm"
+                        disabled={!transcript.trim()}
+                        className="flex items-center gap-1"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        <span>{t("common.clear", "Clear")}</span>
+                      </Button>
+
+                      <Button
+                        onClick={handleSubmit}
+                        disabled={
+                          !transcript.trim() ||
+                          isPending ||
+                          isGeneratingQuestions
+                        }
+                        size="sm"
+                        className="flex items-center gap-1 shadow-sm"
+                      >
+                        <Send className="h-3 w-3" />
+                        <span className="text-xs">
+                          {isPending ? t("common.sending", "Sending...") : t("common.submit", "Submit")}
+                        </span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* STATE 3: Normal Voice Transcript Display */
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">
+                      {t("common.transcript", "Transcript")}
+                    </Label>
+                    {transcript.length > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {transcript.length} {t("common.chars", "chars")}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="h-40 relative">
                     <div className="h-full w-full overflow-y-auto rounded-md border bg-background/50 p-3 text-sm whitespace-pre-wrap break-words">
                       {!transcript ? (
                         <span className="text-muted-foreground">
@@ -748,18 +820,15 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                         </span>
                       )}
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                {/* Buttons */}
-                <div className="flex flex-wrap items-center justify-between mt-2 gap-2">
-                  <div>
-                    {!isTypingMode && (
+                  {/* Action buttons for voice mode */}
+                  <div className="flex flex-wrap items-center justify-between mt-2 gap-2">
+                    <div>
                       <Button
                         type="button"
                         onClick={() => {
                           setIsTypingMode(true);
-                          if (sttError?.hasFailed) setSttError(null);
                         }}
                         variant="ghost"
                         size="sm"
@@ -767,43 +836,42 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                         className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
                       >
                         <Keyboard className="h-3.5 w-3.5" />
-                        <span>{t("voice.typeQuestion", "Type question")}</span>
+                        <span>{t("voice.typeQuestion", "Type your question")}</span>
                       </Button>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      onClick={handleClear}
-                      variant="outline"
-                      size="sm"
-                      disabled={(!transcript && !sttError && !isTypingMode) || isRecording}
-                      className="flex items-center gap-1"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      <span>{t("common.clear", "Clear")}</span>
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        onClick={handleClear}
+                        variant="outline"
+                        size="sm"
+                        disabled={!transcript && !isRecording}
+                        className="flex items-center gap-1"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        <span>{t("common.clear", "Clear")}</span>
+                      </Button>
 
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={
-                        !transcript.trim() ||
-                        isPending ||
-                        isGeneratingQuestions ||
-                        isRecording ||
-                        (sttError !== null && sttError.hasFailed)
-                      }
-                      size="sm"
-                      className="flex items-center gap-1 shadow-sm"
-                    >
-                      <Send className="h-3 w-3" />
-                      <span className="text-xs">
-                        {isPending ? t("common.sending", "Sending...") : t("common.submit", "Submit")}
-                      </span>
-                    </Button>
+                      <Button
+                        onClick={handleSubmit}
+                        disabled={
+                          !transcript.trim() ||
+                          isPending ||
+                          isGeneratingQuestions ||
+                          isRecording
+                        }
+                        size="sm"
+                        className="flex items-center gap-1 shadow-sm"
+                      >
+                        <Send className="h-3 w-3" />
+                        <span className="text-xs">
+                          {isPending ? t("common.sending", "Sending...") : t("common.submit", "Submit")}
+                        </span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
             {/* can the incoming call box be moved here? */}
