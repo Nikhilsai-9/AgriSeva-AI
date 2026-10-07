@@ -8,6 +8,7 @@ import {InternalServerError, BadRequestError} from 'routing-controllers';
 import { QuestionService } from '#root/modules/question/services/QuestionService.js';
 import { IContextService } from '../interfaces/IContextService.js';
 import { appConfig } from '#root/config/app.js';
+import { aiConfig } from '#root/config/ai.js';
 import { SttHttpError, SttErrorCode, SttErrorCategory } from '../errors/SttError.js';
 
 @injectable()
@@ -254,6 +255,11 @@ export class ContextService extends BaseService implements IContextService {
   ): Promise<unknown> {
     const apiKey = appConfig.sarvamAPI;
     if (!apiKey) {
+      const groqText = await this._transcribeWithGroq(file, language);
+      if (groqText) return { transcript: groqText, text: groqText, provider: 'groq' };
+      const geminiText = await this._transcribeWithGemini(file);
+      if (geminiText) return { transcript: geminiText, text: geminiText, provider: 'gemini' };
+
       console.error(
         '[STT Service]',
         JSON.stringify({
@@ -313,8 +319,13 @@ export class ContextService extends BaseService implements IContextService {
 
     if (
       this._sttHealthCache?.status === 'quota_exceeded' &&
-      Date.now() - this._lastHealthCheckTime < 60000
+      Date.now() - this._lastHealthCheckTime < 3600000
     ) {
+      const groqText = await this._transcribeWithGroq(file, language);
+      if (groqText) return { transcript: groqText, text: groqText, provider: 'groq' };
+      const geminiText = await this._transcribeWithGemini(file);
+      if (geminiText) return { transcript: geminiText, text: geminiText, provider: 'gemini' };
+
       throw new SttHttpError(
         402,
         'Voice transcription is temporarily unavailable. Please try again later or type your question.',
@@ -337,6 +348,12 @@ export class ContextService extends BaseService implements IContextService {
       });
     } catch (fetchErr: any) {
       clearTimeout(timeoutId);
+
+      const groqText = await this._transcribeWithGroq(file, language);
+      if (groqText) return { transcript: groqText, text: groqText, provider: 'groq' };
+      const geminiText = await this._transcribeWithGemini(file);
+      if (geminiText) return { transcript: geminiText, text: geminiText, provider: 'gemini' };
+
       const isTimeout = fetchErr.name === 'AbortError';
       const status = isTimeout ? 504 : 503;
       const code: SttErrorCode = isTimeout ? 'STT_TIMEOUT' : 'STT_NETWORK_ERROR';
@@ -367,6 +384,11 @@ export class ContextService extends BaseService implements IContextService {
     }
 
     if (!response.ok) {
+      const groqText = await this._transcribeWithGroq(file, language);
+      if (groqText) return { transcript: groqText, text: groqText, provider: 'groq' };
+      const geminiText = await this._transcribeWithGemini(file);
+      if (geminiText) return { transcript: geminiText, text: geminiText, provider: 'gemini' };
+
       const requestId = response.headers.get('x-request-id') || undefined;
       let rawBody: any = null;
       try {
@@ -500,5 +522,112 @@ export class ContextService extends BaseService implements IContextService {
     }
 
     return data.translated_text;
+  }
+
+  private async _transcribeWithGroq(
+    file: Express.Multer.File,
+    language: string,
+  ): Promise<string | null> {
+    const groqKey = aiConfig.groqApiKey || process.env.GROQ_API_KEY;
+    if (!groqKey) return null;
+
+    try {
+      const mime = (file.mimetype || 'audio/webm').split(';')[0];
+      const ext = mime.includes('ogg') ? 'ogg' : mime.includes('wav') ? 'wav' : mime.includes('mp4') ? 'mp4' : 'webm';
+      const filename = file.originalname && file.originalname.includes('.')
+        ? file.originalname
+        : `recording.${ext}`;
+
+      const formData = new FormData();
+      formData.append(
+        'file',
+        new Blob([file.buffer], { type: mime }),
+        filename,
+      );
+      formData.append('model', aiConfig.groqModel || 'whisper-large-v3-turbo');
+      formData.append('response_format', 'json');
+
+      const WHISPER_SUPPORTED_LANGS = new Set([
+        'af', 'am', 'ar', 'as', 'az', 'ba', 'be', 'bg', 'bn', 'bo', 'br', 'bs', 'ca',
+        'cs', 'cy', 'da', 'de', 'el', 'en', 'es', 'et', 'eu', 'fa', 'fi', 'fo', 'fr',
+        'gl', 'gu', 'ha', 'haw', 'he', 'hi', 'hr', 'ht', 'hu', 'hy', 'id', 'is', 'it',
+        'ja', 'jw', 'ka', 'kk', 'km', 'kn', 'ko', 'la', 'lb', 'ln', 'lo', 'lt', 'lv',
+        'mg', 'mi', 'mk', 'ml', 'mn', 'mr', 'ms', 'mt', 'my', 'ne', 'nl', 'nn', 'no',
+        'oc', 'pa', 'pl', 'ps', 'pt', 'ro', 'ru', 'sa', 'sd', 'si', 'sk', 'sl', 'sn',
+        'so', 'sq', 'sr', 'su', 'sv', 'sw', 'ta', 'te', 'tg', 'th', 'tk', 'tl', 'tr',
+        'tt', 'uk', 'ur', 'uz', 'vi', 'yi', 'yo', 'zh'
+      ]);
+
+      const isoLang = (language || '').split('-')[0].toLowerCase();
+      if (isoLang && isoLang !== 'auto' && WHISPER_SUPPORTED_LANGS.has(isoLang)) {
+        formData.append('language', isoLang);
+      }
+
+      const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${groqKey}` },
+        body: formData,
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        if (data?.text?.trim()) {
+          console.log('[STT Service] Audio successfully transcribed using Groq Whisper');
+          return data.text.trim();
+        }
+      } else {
+        const errText = typeof res.text === 'function' ? await res.text().catch(() => '') : '';
+        console.warn('[STT Service] Groq Whisper responded with status', res.status, errText);
+      }
+    } catch (err: any) {
+      console.warn('[STT Service] Groq Whisper fallback attempt note:', err.message);
+    }
+    return null;
+  }
+
+  private async _transcribeWithGemini(file: Express.Multer.File): Promise<string | null> {
+    const geminiKey = aiConfig.geminiApiKey || process.env.GEMINI_API_KEY;
+    if (!geminiKey) return null;
+
+    try {
+      const model = aiConfig.geminiModel || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+      const cleanMime = (file.mimetype || 'audio/webm').split(';')[0];
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  inline_data: {
+                    mime_type: cleanMime,
+                    data: file.buffer.toString('base64'),
+                  },
+                },
+                {
+                  text: 'Please transcribe the speech in this audio voice note word-for-word in the native spoken language. Output only the verbatim transcription without any prefix, formatting, or commentary.',
+                },
+              ],
+            },
+          ],
+        }),
+        signal: AbortSignal.timeout(20000),
+      });
+
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text) {
+          console.log('[STT Service] Audio successfully transcribed using Gemini audio fallback');
+          return text;
+        }
+      }
+    } catch (err: any) {
+      console.warn('[STT Service] Gemini audio fallback attempt note:', err.message);
+    }
+    return null;
   }
 }

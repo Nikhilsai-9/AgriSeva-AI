@@ -69,6 +69,33 @@ describe('ContextService STT Error Classification & Health', () => {
     }
   });
 
+  it('falls back to Groq Whisper when Sarvam returns 402 quota exceeded', async () => {
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('sarvam.ai')) {
+        return Promise.resolve({
+          ok: false,
+          status: 402,
+          statusText: 'Payment Required',
+          headers: { get: () => 'req-sarvam-402' },
+          json: () => Promise.resolve({ error: { message: 'No credits available.' } }),
+        });
+      }
+      if (url.includes('groq.com')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ text: 'गेहूं में पीला रतुआ का इलाज' }),
+        });
+      }
+      return Promise.reject(new Error('Unexpected URL'));
+    });
+
+    const result: any = await contextService.speechToText(createDummyFile(), 'hi-IN');
+    expect(result).toBeDefined();
+    expect(result.transcript).toBe('गेहूं में पीला रतुआ का इलाज');
+    expect(result.provider).toBe('groq');
+  });
+
   it('classifies 401 response as STT_AUTH_ERROR', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,

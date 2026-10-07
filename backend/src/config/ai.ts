@@ -33,5 +33,9 @@ export const aiConfig = {
   geminiModel: env('GEMINI_MODEL') || 'gemini-3.5-flash-lite',
   geminiFallbackModel: env('GEMINI_FALLBACK_MODEL') || 'gemini-3.6-flash',
   geminiApiKey: env('GEMINI_API_KEY') || '',
+  // Groq Audio Configuration (Free ultra-fast Whisper speech-to-text)
+  groqApiKey: env('GROQ_API_KEY') || '',
+  groqBaseUrl: env('GROQ_BASE_URL') || 'https://api.groq.com/openai/v1',
+  groqModel: env('GROQ_MODEL') || 'whisper-large-v3-turbo',
 };
 

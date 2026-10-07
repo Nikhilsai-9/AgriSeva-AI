@@ -120,11 +120,66 @@ const supportedLanguages: {
   { code: "sd-IN", label: "Sindhi" },
 ];
 
+const WHISPER_SUPPORTED_LANGS = new Set([
+  "af", "am", "ar", "as", "az", "ba", "be", "bg", "bn", "bo", "br", "bs", "ca",
+  "cs", "cy", "da", "de", "el", "en", "es", "et", "eu", "fa", "fi", "fo", "fr",
+  "gl", "gu", "ha", "haw", "he", "hi", "hr", "ht", "hu", "hy", "id", "is", "it",
+  "ja", "jw", "ka", "kk", "km", "kn", "ko", "la", "lb", "ln", "lo", "lt", "lv",
+  "mg", "mi", "mk", "ml", "mn", "mr", "ms", "mt", "my", "ne", "nl", "nn", "no",
+  "oc", "pa", "pl", "ps", "pt", "ro", "ru", "sa", "sd", "si", "sk", "sl", "sn",
+  "so", "sq", "sr", "su", "sv", "sw", "ta", "te", "tg", "th", "tk", "tl", "tr",
+  "tt", "uk", "ur", "uz", "vi", "yi", "yo", "zh"
+]);
+
+const transcribeDirectWithGroq = async (
+  blob: Blob,
+  langCode?: string
+): Promise<string | null> => {
+  try {
+    const formData = new FormData();
+    const mime = blob.type || "audio/webm";
+    const ext = mime.includes("ogg") ? "ogg" : mime.includes("wav") ? "wav" : mime.includes("mp4") ? "mp4" : "webm";
+    formData.append("file", blob, `voice_recording.${ext}`);
+    formData.append("model", "whisper-large-v3-turbo");
+    formData.append("response_format", "json");
+
+    const iso = (langCode || "").split("-")[0].toLowerCase();
+    if (iso && iso !== "auto" && WHISPER_SUPPORTED_LANGS.has(iso)) {
+      formData.append("language", iso);
+    }
+
+    const groqKey =
+      (typeof import.meta !== "undefined" &&
+        import.meta.env?.VITE_GROQ_API_KEY) ||
+      (typeof window !== "undefined" && (window as any).__GROQ_API_KEY) ||
+      "";
+    if (!groqKey) return null;
+
+    const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${groqKey}`,
+      },
+      body: formData,
+    });
+
+    if (res.ok) {
+      const data = (await res.json()) as any;
+      if (data?.text?.trim()) {
+        console.log("[VoiceRecorder] Audio transcribed via direct Groq Whisper fallback");
+        return data.text.trim();
+      }
+    }
+  } catch (err: any) {
+    console.warn("[VoiceRecorder] Direct Groq transcription fallback note:", err?.message || err);
+  }
+  return null;
+};
+
 const getSpeechRecognitionLang = (
   selectedLang: SupportedLanguage | "auto",
   appLangCode?: string
 ): string => {
-  const code = selectedLang === "auto" ? appLangCode || "hi" : selectedLang;
   const langMap: Record<string, string> = {
     hi: "hi-IN",
     "hi-IN": "hi-IN",
@@ -171,7 +226,17 @@ const getSpeechRecognitionLang = (
     sat: "sat-IN",
     "sat-IN": "sat-IN",
   };
-  return langMap[code] || (code.includes("-") ? code : `${code}-IN`);
+
+  if (selectedLang !== "auto") {
+    return langMap[selectedLang] || (selectedLang.includes("-") ? selectedLang : `${selectedLang}-IN`);
+  }
+  if (appLangCode && appLangCode !== "auto") {
+    return langMap[appLangCode] || (appLangCode.includes("-") ? appLangCode : `${appLangCode}-IN`);
+  }
+  if (typeof navigator !== "undefined" && navigator.language) {
+    return navigator.language;
+  }
+  return "en-IN";
 };
 
 const getSupportedMimeType = (): string => {
@@ -365,31 +430,44 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
         }
 
         if (recordedBlob.size > 200) {
-          // If browser live recognition wasn't available (Firefox/Brave/network), attempt backend STT
           setIsTranscribing(true);
+          let text = "";
+
+          // 1. Attempt backend STT first
           try {
             const result = await sendAudioChunk({
               file: recordedBlob,
               lang: language,
             });
-            if (result?.transcript?.trim()) {
-              setTranscript(result.transcript.trim());
-              accumulatedTranscriptRef.current = result.transcript.trim();
-              latestLiveTranscriptRef.current = result.transcript.trim();
-            } else {
-              setSttError({
-                code: "STT_OFFLINE",
-                category: "transcription",
-                message: t(
-                  "voice.transcriptionOfflineAudioCaptured",
-                  "Your voice note was recorded successfully. Auto-transcription is currently offline — please type your question or submit your voice note directly."
-                ),
-                canRetry: true,
-                hasFailed: true,
-              });
-            }
+            text = (
+              result?.transcript ||
+              (result as any)?.text ||
+              ""
+            ).trim();
           } catch (err: any) {
-            console.warn("Backend STT fallback returned error:", err);
+            console.warn(
+              "Backend STT returned error, attempting direct Groq Whisper fallback:",
+              err
+            );
+          }
+
+          // 2. Direct resilient fallback: if backend returned 402/offline or empty text
+          if (!text) {
+            const directText = await transcribeDirectWithGroq(
+              recordedBlob,
+              language
+            );
+            if (directText) {
+              text = directText;
+            }
+          }
+
+          if (text.length > 0) {
+            setTranscript(text);
+            accumulatedTranscriptRef.current = text;
+            latestLiveTranscriptRef.current = text;
+            setSttError(null);
+          } else {
             setSttError({
               code: "STT_OFFLINE",
               category: "transcription",
@@ -400,9 +478,8 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
               canRetry: true,
               hasFailed: true,
             });
-          } finally {
-            setIsTranscribing(false);
           }
+          setIsTranscribing(false);
         } else {
           setSttError({
             code: "EMPTY_AUDIO",

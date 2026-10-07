@@ -23,6 +23,8 @@ export const appConfig = {
   frontendUrl: env('FRONTEND_URL') || 'http://localhost:5173',
   adminPassword: env('ADMIN_PASSWORD') || 'admin123',
   sarvamAPI: env('SARVAM_API_KEY'),
+  groqAPI: env('GROQ_API_KEY'),
+  geminiAPI: env('GEMINI_API_KEY'),
   // Only for development
   firebase: {
     clientEmail: env('FIREBASE_CLIENT_EMAIL') || undefined,
