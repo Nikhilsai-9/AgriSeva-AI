@@ -311,6 +311,19 @@ export class ContextService extends BaseService implements IContextService {
     );
     formData.append('language', language || 'hi-IN');
 
+    if (
+      this._sttHealthCache?.status === 'quota_exceeded' &&
+      Date.now() - this._lastHealthCheckTime < 60000
+    ) {
+      throw new SttHttpError(
+        402,
+        'Voice transcription is temporarily unavailable. Please try again later or type your question.',
+        'STT_QUOTA_EXCEEDED',
+        'quota_exceeded',
+        'sarvam',
+      );
+    }
+
     let response: Response;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
@@ -379,6 +392,12 @@ export class ContextService extends BaseService implements IContextService {
           category = 'quota_exceeded';
           clientStatus = 402;
           message = 'Voice transcription is temporarily unavailable. Please try again later or type your question.';
+          this._sttHealthCache = {
+            status: 'quota_exceeded',
+            provider: 'sarvam',
+            checkedAt: new Date().toISOString(),
+          };
+          this._lastHealthCheckTime = Date.now();
           break;
         case 401:
           code = 'STT_AUTH_ERROR';

@@ -239,6 +239,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
   const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
   const accumulatedTranscriptRef = useRef<string>("");
+  const latestLiveTranscriptRef = useRef<string>("");
   const isRecordingRef = useRef(false);
   const lastTranscriptRef = useRef("");
   const timerRef = useRef<any>(null);
@@ -348,11 +349,22 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
           mediaStreamRef.current = null;
         }
 
-        // Check if live SpeechRecognition produced text
-        const liveText = accumulatedTranscriptRef.current.trim();
+        // Check if live SpeechRecognition produced text (interim or final parts)
+        const liveText = (
+          latestLiveTranscriptRef.current ||
+          accumulatedTranscriptRef.current ||
+          transcript
+        ).trim();
+
         if (liveText.length > 0) {
           setTranscript(liveText);
-        } else if (recordedBlob.size > 200) {
+          accumulatedTranscriptRef.current = liveText;
+          latestLiveTranscriptRef.current = liveText;
+          setIsTranscribing(false);
+          return;
+        }
+
+        if (recordedBlob.size > 200) {
           // If browser live recognition wasn't available (Firefox/Brave/network), attempt backend STT
           setIsTranscribing(true);
           try {
@@ -363,6 +375,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
             if (result?.transcript?.trim()) {
               setTranscript(result.transcript.trim());
               accumulatedTranscriptRef.current = result.transcript.trim();
+              latestLiveTranscriptRef.current = result.transcript.trim();
             } else {
               setSttError({
                 code: "STT_OFFLINE",
@@ -445,6 +458,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
     lastTranscriptRef.current = "";
     hasCapturedLiveSpeechRef.current = false;
     accumulatedTranscriptRef.current = transcript.trim();
+    latestLiveTranscriptRef.current = "";
     audioChunksRef.current = [];
 
     if (audioUrl) {
@@ -558,6 +572,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
           ).trim();
 
           if (currentFull) {
+            latestLiveTranscriptRef.current = currentFull;
             setTranscript(currentFull);
             hasCapturedLiveSpeechRef.current = true;
             if (sttError) {
@@ -634,6 +649,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
     }
     setRecordingDuration(0);
     accumulatedTranscriptRef.current = "";
+    latestLiveTranscriptRef.current = "";
     lastTranscriptRef.current = "";
     setIsTypingMode(false);
     setRetryCount((prev) => prev + 1);
@@ -737,6 +753,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
         setAudioUrl(null);
       }
       setRecordingDuration(0);
+      latestLiveTranscriptRef.current = "";
       lastTranscriptRef.current = "";
     } catch (error: any) {
       console.error("Failed to submit transcript:", error);
@@ -758,6 +775,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
       setAudioUrl(null);
     }
     setRecordingDuration(0);
+    latestLiveTranscriptRef.current = "";
     lastTranscriptRef.current = "";
   };
 

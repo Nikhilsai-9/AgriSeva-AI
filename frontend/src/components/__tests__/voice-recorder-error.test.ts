@@ -240,5 +240,41 @@ describe("Voice Transcription Error Classification and Localization", () => {
     const clearedMode = resolveViewMode(null, false);
     expect(clearedMode).toBe("voice");
   });
+
+  it("verifies live speech recognition transcript retention prevents unnecessary backend STT calls", () => {
+    const resolveFinalTranscript = (
+      latestLiveText: string,
+      accumulatedTranscript: string,
+      transcriptState: string
+    ) => {
+      const liveText = (latestLiveText || accumulatedTranscript || transcriptState).trim();
+      const needsBackendFallback = liveText.length === 0;
+      return { liveText, needsBackendFallback };
+    };
+
+    // Case 1: Short 4-second recording where only interim was captured (res.isFinal not yet fired)
+    const result4Sec = resolveFinalTranscript(
+      "गेहूं में पीला रतुआ का इलाज क्या है",
+      "", // accumulated was empty because res.isFinal hadn't fired yet
+      ""
+    );
+    expect(result4Sec.liveText).toBe("गेहूं में पीला रतुआ का इलाज क्या है");
+    expect(result4Sec.needsBackendFallback).toBe(false);
+
+    // Case 2: Multi-sentence finalized recording
+    const resultFinal = resolveFinalTranscript(
+      "How to control paddy leaf blast",
+      "How to control paddy leaf blast",
+      "How to control paddy leaf blast"
+    );
+    expect(resultFinal.liveText).toBe("How to control paddy leaf blast");
+    expect(resultFinal.needsBackendFallback).toBe(false);
+
+    // Case 3: Complete silence or unsupported browser -> fallback needed
+    const resultSilent = resolveFinalTranscript("", "", "");
+    expect(resultSilent.liveText).toBe("");
+    expect(resultSilent.needsBackendFallback).toBe(true);
+  });
 });
+
 

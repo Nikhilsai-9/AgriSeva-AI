@@ -145,22 +145,41 @@ class BadRequestErrorResponse {
 export class HttpErrorHandler implements ExpressErrorMiddlewareInterface {
   error(error: any, request: Request, response: Response): void {
     let eventId;
-    try {
-      eventId = Sentry.captureException(error);
-      console.log(`Error captured by Sentry in HttpErrorHandler with ID: ${eventId}`);
-    } catch (sentryError) {
-      console.error('Failed to capture error with Sentry in HttpErrorHandler:', sentryError);
+    const statusCode =
+      error.httpCode ||
+      (error instanceof HttpError ? error.httpCode : 500);
+    const isOperational4xx = statusCode >= 400 && statusCode < 500;
+    const isExpectedSttQuota =
+      error.code === 'STT_QUOTA_EXCEEDED' || error.category === 'quota_exceeded';
+
+    // Only capture unexpected 5xx crashes or unhandled exceptions in Sentry
+    if (!isOperational4xx && !isExpectedSttQuota) {
+      try {
+        eventId = Sentry.captureException(error);
+        console.log(`Error captured by Sentry in HttpErrorHandler with ID: ${eventId}`);
+      } catch (sentryError) {
+        console.error('Failed to capture error with Sentry in HttpErrorHandler:', sentryError);
+      }
+      console.error('[HttpErrorHandler] Error caught:', error);
+    } else {
+      console.warn(`[HttpErrorHandler] Handled operational ${statusCode}:`, error.message || error);
     }
 
-    console.error('[HttpErrorHandler] Error caught:', error);
-
-    logger.error({
-      message: error.message,
-      errors: error.errors,
-      stack: error.stack,
-      status: error.httpCode || 500,
-      sentryEventId: eventId || 'unknown',
-    });
+    if (statusCode >= 500) {
+      logger.error({
+        message: error.message,
+        errors: error.errors,
+        stack: error.stack,
+        status: statusCode,
+        sentryEventId: eventId || 'unknown',
+      });
+    } else {
+      logger.info({
+        message: error.message,
+        status: statusCode,
+        code: error.code,
+      });
+    }
     
     if (response.headersSent) {
       // If the response is already sent, don't try to send again
