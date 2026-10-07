@@ -122,7 +122,7 @@ export function CookieConsent() {
                   <ShieldCheck size={12} aria-hidden="true" /> {t("common.strictlyNecessary", "Strictly necessary")}
                 </p>
                 <p className="text-emerald-900/70 mt-0.5">
-                  Firebase Auth session. Cannot be disabled.
+                  {t("common.cookieAuthDesc", "Firebase Auth session. Cannot be disabled.")}
                 </p>
               </li>
               <li className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-2.5">
@@ -130,7 +130,7 @@ export function CookieConsent() {
                   <BarChart3 size={12} aria-hidden="true" /> {t("common.analytics", "Analytics")}
                 </p>
                 <p className="text-emerald-900/70 mt-0.5">
-                  Firebase Analytics (_ga, _gid). Used only with consent.
+                  {t("common.cookieAnalyticsDesc", "Firebase Analytics (_ga, _gid). Used only with consent.")}
                 </p>
               </li>
             </ul>

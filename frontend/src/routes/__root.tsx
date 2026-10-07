@@ -6,6 +6,8 @@ import { NotFound } from "@/components/NotFound";
 import { CookieConsent } from "@/components/CookieConsent";
 import { GlobalCommunicationActions } from "@/components/GlobalCommunicationActions";
 import { ContactOnboardingModal } from "@/components/ContactOnboardingModal";
+import { LanguageGateway } from "@/components/LanguageGateway";
+import { useLanguageStore } from "@/stores/language-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useEffect } from "react";
 
@@ -30,6 +32,7 @@ export const queryClient = new QueryClient({
 
 function RootComponent() {
   const { initAuthListener } = useAuthStore();
+  const isSelectorOpen = useLanguageStore((s) => s.isSelectorOpen);
 
   useEffect(() => {
     const unsub = initAuthListener();
@@ -48,6 +51,7 @@ function RootComponent() {
         <CookieConsent />
         <GlobalCommunicationActions />
         <ContactOnboardingModal />
+        {isSelectorOpen && <LanguageGateway isModal />}
       </QueryClientProvider>
     </ThemeProvider>
   );

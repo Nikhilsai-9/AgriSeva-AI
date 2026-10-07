@@ -26,34 +26,34 @@ export const kn: Partial<TranslationDictionary> = {
     "askAgriSeva": "AgriSeva-AI ಅನ್ನು ಕೇಳಿ",
     "loading": "ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
     "loadingApp": "AgriSeva-AI ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
-    "slogan": "ಪ್ರತಿ ರೈತ ಒಬ್ಬ ರಾಜ, ಅವರ ಪಕ್ಕದಲ್ಲಿ AI.",
+    "slogan": "ಪ್ರತಿ ರೈತನೂ ರಾಜ, AI ಅವರ ಜೊತೆಗಾರ.",
     "notFoundTitle": "ಪುಟ ಕಂಡುಬಂದಿಲ್ಲ",
-    "notFoundHeader": "ಪ್ರದೇಶವನ್ನು ಸಮೀಕ್ಷೆ ಮಾಡಲಾಗಿಲ್ಲ",
-    "notFoundDesc": "ನೀವು ಹುಡುಕುತ್ತಿರುವ ಪುಟವು AgriSeva-AI ನಲ್ಲಿ ಕಂಡುಬಂದಿಲ್ಲ.",
-    "notFoundHint": "ಲಿಂಕ್ ಹಳೆಯದಾಗಿರಬಹುದು ಅಥವಾ ನೀವು ಮುರಿದ URL ಅನ್ನು ಅನುಸರಿಸಿರಬಹುದು.",
-    "backToHome": "ಮನೆಗೆ ಹಿಂತಿರುಗಿ",
-    "goBack": "ಹಿಂತಿರುಗಿ",
-    "cookiesTitle": "AgriSeva-AI ನಲ್ಲಿ ಕುಕೀಸ್",
-    "cookiesDesc": "ನಿಮ್ಮನ್ನು ಸೈನ್ ಇನ್ ಆಗಿರಿಸಲು ನಾವು ಕಟ್ಟುನಿಟ್ಟಾಗಿ-ಅಗತ್ಯವಿರುವ ಕುಕೀಯನ್ನು ಬಳಸುತ್ತೇವೆ. ನಿಮ್ಮ ಅನುಮತಿಯೊಂದಿಗೆ ನಾವು ಬಳಕೆಯ ಮಾದರಿಗಳನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ನಮಗೆ ಸಹಾಯ ಮಾಡಲು Firebase Analytics ಅನ್ನು ಸಹ ಸಕ್ರಿಯಗೊಳಿಸುತ್ತೇವೆ.",
-    "strictlyNecessary": "ಕಟ್ಟುನಿಟ್ಟಾಗಿ ಅಗತ್ಯ",
-    "analytics": "ಅನಾಲಿಟಿಕ್ಸ್",
-    "rejectAnalytics": "ವಿಶ್ಲೇಷಣೆಯನ್ನು ತಿರಸ್ಕರಿಸಿ",
-    "acceptAnalytics": "ವಿಶ್ಲೇಷಣೆಯನ್ನು ಸ್ವೀಕರಿಸಿ",
+    "notFoundHeader": "ಸಮೀಕ್ಷೆ ಮಾಡದ ಪ್ರದೇಶ",
+    "notFoundDesc": "ನೀವು ಹುಡುಕುತ್ತಿರುವ ಪುಟವು ಅಗ್ರಿಸೇವಾ-AI ನಲ್ಲಿ ಕಂಡುಬಂದಿಲ್ಲ.",
+    "notFoundHint": "ಲಿಂಕ್ ಹಳೆಯದಾಗಿರಬಹುದು ಅಥವಾ ತಪ್ಪಾದ URL ಆಗಿರಬಹುದು.",
+    "backToHome": "ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ",
+    "goBack": "ಹಿಂದಕ್ಕೆ ಹೋಗಿ",
+    "cookiesTitle": "ಅಗ್ರಿಸೇವಾ-AI ನಲ್ಲಿ ಕುಕೀಗಳು",
+    "cookiesDesc": "ನಿಮ್ಮನ್ನು ಸೈನ್ ಇನ್ ಆಗಿ ಇರಿಸಲು ನಾವು ಅಗತ್ಯ ಕುಕೀಯನ್ನು ಬಳಸುತ್ತೇವೆ. ನಿಮ್ಮ ಅನುಮತಿಯೊಂದಿಗೆ ನಾವು Firebase Analytics ಅನ್ನು ಸಹ ಬಳಸುತ್ತೇವೆ.",
+    "strictlyNecessary": "ಖಂಡಿತವಾಗಿಯೂ ಅಗತ್ಯ",
+    "analytics": "ವಿಶ್ಲೇಷಣೆ",
+    "rejectAnalytics": "ತಿರಸ್ಕರಿಸಿ",
+    "acceptAnalytics": "ಅಂಗೀಕರಿಸಿ",
     "hideDetails": "ಕುಕೀ ವಿವರಗಳನ್ನು ಮರೆಮಾಡಿ",
     "showDetails": "ಕುಕೀ ವಿವರಗಳನ್ನು ತೋರಿಸಿ",
     "signalLost": "ಸಿಗ್ನಲ್ ಕಳೆದುಹೋಗಿದೆ",
     "privacyPolicy": "ಗೌಪ್ಯತೆ ನೀತಿ",
     "terms": "ಸೇವಾ ನಿಯಮಗಳು",
-    "voiceRecorder": "ಧ್ವನಿ ಮುದ್ರಕ",
-    "transcript": "ಪ್ರತಿಲಿಪಿ",
+    "voiceRecorder": "ಧ್ವನಿ ರೆಕಾರ್ಡರ್",
+    "transcript": "ಪ್ರತಿಲೇಖನ",
     "chars": "ಅಕ್ಷರಗಳು",
-    "speechPlaceholder": "ನಿಮ್ಮ ಮಾತು ಇಲ್ಲಿ ಗೋಚರಿಸುತ್ತದೆ...",
+    "speechPlaceholder": "ನಿಮ್ಮ ಮಾತುಗಳು ಇಲ್ಲಿ ಕಾಣಿಸಿಕೊಳ್ಳುತ್ತವೆ...",
     "clear": "ತೆರವುಗೊಳಿಸಿ",
     "submit": "ಸಲ್ಲಿಸಿ",
     "sending": "ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ...",
     "questionsGenerated": "ಪ್ರಶ್ನೆಗಳು",
-    "questionsGeneratedHint": "ಇವು ನಿಮ್ಮ ಪ್ರತಿಲಿಪಿಯಿಂದ ರಚಿಸಲಾದ ಪ್ರಶ್ನೆಗಳು",
-    "toggleRecording": "ರೆಕಾರ್ಡಿಂಗ್ ಟಾಗಲ್ ಮಾಡಿ",
+    "questionsGeneratedHint": "ಇವು ನಿಮ್ಮ ಧ್ವನಿಯಿಂದ ರಚಿಸಲಾದ ಪ್ರಶ್ನೆಗಳು",
+    "toggleRecording": "ರೆಕಾರ್ಡಿಂಗ್ ಪ್ರಾರಂಭಿಸಿ/ನಿಲ್ಲಿಸಿ",
     "voiceHelp": "1. ಧ್ವನಿ ಸಹಾಯವಾಣಿ & ಕರೆ",
     "whatsappHelp": "2. ವಾಟ್ಸಾಪ್ AI ಸಹಾಯ ಮತ್ತು ಚಾಟ್",
     "helper": "3. ಅಗ್ರಿಸೇವಾ-AI ಸಹಾಯಕ",
@@ -119,7 +119,59 @@ export const kn: Partial<TranslationDictionary> = {
     "aiListening": "ನಿಮ್ಮ ಧ್ವನಿಯನ್ನು ಆಲಿಸುತ್ತಿದೆ...",
     "aiReady": "ಸಿದ್ಧವಾಗಿದೆ",
     "speakMicTitle": "ನಿಮ್ಮ ಮೈಕ್ರೊಫೋನ್‌ನಲ್ಲಿ ಮಾತನಾಡಿ",
-    "speakMicDesc": "ಯಾವುದೇ ಬೆಳೆ ರೋಗ, ಕೀಟನಾಶಕ ಪ್ರಮಾಣ ಅಥವಾ ಮಂಡಿ ಬೆಲೆಯ ಪ್ರಶ್ನೆಯನ್ನು ನಿಮ್ಮ ಭಾಷೆಯಲ್ಲೇ ಕೇಳಿ."
+    "speakMicDesc": "ಯಾವುದೇ ಬೆಳೆ ರೋಗ, ಕೀಟನಾಶಕ ಪ್ರಮಾಣ ಅಥವಾ ಮಂಡಿ ಬೆಲೆಯ ಪ್ರಶ್ನೆಯನ್ನು ನಿಮ್ಮ ಭಾಷೆಯಲ್ಲೇ ಕೇಳಿ.",
+    "endCall": "ಕರೆ ಮುಕ್ತಾಯಗೊಳಿಸಿ",
+    "imageTooLarge": "ಚಿತ್ರದ ಗಾತ್ರವು 10MB ಗಿಂತ ಕಡಿಮೆಯಿರಬೇಕು",
+    "assistantWelcome": "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ ಅಗ್ರಿಸೇವಾ AI ಸಹಾಯಕ. ಬೆಳೆ ರೋಗಗಳು, ಕೀಟನಾಶಕ ಪ್ರಮಾಣ, ಮಂಡಿ ದರಗಳು ಅಥವಾ ಅಗ್ರಿಸೇವಾ-AI ಬಳಕೆಯ ಬಗ್ಗೆ ಯಾವುದೇ ಪ್ರಶ್ನೆಗಳನ್ನು ಕೇಳಿ.",
+    "analyzingCropImage": "ದಯವಿಟ್ಟು ಈ ಬೆಳೆ ಚಿತ್ರವನ್ನು ಪರಿಶೀಲಿಸಿ ರೋಗನಿರ್ಣಯ ಮತ್ತು ಚಿಕಿತ್ಸೆಯನ್ನು ಸೂಚಿಸಿ",
+    "browserVoiceNotSupported": "ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಧ್ವನಿ ಇನ್‌ಪುಟ್ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ. ದಯವಿಟ್ಟು Chrome ಅಥವಾ Edge ಬಳಸಿ.",
+    "live24x7": "24x7 ಲೈವ್",
+    "helplines": "ನೇರ ಸಹಾಯವಾಣಿಗಳು",
+    "callFarmer": "ರೈತನಿಗೆ ಕರೆ ಮಾಡಿ",
+    "free100": "100% ಉಚಿತ",
+    "webCallButton": "ಉಚಿತ ವೆಬ್ ಧ್ವನಿ ಕರೆ ಪ್ರಾರಂಭಿಸಿ",
+    "helplineNumberTitle": "ಅಗ್ರಿಸೇವಾ AI ಸಹಾಯವಾಣಿ",
+    "helplineNumberDesc": "ಅಧಿಕೃತ ಅಗ್ರಿಸೇವಾ ಸಂಪರ್ಕ ಸಂಖ್ಯೆ. ನಮ್ಮ ಸ್ವಯಂಚಾಲಿತ ಸಹಾಯವಾಣಿಯನ್ನು ಸಂಪರ್ಕಿಸಲು ಯಾವುದೇ ಫೋನ್‌ನಿಂದ ಡಯಲ್ ಮಾಡಿ.",
+    "kisanCallCenterTitle": "ಕಿಸಾನ್ ಕಾಲ್ ಸೆಂಟರ್ (ಟೋಲ್-ಫ್ರೀ)",
+    "callAction": "ಕರೆ ಮಾಡಿ",
+    "kisanCallCenterDesc": "ಕೃಷಿ ಮತ್ತು ರೈತರ ಕಲ್ಯಾಣ ಸಚಿವಾಲಯದ ರಾಷ್ಟ್ರೀಯ ಕೃಷಿ ಸಲಹಾ ಸೇವೆ.",
+    "checkingFarmer": "ನೋಂದಾಯಿತ ರೈತ ಪ್ರೊಫೈಲ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...",
+    "registeredFarmer": "ನೋಂದಾಯಿತ ರೈತ",
+    "whatsAppModalTitle": "ಅಗ್ರಿಸೇವಾ ವಾಟ್ಸಾಪ್ ಸಂಪರ್ಕ",
+    "whatsAppModalDesc": "AI ಸಲಹೆಯೊಂದಿಗೆ ಚಾಟ್ ಮಾಡಿ ಮತ್ತು ರೈತರಿಗೆ ಅಪ್ಡೇಟ್ ಕಳುಹಿಸಿ",
+    "aiBotTab": "ಅಗ್ರಿಸೇವಾ AI ಬಾಟ್",
+    "messageFarmerTab": "ರೈತನಿಗೆ ಸಂದೇಶ ಕಳುಹಿಸಿ",
+    "agriSevaAiWhatsApp": "ಅಗ್ರಿಸೇವಾ AI ವಾಟ್ಸಾಪ್",
+    "message": "ಸಂದೇಶ ಪಠ್ಯ (ಐಚ್ಛಿಕ)",
+    "waMessagePlaceholder": "ರೈತರಿಗೆ ಕಳುಹಿಸಲು ಕೃಷಿ ಸಲಹೆ ಅಥವಾ ಸಂದೇಶವನ್ನು ನಮೂದಿಸಿ...",
+    "aiAssistantTitle": "ಅಗ್ರಿಸೇವಾ AI ಸಹಾಯಕ",
+    "onlineBadge": "ಆನ್‌ಲೈನ್",
+    "whatsAppAction": "ವಾಟ್ಸಾಪ್",
+    "cropPhotoAttached": "ಬೆಳೆ ಫೋಟೋ ಲಗತ್ತಿಸಲಾಗಿದೆ",
+    "removePhoto": "ಫೋಟೋ ತೆಗೆದುಹಾಕಿ",
+    "attachCropImage": "ಬೆಳೆ ಫೋಟೋ ಲಗತ್ತಿಸಿ",
+    "twentyThreeLanguages": "23 ಭಾಷೆಗಳು",
+    "close": "ಮುಚ್ಚಿ",
+    "searchLanguagePlaceholder": "ಭಾಷೆಯನ್ನು ಹುಡುಕಿ...",
+    "noLanguageMatches": "\"{searchQuery}\" ಗೆ ಹೊಂದಿಕೆಯಾಗುವ ಯಾವುದೇ ಭಾಷೆ ಕಂಡುಬಂದಿಲ್ಲ",
+    "selectedLabel": "ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ:",
+    "noLanguageSelectedYet": "ಇನ್ನೂ ಯಾವುದೇ ಭಾಷೆ ಆಯ್ಕೆಯಾಗಿಲ್ಲ",
+    "notifications": "ಅಧಿಸೂಚನೆಗಳು",
+    "onThisPage": "ಈ ಪುಟದಲ್ಲಿ",
+    "effectiveDate": "ಜಾರಿಗೆ ಬಂದ ದಿನಾಂಕ: ",
+    "contactUs": "ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ",
+    "legalContactDesc": "ಈ ನೀತಿಯ ಕುರಿತಾದ ಪ್ರಶ್ನೆಗಳಿಗೆ, ಇಮೇಲ್ ಮಾಡಿ ",
+    "dataCommitment": "ಅಗ್ರಿಸೇವಾ-AI ರೈತರ ಡೇಟಾವನ್ನು ರಕ್ಷಿಸಲು ಬದ್ಧವಾಗಿದೆ. ಸೇವೆಗಳನ್ನು ಒದಗಿಸಲು ಅಗತ್ಯವಿರುವುದನ್ನು ಮಾತ್ರ ನಾವು ಸಂಗ್ರಹಿಸುತ್ತೇವೆ.",
+    "allRightsReserved": "ಎಲ್ಲ ಹಕ್ಕುಗಳನ್ನು ಕಾಯ್ದಿರಿಸಲಾಗಿದೆ.",
+    "encryptedInTransit": "ರವಾನೆಯಲ್ಲಿ ಎನ್‌ಕ್ರಿಪ್ಟ್ ಮಾಡಲಾಗಿದೆ",
+    "verifyingAccess": "ಮಾಡರೇಟರ್ ಪ್ರವೇಶವನ್ನು ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...",
+    "cookieAuthDesc": "Firebase ದೃಢೀಕರಣ ಸೆಷನ್. ಇದನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲಾಗುವುದಿಲ್ಲ.",
+    "cookieAnalyticsDesc": "Firebase Analytics (_ga, _gid). ನಿಮ್ಮ ಸಮ್ಮತಿಯೊಂದಿಗೆ ಮಾತ್ರ ಬಳಸಲಾಗುತ್ತದೆ.",
+    "youFarmer": "ನೀವು (ರೈತ)",
+    "speakerMuted": "AI ಆಡಿಯೋ ಮ್ಯೂಟ್ ಆಗಿದೆ",
+    "speakerActive": "AI ಆಡಿಯೋ ಸಕ್ರಿಯವಾಗಿದೆ",
+    "unmuteSpeaker": "ಸ್ಪೀಕರ್ ಅನ್‌ಮ್ಯೂಟ್ ಮಾಡಿ",
+    "muteSpeaker": "ಸ್ಪೀಕರ್ ಮ್ಯೂಟ್ ಮಾಡಿ"
   },
   "nav": {
     "howItWorks": "ಇದು ಹೇಗೆ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತದೆ",
@@ -306,7 +358,14 @@ export const kn: Partial<TranslationDictionary> = {
     "rememberPassword": "ಪಾಸ್‌ವರ್ಡ್ ನೆನಪಿದೆಯೇ?",
     "signUpLink": "ಸೈನ್ ಅಪ್",
     "signInLink": "ಸೈನ್ ಇನ್",
-    "emailPlaceholder": "farmer@agriseva.ai"
+    "emailPlaceholder": "farmer@agriseva.ai",
+    "passwordPlaceholder": "••••••••",
+    "backToSignIn": "ಸೈನ್ ಇನ್‌ಗೆ ಹಿಂತಿರುಗಿ",
+    "backToHome": "ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ",
+    "processing": "ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲಾಗುತ್ತಿದೆ...",
+    "authenticating": "ದೃಢೀಕರಿಸಲಾಗುತ್ತಿದೆ ಮತ್ತು ಪ್ರೊಫೈಲ್ ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
+    "hidePassword": "ಪಾಸ್‌ವರ್ಡ್ ಮರೆಮಾಡಿ",
+    "showPassword": "ಪಾಸ್‌ವರ್ಡ್ ತೋರಿಸಿ"
   },
   "dashboard": {
     "allSources": "అన్ని మూలాలు",
@@ -484,7 +543,11 @@ export const kn: Partial<TranslationDictionary> = {
     "reviewStageDesc": "ಪ್ರತಿ ಹಂತದಲ್ಲೂ ಅಂಗೀಕರಿಸಲಾದ ಪ್ರಶ್ನೆಗಳ ವಿತರಣೆ.",
     "stageAuthor": "ಲೇಖಕ",
     "stageLevel": "ಹಂತ {level}",
-    "completedTasks": "ಪೂರ್ಣಗೊಂಡ ಕಾರ್ಯಗಳು"
+    "completedTasks": "ಪೂರ್ಣಗೊಂಡ ಕಾರ್ಯಗಳು",
+    "yearOverview": "ಮಾಸಿಕ ಅವಲೋಕನ - ಎಲ್ಲಾ 12 ತಿಂಗಳುಗಳು",
+    "weeklyBreakdown": "ವಾರದ ವಿವರಣೆ",
+    "dailyBreakdown": "ದೈನಂದಿನ ವಿವರಣೆ",
+    "hourlyBreakdown": "ಗಂಟೆಯ ವಿವರಣೆ"
   },
   "sidebar": {
     "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
@@ -514,8 +577,30 @@ export const kn: Partial<TranslationDictionary> = {
     "logoutConfirmDesc": "ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಪ್ರವೇಶಿಸಲು ನೀವು ಮತ್ತೆ ಲಾಗಿನ್ ಆಗಬೇಕಾಗುತ್ತದೆ.",
     "cancel": "ರದ್ದುಮಾಡಿ",
     "badgeNew": "ಹೊಸ",
-    "profileSettings": "Profile Settings",
-    "profileSettingsDesc": "Manage your account information and preferences"
+    "profileSettings": "ಪ್ರೊಫೈಲ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
+    "profileSettingsDesc": "ನಿಮ್ಮ ಖಾತೆ ಮಾಹಿತಿ ಮತ್ತು ಆದ್ಯತೆಗಳನ್ನು ನಿರ್ವಹಿಸಿ",
+    "savingProfile": "ಪ್ರೊಫೈಲ್ ಉಳಿಸಲಾಗುತ್ತಿದೆ...",
+    "savingProfileDesc": "ನಿಮ್ಮ ವಿವರಗಳನ್ನು ಅಪ್‌ಡೇಟ್ ಮಾಡುವವರೆಗೆ ದಯವಿಟ್ಟು ನಿರೀಕ್ಷಿಸಿ.",
+    "profileUpdated": "ಪ್ರೊಫೈಲ್ ನವೀಕರಿಸಲಾಗಿದೆ!",
+    "selectStateError": "ದಯವಿಟ್ಟು ರಾಜ್ಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+    "selectDistrictError": "ದಯವಿಟ್ಟು ಜಿಲ್ಲೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+    "enterKvkNameError": "ದಯವಿಟ್ಟು KVK ಹೆಸರನ್ನು ನಮೂದಿಸಿ.",
+    "invalidImageError": "ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಚಿತ್ರ ಫೈಲ್ ಆಯ್ಕೆಮಾಡಿ",
+    "imageTooLargeError": "ಚಿತ್ರದ ಗಾತ್ರವು 70KB ಗಿಂತ ಕಡಿಮೆಯಿರಬೇಕು",
+    "avatarUpdated": "ಪ್ರೊಫೈಲ್ ಚಿತ್ರ ನವೀಕರಿಸಲಾಗಿದೆ!",
+    "avatarUpdateFailed": "ಪ್ರೊಫೈಲ್ ಚಿತ್ರವನ್ನು ನವೀಕರಿಸಲು ವಿಫಲವಾಗಿದೆ",
+    "avatarRemoved": "ಪ್ರೊಫೈಲ್ ಚಿತ್ರವನ್ನು ತೆಗೆದುಹಾಕಲಾಗಿದೆ!",
+    "avatarRemoveFailed": "ಪ್ರೊಫೈಲ್ ಚಿತ್ರವನ್ನು ತೆಗೆದುಹಾಕಲು ವಿಫಲವಾಗಿದೆ",
+    "incorrectCurrentPassword": "ಪ್ರಸ್ತುತ ಪಾಸ್‌ವರ್ಡ್ ತಪ್ಪಾಗಿದೆ.",
+    "newPasswordRequired": "ಹೊಸ ಪಾಸ್‌ವರ್ಡ್ ಅಗತ್ಯವಿದೆ.",
+    "newPasswordMinLength": "ಹೊಸ ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ 6 ಅಕ್ಷರಗಳನ್ನು ಹೊಂದಿರಬೇಕು.",
+    "newPasswordSameAsCurrent": "ಹೊಸ ಪಾಸ್‌ವರ್ಡ್ ಪ್ರಸ್ತುತ ಪಾಸ್‌ವರ್ಡ್‌ನಂತೆಯೇ ಇರಬಾರದು.",
+    "confirmPasswordRequired": "ದಯವಿಟ್ಟು ನಿಮ್ಮ ಹೊಸ ಪಾಸ್‌ವರ್ಡ್ ಅನ್ನು ದೃಢೀಕರಿಸಿ.",
+    "passwordsMismatch": "ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ.",
+    "passwordUpdateFailed": "ಪಾಸ್‌ವರ್ಡ್ ನವೀಕರಿಸಲು ವಿಫಲವಾಗಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "passwordUpdatedSuccess": "ಪಾಸ್‌ವರ್ಡ್ ಯಶಸ್ವಿಯಾಗಿ ನವೀಕರಿಸಲಾಗಿದೆ!",
+    "clickAvatarHint": "ಪ್ರೊಫೈಲ್ ಚಿತ್ರವನ್ನು ನವೀಕರಿಸಲು ಅದರ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ",
+    "removeAvatar": "ಅವತಾರ ತೆಗೆದುಹಾಕಿ"
   },
   "notifications": {
     "titleNotifications": "ಅಧಿಸೂಚನೆಗಳು",
@@ -596,7 +681,8 @@ export const kn: Partial<TranslationDictionary> = {
     "emailInUse": "ಈ ಇಮೇಲ್ ಈಗಾಗಲೇ ನೋಂದಾಯಿಸಲ್ಪಟ್ಟಿದೆ. ದಯವಿಟ್ಟು ಸೈನ್ ಇನ್ ಮಾಡಿ.",
     "accountCreateFailed": "ಖಾತೆಯನ್ನು ರಚಿಸಲು ವಿಫಲವಾಗಿದೆ.",
     "resetSent": "ಮರುಹೊಂದಿಸುವ ಸೂಚನೆಗಳನ್ನು ಕಳುಹಿಸಲಾಗಿದೆ! ಇಮೇಲ್ ಪರಿಶೀಲಿಸಿ.",
-    "resetFailed": "ಮರುಹೊಂದಿಸುವ ಲಿಂಕ್ ಕಳುಹಿಸಲು ವಿಫಲವಾಗಿದೆ."
+    "resetFailed": "ಮರುಹೊಂದಿಸುವ ಲಿಂಕ್ ಕಳುಹಿಸಲು ವಿಫಲವಾಗಿದೆ.",
+    "accessDenied": "ಪ್ರವೇಶ ನಿರಾಕರಿಸಲಾಗಿದೆ. ಮಾಡರೇಟರ್ ಸವಲತ್ತುಗಳು ಅಗತ್ಯವಿದೆ."
   },
   "accessibility": {
     "close": "ಮುಚ್ಚಿ",
@@ -719,7 +805,8 @@ export const kn: Partial<TranslationDictionary> = {
       "verifiedBadge": "ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
       "viewAndOffer": "ವೀಕ್ಷಿಸಿ ಮತ್ತು ಬಿಡ್ ಮಾಡಿ →",
       "dealsFulfilled": "ಡೀಲ್‌ಗಳು ಪೂರ್ಣಗೊಂಡಿವೆ",
-      "buyerTypeDefault": "ಖರೀದಿದಾರ"
+      "buyerTypeDefault": "ಖರೀದಿದಾರ",
+      "viewAllBuyers": "ಎಲ್ಲಾ ಖರೀದಿದಾರರು"
     },
     "prices": {
       "title": "ಮಾರುಕಟ್ಟೆ ಬೆಲೆಗಳು",
@@ -748,7 +835,16 @@ export const kn: Partial<TranslationDictionary> = {
       "stale": "ಹಳಸಿದ",
       "market": "ಮಾರುಕಟ್ಟೆ",
       "sourceAgmarknet": "AGMARKNET",
-      "sourceEnam": "eNAM"
+      "sourceEnam": "eNAM",
+      "mandi": "ಮಂಡಿ / APMC",
+      "mandiPlaceholder": "ಉದಾ. APMC ಹುಬ್ಬಳ್ಳಿ",
+      "errorTitle": "ಮಾರುಕಟ್ಟೆ ದರಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ",
+      "errorFallback": "ಮಾರುಕಟ್ಟೆ ಡೇಟಾ ಸರ್ವರ್ ಸಂಪರ್ಕದಲ್ಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಪ್ರಯತ್ನಿಸಿ.",
+      "errorNoDemo": "ಸರ್ವರ್ ಸಂಪರ್ಕವಿಲ್ಲದಿದ್ದಾಗ ಡೆಮೊ ಡೇಟಾವನ್ನು ಮರೆಮಾಡಲಾಗಿದೆ.",
+      "emptyHint": "ರಾಷ್ಟ್ರೀಯ ಮಾರುಕಟ್ಟೆ ದರಗಳನ್ನು ನೋಡಲು 'ಎಲ್ಲಾ ರಾಜ್ಯಗಳು' ಆಯ್ಕೆಮಾಡಿ ಅಥವಾ ಬೇರೆ ಬೆಳೆ ಆಯ್ಕೆಮಾಡಿ.",
+      "clearLocation": "ರಾಜ್ಯ / ಜಿಲ್ಲೆಯ ಫಿಲ್ಟರ್ ತೆರವುಗೊಳಿಸಿ",
+      "aggregateHint": "ರಾಜ್ಯ ಮಟ್ಟದ ಸರಾಸರಿ, ನಿರ್ದಿಷ್ಟ ಮಂಡಿ ಅಲ್ಲ",
+      "aggregate": "ರಾಜ್ಯ ಸರಾಸರಿ"
     },
     "buyers": {
       "title": "ಖರೀದಿದಾರರನ್ನು ಹುಡುಕಿ",
@@ -768,7 +864,14 @@ export const kn: Partial<TranslationDictionary> = {
       "cropsProcured": "{count} ಬೆಳೆಗಳನ್ನು ಖರೀದಿಸಲಾಗಿದೆ",
       "cropLabel": "ಬೆಳೆ:",
       "stateLabel": "ರಾಜ್ಯ:",
-      "viewProfile": "ಖರೀದಿದಾರರ ಪ್ರೊಫೈಲ್ ವೀಕ್ಷಿಸಿ →"
+      "viewProfile": "ಖರೀದಿದಾರರ ಪ್ರೊಫೈಲ್ ವೀಕ್ಷಿಸಿ →",
+      "loading": "ಪರಿಶೀಲಿಸಿದ ಖರೀದಿದಾರರನ್ನು ಹುಡುಕಲಾಗುತ್ತಿದೆ…",
+      "error": "ಖರೀದಿದಾರರನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ.",
+      "retry": "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+      "govtEnamVerified": "ಸರ್ಕಾರ / ಇ-ನ್ಯಾಮ್ ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
+      "agrisevaVerified": "ಅಗ್ರಿಸೇವಾ ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
+      "agrisevaRegistered": "ಅಗ್ರಿಸೇವಾ ನೋಂದಾಯಿತ",
+      "unverified": "ಪರಿಶೀಲಿಸದ"
     },
     "buyerDetail": {
       "notFound": "ಖರೀದಿದಾರ ಕಂಡುಬಂದಿಲ್ಲ.",
@@ -813,7 +916,14 @@ export const kn: Partial<TranslationDictionary> = {
       "sortLabel": "ವಿಂಗಡಿಸು",
       "sortNewest": "ಮೊದಲು ಹೊಸತು",
       "sortOldest": "ಮೊದಲನೆಯದು ಹಳೆಯದು",
-      "sortQty": "ಅತಿ ದೊಡ್ಡ ಪ್ರಮಾಣ"
+      "sortQty": "ಅತಿ ದೊಡ್ಡ ಪ್ರಮಾಣ",
+      "viewAll": "ಎಲ್ಲಾ ಲಾಟ್‌ಗಳನ್ನು ವೀಕ್ಷಿಸಿ",
+      "loading": "ನಿಮ್ಮ ಬೆಳೆ ಲಾಟ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ…",
+      "error": "ಲಾಟ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ.",
+      "retry": "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+      "emptyTitle": "ಯಾವುದೇ ಲಾಟ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ",
+      "emptyFilter": "ಈ ಫಿಲ್ಟರ್‌ಗೆ ಹೊಂದಿಕೆಯಾಗುವ ಯಾವುದೇ ಲಾಟ್‌ಗಳಿಲ್ಲ.",
+      "createFirst": "ಮೊದಲ ಲಾಟ್ ರಚಿಸಿ"
     },
     "createLot": {
       "title": "ಹೊಸ ಲಾಟ್ ರಚಿಸಿ",
@@ -902,7 +1012,10 @@ export const kn: Partial<TranslationDictionary> = {
       "deleteHint": "ಇದು ಈ ಲಾಟ್‌ನಲ್ಲಿರುವ ಎಲ್ಲಾ ಕೊಡುಗೆಗಳನ್ನು ಸಹ ತೆಗೆದುಹಾಕುತ್ತದೆ. ಇದನ್ನು ರದ್ದುಗೊಳಿಸಲಾಗುವುದಿಲ್ಲ.",
       "errQty": "ಪ್ರಮಾಣವು ಧನಾತ್ಮಕವಾಗಿರಬೇಕು.",
       "errPrice": "ಬೆಲೆ ಧನಾತ್ಮಕವಾಗಿರಬೇಕು.",
-      "errBuyer": "ಖರೀದಿದಾರರ ಹೆಸರನ್ನು ನಮೂದಿಸಿ."
+      "errBuyer": "ಖರೀದಿದಾರರ ಹೆಸರನ್ನು ನಮೂದಿಸಿ.",
+      "loading": "ಲಾಟ್ ವಿವರಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ…",
+      "aggregateHint": "ರಾಜ್ಯ ಮಟ್ಟದ ಸರಾಸರಿ, ನಿರ್ದಿಷ್ಟ ಮಂಡಿ ಅಲ್ಲ",
+      "aggregate": "ರಾಜ್ಯ ಸರಾಸರಿ"
     },
     "offers": {
       "title": "ನನ್ನ ಕೊಡುಗೆಗಳು",
@@ -923,7 +1036,13 @@ export const kn: Partial<TranslationDictionary> = {
       "counterPrice": "ನಿಮ್ಮ ಕೌಂಟರ್ ಬೆಲೆ (ರೂ/ಕೆಜಿ)",
       "counterNote": "ಐಚ್ಛಿಕ ಟಿಪ್ಪಣಿ",
       "sendCounter": "ಕೌಂಟರ್ ಕಳುಹಿಸಿ",
-      "counterError": "ಧನಾತ್ಮಕ ಬೆಲೆಯನ್ನು ನಮೂದಿಸಿ."
+      "counterError": "ಧನಾತ್ಮಕ ಬೆಲೆಯನ್ನು ನಮೂದಿಸಿ.",
+      "loading": "ಆಫರ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ…",
+      "error": "ಆಫರ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ.",
+      "retry": "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+      "emptyAll": "ಇನ್ನೂ ಯಾವುದೇ ಬಿಡ್‌ಗಳು ಅಥವಾ ಆಫರ್‌ಗಳು ಬಂದಿಲ್ಲ",
+      "emptyFilter": "ಈ ಫಿಲ್ಟರ್‌ಗೆ ಹೊಂದಿಕೆಯಾಗುವ ಯಾವುದೇ ಆಫರ್‌ಗಳಿಲ್ಲ",
+      "emptyHint": "ಪರಿಶೀಲಿಸಿದ ಖರೀದಿದಾರರು ನಿಮ್ಮ ಬೆಳೆಗೆ ಬಿಡ್ ಮಾಡಿದಾಗ, ಅವು ಪೂರ್ಣ ವಿವರಗಳೊಂದಿಗೆ ಇಲ್ಲಿ ಕಾಣಿಸಿಕೊಳ್ಳುತ್ತವೆ."
     },
     "logistics": {
       "title": "ಲಾಜಿಸ್ಟಿಕ್ಸ್ ಮತ್ತು ಸಾರಿಗೆ",
@@ -935,7 +1054,12 @@ export const kn: Partial<TranslationDictionary> = {
       "rate": "ದರ",
       "select": "ಈ ಟ್ರಾನ್ಸ್ಪೋರ್ಟರ್ ಅನ್ನು ಆಯ್ಕೆಮಾಡಿ",
       "selected": "ಆಯ್ಕೆ ಮಾಡಲಾಗಿದೆ",
-      "eta": "ETA"
+      "eta": "ETA",
+      "selectedHint": "ಪ್ರಸ್ತುತ ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ: ",
+      "loading": "ಸಾರಿಗೆ ಮಾರ್ಗಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ…",
+      "error": "ಸಾರಿಗೆ ಆಯ್ಕೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ.",
+      "retry": "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+      "emptyHint": "ವಾಹನದ ಸಾಮರ್ಥ್ಯ ಮತ್ತು ದೂರದ ಆಧಾರದ ಮೇಲೆ ಸಾರಿಗೆ ವೆಚ್ಚವು ಸಾಮಾನ್ಯವಾಗಿ ಪ್ರತಿ ಕೆಜಿಗೆ ₹1.5 - ₹3.0 ಇರುತ್ತದೆ."
     },
     "storage": {
       "title": "ಶೇಖರಣಾ ಸೌಲಭ್ಯಗಳು",
@@ -958,7 +1082,11 @@ export const kn: Partial<TranslationDictionary> = {
       "bookingsHint": "ನಿಮ್ಮ ಸಕ್ರಿಯ ಕಾಯ್ದಿರಿಸುವಿಕೆಗಳು",
       "errKg": "ಧನಾತ್ಮಕ ಪ್ರಮಾಣವನ್ನು ನಮೂದಿಸಿ.",
       "errDays": "ಧನಾತ್ಮಕ ಅವಧಿಯನ್ನು ನಮೂದಿಸಿ.",
-      "errGeneric": "ಕಾಯ್ದಿರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+      "errGeneric": "ಕಾಯ್ದಿರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "loading": "ಶೇಖರಣಾ ಸೌಲಭ್ಯಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ…",
+      "error": "ಶೇಖರಣಾ ಸೌಲಭ್ಯಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ.",
+      "retry": "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+      "emptyHint": "WDRA ನೋಂದಾಯಿತ ಗೋದಾಮುಗಳು ಮತ್ತು SWC ಕೋಲ್ಡ್ ಸ್ಟೋರೇಜ್‌ಗಳು ನಿಮ್ಮ ಜಿಲ್ಲೆಗೆ ಲಿಂಕ್ ಆದ ನಂತರ ಇಲ್ಲಿ ಕಾಣಿಸಿಕೊಳ್ಳುತ್ತವೆ."
     },
     "payments": {
       "title": "ಪಾವತಿಗಳು",
@@ -972,7 +1100,13 @@ export const kn: Partial<TranslationDictionary> = {
         "failed": "ವಿಫಲವಾಗಿದೆ"
       },
       "empty": "ಈ ನೋಟದಲ್ಲಿ ಇನ್ನೂ ಯಾವುದೇ ಪಾವತಿಗಳಿಲ್ಲ.",
-      "raiseDispute": "ವಿವಾದವನ್ನು ಎತ್ತಿಕೊಳ್ಳಿ"
+      "raiseDispute": "ವಿವಾದವನ್ನು ಎತ್ತಿಕೊಳ್ಳಿ",
+      "loading": "ಪಾವತಿಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ…",
+      "error": "ಪಾವತಿಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ.",
+      "retry": "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+      "emptyAll": "ಇನ್ನೂ ಯಾವುದೇ ಪಾವತಿಗಳು ದಾಖಲಾಗಿಲ್ಲ",
+      "emptyFilter": "ಈ ಫಿಲ್ಟರ್‌ಗೆ ಹೊಂದಿಕೆಯಾಗುವ ಯಾವುದೇ ಪಾವತಿಗಳಿಲ್ಲ",
+      "emptyHint": "ಒಪ್ಪಿಕೊಂಡ ಆಫರ್‌ಗಳು ಬ್ಯಾಂಕ್ ವರ್ಗಾವಣೆ ಅಥವಾ UPI ಮೂಲಕ ಇತ್ಯರ್ಥವಾದಾಗ, ರಸೀದಿಗಳು ಇಲ್ಲಿ ಸಂಗ್ರಹವಾಗುತ್ತವೆ."
     },
     "grievances": {
       "title": "ಕುಂದುಕೊರತೆಗಳು",
@@ -1048,7 +1182,10 @@ export const kn: Partial<TranslationDictionary> = {
       "viewLot": "ಬಹಳಷ್ಟು ವೀಕ್ಷಿಸಿ",
       "pickMarket": "ಈ ಮಾರುಕಟ್ಟೆಯನ್ನು ಬಳಸಿ",
       "chooseLot": "ಬಹಳಷ್ಟು ಹೋಲಿಸಿ",
-      "rankBadge": "#{rank}"
+      "rankBadge": "#{rank}",
+      "noLotsTitle": "ಯಾವುದೇ ಸಕ್ರಿಯ ಲಾಟ್ ಕಂಡುಬಂದಿಲ್ಲ",
+      "aggregateHint": "ರಾಜ್ಯ ಮಟ್ಟದ ಸರಾಸರಿ, ನಿರ್ದಿಷ್ಟ ಮಂಡಿ ಅಲ್ಲ",
+      "aggregate": "ರಾಜ್ಯ ಸರಾಸರಿ"
     },
     "common": {
       "back": "ಹಿಂದೆ",
@@ -1057,7 +1194,28 @@ export const kn: Partial<TranslationDictionary> = {
       "sourceLive": "ಲೈವ್",
       "submitting": "ಸಲ್ಲಿಸಲಾಗುತ್ತಿದೆ...",
       "save": "ಉಳಿಸಿ",
-      "sourceMulti": "Agmarknet + eNAM"
+      "sourceMulti": "Agmarknet + eNAM",
+      "sourceMixed": "ಮಿಶ್ರ — ಕೆಲವು ಡೆಮೊ ದಾಖಲೆಗಳಿವೆ"
+    },
+    "reliability": {
+      "loading": "ಮೂಲದ ವಿಶ್ವಾಸಾರ್ಹತೆಯನ್ನು ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ…",
+      "label": "ಡೇಟಾ ಸ್ಥಿತಿ:",
+      "lowWarningTitle": "ಲೈವ್ ಡೇಟಾ ತಾಜಾತನದ ಮಿತಿಗಿಂತ ಕಡಿಮೆಯಾಗಿದೆ.",
+      "lowWarningBody": "ದುರ್ಬಲ ಮೂಲ: {source} ಸ್ಕೋರ್ {score}/100 ({band}). ಇಂದಿನ ಬೆಲೆಗಳನ್ನು ಕೇವಲ ಸೂಚಕವಾಗಿ ಪರಿಗಣಿಸಿ ಮತ್ತು ಸ್ಥಳೀಯ ಮಂಡಿಯಲ್ಲಿ ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ."
     }
+  },
+  "onboarding": {
+    "phoneRequired": "ದಯವಿಟ್ಟು ನಿಮ್ಮ 10 ಅಂಕಿಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ.",
+    "phoneInvalid": "ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ 10 ಅಂಕಿಯ ಭಾರತೀಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ (ಉದಾ. 9876543210).",
+    "phoneSaved": "ಸಂಪರ್ಕ ಸಂಖ್ಯೆಯನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಪರಿಶೀಲಿಸಲಾಗಿದೆ ಮತ್ತು ಉಳಿಸಲಾಗಿದೆ!",
+    "contactTitle": "ನಿಮ್ಮ ಸಂಪರ್ಕ ಸಂಖ್ಯೆಯನ್ನು ಸೇರಿಸಿ",
+    "contactBadge": "ಅಗತ್ಯ ಹಂತ • ಅಗ್ರಿಸೇವಾ-AI ಸಂವಹನ ಸೆಟಪ್",
+    "contactDesc": "ಕರೆ ಮತ್ತು ವಾಟ್ಸಾಪ್ ಸೇವೆಗಳನ್ನು ಒದಗಿಸಲು ನಿಮ್ಮ ಸಂಪರ್ಕ ಸಂಖ್ಯೆ ಅಗ್ರಿಸೇವಾ-AI ಗೆ ಸಹಾಯ ಮಾಡುತ್ತದೆ.",
+    "mobileNumber": "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ",
+    "phoneHint": "ದೇಶದ ಕೋಡ್ ಇಲ್ಲದೆ ನಿಮ್ಮ 10 ಅಂಕಿಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ.",
+    "saving": "ಸಂಪರ್ಕ ಸಂಖ್ಯೆ ಉಳಿಸಲಾಗುತ್ತಿದೆ...",
+    "continue": "ಮುಂದುವರಿಸಿ",
+    "skipForNow": "ಸದ್ಯಕ್ಕೆ ಬಿಟ್ಟುಬಿಡಿ",
+    "privacyAssurance": "ನಿಮ್ಮ ಫೋನ್ ಸಂಖ್ಯೆಯನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ಸಂಗ್ರಹಿಸಲಾಗಿದೆ ಮತ್ತು ಮೂರನೇ ವ್ಯಕ್ತಿಗಳೊಂದಿಗೆ ಎಂದಿಗೂ ಹಂಚಿಕೊಳ್ಳಲಾಗುವುದಿಲ್ಲ."
   }
 };

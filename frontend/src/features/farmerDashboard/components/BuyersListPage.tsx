@@ -255,20 +255,20 @@ export function BuyersListPage() {
                       {buyer.verificationStatus === 'government_enam_verified' ? (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 font-bold border border-blue-200">
                           <ShieldCheck className="h-3.5 w-3.5 text-blue-700" />
-                          <span>Government / eNAM Verified</span>
+                          <span>{t("farmer.buyers.govtEnamVerified", "Government / eNAM Verified")}</span>
                         </span>
                       ) : buyer.verificationStatus === 'agriseva_verified' || buyer.verified ? (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold border border-emerald-200">
                           <ShieldCheck className="h-3.5 w-3.5 text-emerald-700" />
-                          <span>AgriSeva Verified</span>
+                          <span>{t("farmer.buyers.agrisevaVerified", "AgriSeva Verified")}</span>
                         </span>
                       ) : buyer.verificationStatus === 'agriseva_registered' ? (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-medium border border-amber-200">
-                          <span>📋 AgriSeva Registered</span>
+                          <span>📋 {t("farmer.buyers.agrisevaRegistered", "AgriSeva Registered")}</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-stone-100 text-stone-700 font-medium">
-                          <span>Unverified</span>
+                          <span>{t("farmer.buyers.unverified", "Unverified")}</span>
                         </span>
                       )}
                     </p>

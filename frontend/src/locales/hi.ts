@@ -26,33 +26,33 @@ export const hi: Partial<TranslationDictionary> = {
     "askAgriSeva": "AgriSeva-AI से पूछें",
     "loading": "लोड हो रहा है...",
     "loadingApp": "AgriSeva-AI लोड हो रहा है...",
-    "slogan": "हर किसान राजा है, AI उसके साथ है।",
+    "slogan": "हर किसान एक राजा, एआई उनके साथ।",
     "notFoundTitle": "पृष्ठ नहीं मिला",
-    "notFoundHeader": "क्षेत्र सर्वेक्षण रहित",
-    "notFoundDesc": "आप जिस पृष्ठ की तलाश कर रहे हैं वह एग्रीसेवा-एआई पर नहीं मिल सका।",
-    "notFoundHint": "लिंक पुराना हो सकता है या आपने किसी टूटे हुए यूआरएल का अनुसरण किया होगा।",
-    "backToHome": "घर वापिस जा रहा हूँ",
-    "goBack": "वापस जाओ",
+    "notFoundHeader": "असर्वेक्षित क्षेत्र",
+    "notFoundDesc": "आपके द्वारा खोजा गया पृष्ठ एग्रीसेवा-एआई पर नहीं मिला।",
+    "notFoundHint": "लिंक पुराना हो सकता है या आपने टूटे हुए यूआरएल का अनुसरण किया है।",
+    "backToHome": "मुखपृष्ठ पर वापस जाएं",
+    "goBack": "वापस जाएं",
     "cookiesTitle": "एग्रीसेवा-एआई पर कुकीज़",
-    "cookiesDesc": "आपको साइन इन रखने के लिए हम एक अत्यंत आवश्यक कुकी का उपयोग करते हैं। आपकी अनुमति से हम उपयोग पैटर्न को समझने में मदद करने के लिए फायरबेस एनालिटिक्स को भी सक्षम करेंगे।",
+    "cookiesDesc": "हम आपको साइन इन रखने के लिए एक अनिवार्य कुकी का उपयोग करते हैं। आपकी अनुमति से हम उपयोग पैटर्न को समझने के लिए फ़ायरबेस एनालिटिक्स भी सक्षम करेंगे।",
     "strictlyNecessary": "अत्यंत आवश्यक",
     "analytics": "एनालिटिक्स",
-    "rejectAnalytics": "विश्लेषण को अस्वीकार करें",
-    "acceptAnalytics": "विश्लेषण स्वीकार करें",
-    "hideDetails": "कुकी विवरण छिपाएँ",
-    "showDetails": "कुकी विवरण दिखाएँ",
-    "signalLost": "सिग्नल खो गया",
+    "rejectAnalytics": "एनालिटिक्स अस्वीकार करें",
+    "acceptAnalytics": "एनालिटिक्स स्वीकार करें",
+    "hideDetails": "कुकी विवरण छुपाएं",
+    "showDetails": "कुकी विवरण दिखाएं",
+    "signalLost": "सिग्नल टूट गया",
     "privacyPolicy": "गोपनीयता नीति",
     "terms": "सेवा की शर्तें",
-    "voiceRecorder": "वॉइस रिकॉर्डर",
+    "voiceRecorder": "वॉयस रिकॉर्डर",
     "transcript": "ट्रांसक्रिप्ट",
     "chars": "अक्षर",
-    "speechPlaceholder": "आपका भाषण यहां दिखाई देगा...",
+    "speechPlaceholder": "आपकी बोली यहाँ दिखाई देगी...",
     "clear": "साफ़ करें",
     "submit": "जमा करें",
     "sending": "भेजा जा रहा है...",
     "questionsGenerated": "प्रश्न",
-    "questionsGeneratedHint": "ये आपके ट्रांसक्रिप्ट से उत्पन्न प्रश्न हैं",
+    "questionsGeneratedHint": "ये आपकी ट्रांसक्रिप्ट से उत्पन्न प्रश्न हैं",
     "toggleRecording": "रिकॉर्डिंग टॉगल करें",
     "voiceHelp": "1. वॉयस हेल्पलाइन और कॉलिंग",
     "whatsappHelp": "2. व्हाट्सएप एआई सहायता और चैट",
@@ -119,7 +119,59 @@ export const hi: Partial<TranslationDictionary> = {
     "aiListening": "आपकी आवाज़ सुन रहा है...",
     "aiReady": "तैयार",
     "speakMicTitle": "अपने माइक्रोफ़ोन में बोलें",
-    "speakMicDesc": "अपनी भाषा में कोई भी फसल रोग, कीटनाशक खुराक या मंडी भाव का प्रश्न पूछें।"
+    "speakMicDesc": "अपनी भाषा में कोई भी फसल रोग, कीटनाशक खुराक या मंडी भाव का प्रश्न पूछें।",
+    "endCall": "कॉल समाप्त करें",
+    "imageTooLarge": "छवि का आकार 10MB से कम होना चाहिए",
+    "assistantWelcome": "नमस्ते! मैं आपका एग्रीसेवा एआई सहायक हूँ। मुझसे फसल रोगों, कीट नियंत्रण, मंडी भाव या एग्रीसेवा-एआई के उपयोग के बारे में कुछ भी पूछें।",
+    "analyzingCropImage": "कृपया इस फसल की छवि की जांच करें और निदान व उपचार बताएं",
+    "browserVoiceNotSupported": "इस ब्राउज़र में ध्वनि इनपुट समर्थित नहीं है। कृपया Chrome या Edge का उपयोग करें।",
+    "live24x7": "24x7 लाइव",
+    "helplines": "सीधी हेल्पलाइन",
+    "callFarmer": "किसान को कॉल करें",
+    "free100": "100% निःशुल्क",
+    "webCallButton": "निःशुल्क वेब वॉयस कॉल शुरू करें",
+    "helplineNumberTitle": "एग्रीसेवा एआई हेल्पलाइन",
+    "helplineNumberDesc": "आधिकारिक एग्रीसेवा संपर्क नंबर। हमारी स्वचालित हेल्पलाइन से जुड़ने के लिए किसी भी फोन से डायल करें।",
+    "kisanCallCenterTitle": "किसान कॉल सेंटर (टोल-फ्री)",
+    "callAction": "कॉल करें",
+    "kisanCallCenterDesc": "कृषि एवं किसान कल्याण मंत्रालय द्वारा राष्ट्रीय कृषि सलाहकार सेवा।",
+    "checkingFarmer": "पंजीकृत किसान प्रोफ़ाइल की जांच हो रही है...",
+    "registeredFarmer": "पंजीकृत किसान",
+    "whatsAppModalTitle": "एग्रीसेवा व्हाट्सएप कनेक्ट",
+    "whatsAppModalDesc": "एआई सलाह से चैट करें और किसान को अपडेट भेजें",
+    "aiBotTab": "एग्रीसेवा एआई बॉट",
+    "messageFarmerTab": "किसान को संदेश भेजें",
+    "agriSevaAiWhatsApp": "एग्रीसेवा एआई व्हाट्सएप",
+    "message": "संदेश पाठ (वैकल्पिक)",
+    "waMessagePlaceholder": "किसान को भेजने के लिए कृषि सलाह या संदेश लिखें...",
+    "aiAssistantTitle": "एग्रीसेवा एआई सहायक",
+    "onlineBadge": "ऑनलाइन",
+    "whatsAppAction": "व्हाट्सएप",
+    "cropPhotoAttached": "फसल की फोटो संलग्न है",
+    "removePhoto": "फोटो हटाएं",
+    "attachCropImage": "फसल फोटो संलग्न करें",
+    "twentyThreeLanguages": "23 भाषाएं",
+    "close": "बंद करें",
+    "searchLanguagePlaceholder": "भाषा खोजें...",
+    "noLanguageMatches": "\"{searchQuery}\" से मेल खाती कोई भाषा नहीं मिली",
+    "selectedLabel": "चयनित:",
+    "noLanguageSelectedYet": "अभी तक कोई भाषा नहीं चुनी गई",
+    "notifications": "सूचनाएं",
+    "onThisPage": "इस पृष्ठ पर",
+    "effectiveDate": "प्रभावी तिथि: ",
+    "contactUs": "हमसे संपर्क करें",
+    "legalContactDesc": "इस नीति के बारे में प्रश्नों के लिए, ईमेल करें ",
+    "dataCommitment": "एग्रीसेवा-एआई किसान डेटा की सुरक्षा के लिए प्रतिबद्ध है। हम सेवा प्रदान करने के लिए केवल आवश्यक जानकारी ही एकत्र करते हैं।",
+    "allRightsReserved": "सर्वाधिकार सुरक्षित।",
+    "encryptedInTransit": "ट्रांसिट में एन्क्रिप्टेड",
+    "verifyingAccess": "मॉडरेटर एक्सेस का सत्यापन हो रहा है...",
+    "cookieAuthDesc": "फ़ायरबेस प्रमाणीकरण सत्र। इसे अक्षम नहीं किया जा सकता।",
+    "cookieAnalyticsDesc": "फ़ायरबेस एनालिटिक्स (_ga, _gid)। केवल आपकी सहमति से उपयोग किया जाता है।",
+    "youFarmer": "आप (किसान)",
+    "speakerMuted": "एआई ऑडियो म्यूट है",
+    "speakerActive": "एआई ऑडियो सक्रिय है",
+    "unmuteSpeaker": "स्पीकर अनम्यूट करें",
+    "muteSpeaker": "स्पीकर म्यूट करें"
   },
   "nav": {
     "howItWorks": "यह कैसे काम करता है",
@@ -306,7 +358,14 @@ export const hi: Partial<TranslationDictionary> = {
     "haveAccount": "पहले से खाता है?",
     "rememberPassword": "पासवर्ड याद आ गया?",
     "signUpLink": "साइन अप करें",
-    "signInLink": "साइन इन करें"
+    "signInLink": "साइन इन करें",
+    "passwordPlaceholder": "••••••••",
+    "backToSignIn": "साइन इन पर वापस जाएं",
+    "backToHome": "मुखपृष्ठ पर वापस",
+    "processing": "प्रक्रिया जारी है...",
+    "authenticating": "प्रमाणित किया जा रहा है और प्रोफ़ाइल लोड हो रही है...",
+    "hidePassword": "पासवर्ड छुपाएं",
+    "showPassword": "पासवर्ड दिखाएं"
   },
   "dashboard": {
     "allSources": "అన్ని మూలాలు",
@@ -484,7 +543,11 @@ export const hi: Partial<TranslationDictionary> = {
     "reviewStageDesc": "प्रत्येक समीक्षा स्तर पर उत्तीर्ण प्रश्नों का वितरण।",
     "stageAuthor": "लेखक",
     "stageLevel": "स्तर {level}",
-    "completedTasks": "पूर्ण कार्य"
+    "completedTasks": "पूर्ण कार्य",
+    "yearOverview": "मासिक अवलोकन - सभी 12 महीने",
+    "weeklyBreakdown": "साप्ताहिक विवरण",
+    "dailyBreakdown": "दैनिक विवरण",
+    "hourlyBreakdown": "प्रति घंटा विवरण"
   },
   "sidebar": {
     "dashboard": "डैशबोर्ड",
@@ -514,8 +577,30 @@ export const hi: Partial<TranslationDictionary> = {
     "logoutConfirmDesc": "अपने खाते तक पहुंचने के लिए आपको फिर से लॉग इन करना होगा।",
     "cancel": "रद्द करें",
     "badgeNew": "नया",
-    "profileSettings": "Profile Settings",
-    "profileSettingsDesc": "Manage your account information and preferences"
+    "profileSettings": "प्रोफ़ाइल सेटिंग्स",
+    "profileSettingsDesc": "अपने खाते की जानकारी और प्राथमिकताएं प्रबंधित करें",
+    "savingProfile": "प्रोफ़ाइल सहेजी जा रही है...",
+    "savingProfileDesc": "कृपया प्रतीक्षा करें जब तक हम आपका विवरण अपडेट करते हैं।",
+    "profileUpdated": "प्रोफ़ाइल अपडेट हो गई!",
+    "selectStateError": "कृपया एक राज्य चुनें।",
+    "selectDistrictError": "कृपया एक जिला चुनें।",
+    "enterKvkNameError": "कृपया केवीके का नाम दर्ज करें।",
+    "invalidImageError": "कृपया एक मान्य छवि फ़ाइल चुनें",
+    "imageTooLargeError": "छवि का आकार 70KB से कम होना चाहिए",
+    "avatarUpdated": "प्रोफ़ाइल चित्र अपडेट हो गया!",
+    "avatarUpdateFailed": "प्रोफ़ाइल चित्र अपडेट करने में विफल",
+    "avatarRemoved": "प्रोफ़ाइल चित्र हटा दिया गया!",
+    "avatarRemoveFailed": "प्रोफ़ाइल चित्र हटाने में विफल",
+    "incorrectCurrentPassword": "गलत वर्तमान पासवर्ड।",
+    "newPasswordRequired": "नया पासवर्ड आवश्यक है।",
+    "newPasswordMinLength": "नया पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।",
+    "newPasswordSameAsCurrent": "नया पासवर्ड वर्तमान पासवर्ड के समान नहीं हो सकता।",
+    "confirmPasswordRequired": "कृपया अपने नए पासवर्ड की पुष्टि करें।",
+    "passwordsMismatch": "पासवर्ड मेल नहीं खाते।",
+    "passwordUpdateFailed": "पासवर्ड अपडेट करने में विफल। पुनः प्रयास करें।",
+    "passwordUpdatedSuccess": "पासवर्ड सफलतापूर्वक अपडेट हो गया!",
+    "clickAvatarHint": "प्रोफ़ाइल चित्र बदलने के लिए उस पर क्लिक करें",
+    "removeAvatar": "अवतार हटाएं"
   },
   "notifications": {
     "titleNotifications": "सूचनाएं",
@@ -596,7 +681,8 @@ export const hi: Partial<TranslationDictionary> = {
     "emailInUse": "यह ईमेल पहले से पंजीकृत है। कृपया साइन इन करें।",
     "accountCreateFailed": "खाता बनाने में विफल।",
     "resetSent": "रीसेट निर्देश भेजे गए! कृपया अपना इनबॉक्स देखें।",
-    "resetFailed": "रीसेट लिंक भेजने में विफल। कृपया अपना ईमेल जांचें।"
+    "resetFailed": "रीसेट लिंक भेजने में विफल। कृपया अपना ईमेल जांचें।",
+    "accessDenied": "पहुंच अस्वीकृत। मॉडरेटर विशेषाधिकार आवश्यक हैं।"
   },
   "accessibility": {
     "close": "बंद करें",
@@ -719,7 +805,8 @@ export const hi: Partial<TranslationDictionary> = {
       "verifiedBadge": "सत्यापित",
       "viewAndOffer": "देखें और प्रस्ताव दें →",
       "dealsFulfilled": "सौदा संपन्न",
-      "buyerTypeDefault": "खरीदार"
+      "buyerTypeDefault": "खरीदार",
+      "viewAllBuyers": "सभी खरीदार"
     },
     "prices": {
       "title": "बाज़ार कीमतें",
@@ -748,7 +835,16 @@ export const hi: Partial<TranslationDictionary> = {
       "refreshTitle": "अपस्ट्रीम एमसीपी से नवीनतम पुनः प्राप्त करें",
       "fresh": "ताजा",
       "stale": "बासी",
-      "market": "बाज़ार"
+      "market": "बाज़ार",
+      "mandi": "मंडी / एपीएमसी",
+      "mandiPlaceholder": "उदा. एपीएमसी लासलगांव",
+      "errorTitle": "बाजार भाव लोड करने में असमर्थ",
+      "errorFallback": "बाजार डेटा सेवा पहुंच से बाहर है। कृपया कुछ देर बाद पुनः प्रयास करें।",
+      "errorNoDemo": "सेवा बंद होने के दौरान डेमो डेटा छिपा दिया गया है, ताकि आप कभी भी नकली कीमतों को लाइव न समझें।",
+      "emptyHint": "इस फसल के राष्ट्रीय बाजार भाव देखने के लिए 'सभी राज्य' चुनकर देखें, या कोई अन्य फसल चुनें।",
+      "clearLocation": "राज्य / जिला फ़िल्टर साफ़ करें",
+      "aggregateHint": "राज्य-स्तरीय औसत, कोई विशिष्ट मंडी नहीं",
+      "aggregate": "राज्य औसत"
     },
     "buyers": {
       "title": "खरीदार खोजें",
@@ -768,7 +864,14 @@ export const hi: Partial<TranslationDictionary> = {
       "cropsProcured": "{count} फसलें खरीदी गईं",
       "cropLabel": "फसल:",
       "stateLabel": "राज्य:",
-      "viewProfile": "खरीदार प्रोफ़ाइल देखें →"
+      "viewProfile": "खरीदार प्रोफ़ाइल देखें →",
+      "loading": "सत्यापित खरीदार खोजे जा रहे हैं…",
+      "error": "खरीदार लोड करने में विफल।",
+      "retry": "पुनः प्रयास करें",
+      "govtEnamVerified": "सरकार / ई-नाम सत्यापित",
+      "agrisevaVerified": "एग्रीसेवा सत्यापित",
+      "agrisevaRegistered": "एग्रीसेवा पंजीकृत",
+      "unverified": "असत्यापित"
     },
     "buyerDetail": {
       "notFound": "खरीदार नहीं मिला.",
@@ -813,7 +916,14 @@ export const hi: Partial<TranslationDictionary> = {
       "sortLabel": "क्रम से लगाना",
       "sortNewest": "सबसे पहले नवीनतम",
       "sortOldest": "सबसे पुराना पहले",
-      "sortQty": "सबसे बड़ी मात्रा"
+      "sortQty": "सबसे बड़ी मात्रा",
+      "viewAll": "सभी लॉट देखें",
+      "loading": "आपके लॉट लोड हो रहे हैं…",
+      "error": "लॉट लोड करने में विफल।",
+      "retry": "पुनः प्रयास करें",
+      "emptyTitle": "कोई लॉट नहीं मिला",
+      "emptyFilter": "चयनित फ़िल्टर से मेल खाता कोई लॉट नहीं है।",
+      "createFirst": "पहला लॉट बनाएं"
     },
     "createLot": {
       "title": "नया लॉट बनाएं",
@@ -902,7 +1012,10 @@ export const hi: Partial<TranslationDictionary> = {
       "deleteHint": "इससे इस लॉट पर सभी ऑफ़र भी हटा दिए जाएंगे. इसे असंपादित नहीं किया जा सकता है।",
       "errQty": "मात्रा सकारात्मक होनी चाहिए.",
       "errPrice": "कीमत सकारात्मक होनी चाहिए.",
-      "errBuyer": "खरीदार का नाम दर्ज करें."
+      "errBuyer": "खरीदार का नाम दर्ज करें.",
+      "loading": "लॉट विवरण लोड हो रहा है…",
+      "aggregateHint": "राज्य-स्तरीय औसत, कोई विशिष्ट मंडी नहीं",
+      "aggregate": "राज्य औसत"
     },
     "offers": {
       "title": "मेरे प्रस्ताव",
@@ -923,7 +1036,13 @@ export const hi: Partial<TranslationDictionary> = {
       "counterPrice": "आपका काउंटर मूल्य (रुपये/किग्रा)",
       "counterNote": "वैकल्पिक नोट",
       "sendCounter": "काउंटर भेजें",
-      "counterError": "एक सकारात्मक मूल्य दर्ज करें."
+      "counterError": "एक सकारात्मक मूल्य दर्ज करें.",
+      "loading": "ऑफ़र लोड हो रहे हैं…",
+      "error": "ऑफ़र लोड करने में विफल।",
+      "retry": "पुनः प्रयास करें",
+      "emptyAll": "अभी तक कोई बोली या ऑफ़र प्राप्त नहीं हुआ है",
+      "emptyFilter": "इस फ़िल्टर से मेल खाता कोई ऑफ़र नहीं है",
+      "emptyHint": "जब सत्यापित खरीदार आपके फसल लॉट पर बोलियां लगाएंगे, तो वे पूर्ण मूल्य और डिलीवरी विवरण के साथ यहां दिखाई देंगे।"
     },
     "logistics": {
       "title": "रसद एवं परिवहन",
@@ -935,7 +1054,12 @@ export const hi: Partial<TranslationDictionary> = {
       "capacity": "क्षमता",
       "rate": "दर",
       "select": "इस ट्रांसपोर्टर का चयन करें",
-      "selected": "चयनित"
+      "selected": "चयनित",
+      "selectedHint": "वर्तमान में चयनित: ",
+      "loading": "रसद मार्ग लोड हो रहे हैं…",
+      "error": "रसद विकल्प लोड करने में विफल।",
+      "retry": "पुनः प्रयास करें",
+      "emptyHint": "वाहन क्षमता और दूरी के आधार पर मानक जिला मंडी ढुलाई आमतौर पर ₹1.5 - ₹3.0 प्रति किलोग्राम अनुमानित होती है। जुड़े हुए रसद भागीदार यहां दिखाई देंगे।"
     },
     "storage": {
       "title": "भंडारण की सुविधाएं",
@@ -958,7 +1082,11 @@ export const hi: Partial<TranslationDictionary> = {
       "bookingsHint": "आपका सक्रिय आरक्षण",
       "errKg": "एक सकारात्मक मात्रा दर्ज करें.",
       "errDays": "एक सकारात्मक अवधि दर्ज करें.",
-      "errGeneric": "आरक्षित नहीं किया जा सका. पुनः प्रयास करें।"
+      "errGeneric": "आरक्षित नहीं किया जा सका. पुनः प्रयास करें।",
+      "loading": "भंडारण सुविधाएं लोड हो रही हैं…",
+      "error": "भंडारण सुविधाएं लोड करने में विफल।",
+      "retry": "पुनः प्रयास करें",
+      "emptyHint": "डब्ल्यूडीआरए-पंजीकृत गोदाम और राज्य भंडारण निगम (एसडब्ल्यूसी) कोल्ड स्टोरेज हब आपके जिले से जुड़ते ही यहां दिखाई देंगे।"
     },
     "payments": {
       "title": "भुगतान",
@@ -972,7 +1100,13 @@ export const hi: Partial<TranslationDictionary> = {
         "failed": "असफल"
       },
       "empty": "इस दृष्टि से अभी तक कोई भुगतान नहीं हुआ है.",
-      "raiseDispute": "विवाद उठाएँ"
+      "raiseDispute": "विवाद उठाएँ",
+      "loading": "भुगतान लोड हो रहे हैं…",
+      "error": "भुगतान लोड करने में विफल।",
+      "retry": "पुनः प्रयास करें",
+      "emptyAll": "अभी तक कोई भुगतान दर्ज नहीं किया गया है",
+      "emptyFilter": "इस फ़िल्टर से मेल खाता कोई भुगतान नहीं है",
+      "emptyHint": "जब स्वीकृत ऑफ़र का निपटान सीधे बैंक ट्रांसफर या यूपीआई के माध्यम से किया जाएगा, तो लेन-देन की रसीदें यहां संग्रहीत की जाएंगी।"
     },
     "grievances": {
       "title": "शिकायतें",
@@ -1048,7 +1182,10 @@ export const hi: Partial<TranslationDictionary> = {
       "viewLot": "बहुत देखें",
       "pickMarket": "इस बाज़ार का उपयोग करें",
       "chooseLot": "लॉट के लिए तुलना करें",
-      "rankBadge": "#{rank}"
+      "rankBadge": "#{rank}",
+      "noLotsTitle": "कोई सक्रिय लॉट नहीं मिला",
+      "aggregateHint": "राज्य-स्तरीय औसत, कोई विशिष्ट मंडी नहीं",
+      "aggregate": "राज्य औसत"
     },
     "common": {
       "back": "पीछे",
@@ -1057,7 +1194,28 @@ export const hi: Partial<TranslationDictionary> = {
       "sourceMulti": "एगमार्कनेट + ईएनएएम",
       "sourceLive": "रहना",
       "submitting": "सबमिट किया जा रहा है...",
-      "save": "बचाना"
+      "save": "बचाना",
+      "sourceMixed": "मिश्रित — कुछ नमूना रिकॉर्ड मौजूद हैं"
+    },
+    "reliability": {
+      "loading": "स्रोत विश्वसनीयता की जांच हो रही है…",
+      "label": "डेटा स्रोत स्थिति:",
+      "lowWarningTitle": "एक या अधिक स्रोतों से लाइव डेटा ताज़गी की सीमा से नीचे है।",
+      "lowWarningBody": "सबसे कमजोर स्रोत: {source} ने {score}/100 ({band}) स्कोर किया। आज के मॉडल भाव को केवल सांकेतिक मानें और सौदा करने से पहले अपनी स्थानीय मंडी से पुष्टि करें।"
     }
+  },
+  "onboarding": {
+    "phoneRequired": "कृपया अपना 10 अंकों का मोबाइल नंबर दर्ज करें।",
+    "phoneInvalid": "कृपया एक मान्य 10 अंकों का भारतीय मोबाइल नंबर दर्ज करें (उदा. 9876543210)।",
+    "phoneSaved": "संपर्क नंबर सफलतापूर्वक सत्यापित और सहेजा गया!",
+    "contactTitle": "अपना संपर्क नंबर जोड़ें",
+    "contactBadge": "आवश्यक चरण • एग्रीसेवा-एआई संचार सेटअप",
+    "contactDesc": "आपका संपर्क नंबर एग्रीसेवा-एआई को संचार और कॉलिंग/व्हाट्सएप सेवाएं प्रदान करने में मदद करता है।",
+    "mobileNumber": "मोबाइल नंबर",
+    "phoneHint": "देश कोड के बिना अपना 10 अंकों का मोबाइल नंबर दर्ज करें।",
+    "saving": "संपर्क नंबर सहेजा जा रहा है...",
+    "continue": "जारी रखें",
+    "skipForNow": "अभी छोड़ें",
+    "privacyAssurance": "आपका फोन नंबर सुरक्षित रूप से संग्रहीत है और कभी भी तीसरे पक्ष के साथ साझा नहीं किया जाता है।"
   }
 };

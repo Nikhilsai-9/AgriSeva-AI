@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Search, Check, Globe, X, ArrowRight } from "lucide-react";
 import { LANGUAGES, type Language } from "@/config/languages";
 import { useLanguageStore } from "@/stores/language-store";
+import { useTranslation } from "@/locales";
 
 interface LanguageGatewayProps {
   isModal?: boolean;
@@ -13,6 +14,7 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
   isModal = false,
   onComplete,
 }) => {
+  const { t } = useTranslation();
   const { currentLanguage, setLanguage, closeLanguageSelector } = useLanguageStore();
   const [selectedLang, setSelectedLang] = useState<Language | null>(currentLanguage);
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,7 +89,7 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center p-2 shadow-inner shrink-0">
             <img
               src="/favicon.svg"
-              alt="AgriSeva-AI Mascot"
+              alt={t("accessibility.mascotAlt", "AgriSeva-AI Mascot")}
               className="w-full h-full object-contain"
               onError={(e) => {
                 (e.target as HTMLElement).style.display = "none";
@@ -97,14 +99,14 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 id="language-gateway-title" className="text-lg sm:text-2xl font-bold tracking-tight text-white">
-                Choose your language
+                {t("common.chooseYourLanguage", "Choose your language")}
               </h2>
               <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium border border-emerald-500/30">
-                23 Languages
+                {t("common.twentyThreeLanguages", "23 Languages")}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-neutral-400 mt-0.5 sm:mt-1">
-              Select the language you are most comfortable with.
+              {t("common.languageSubheading", "Select the language you are most comfortable with.")}
             </p>
           </div>
         </div>
@@ -114,8 +116,8 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
             type="button"
             onClick={closeLanguageSelector}
             className="text-neutral-400 hover:text-white p-1.5 sm:p-2 rounded-lg hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
-            title="Close"
-            aria-label="Close language selector"
+            title={t("common.close", "Close")}
+            aria-label={t("common.close", "Close")}
           >
             <X className="w-5 h-5" />
           </button>
@@ -129,7 +131,7 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search language / भाषा खोजें / భాషను శోధించండి..."
+          placeholder={t("common.searchLanguagePlaceholder", "Search language...")}
           className="w-full pl-10 pr-12 py-2 sm:py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs sm:text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
         />
         {searchQuery && (
@@ -138,7 +140,7 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
             onClick={() => setSearchQuery("")}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white text-xs px-1.5 py-0.5 rounded cursor-pointer"
           >
-            Clear
+            {t("common.clear", "Clear")}
           </button>
         )}
       </div>
@@ -148,7 +150,9 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
         {filteredLanguages.length === 0 ? (
           <div className="col-span-full py-8 sm:py-12 text-center text-neutral-400">
             <Globe className="w-8 h-8 mx-auto mb-2 opacity-40" />
-            <p className="text-sm">No language matches "{searchQuery}"</p>
+            <p className="text-sm">
+              {t("common.noLanguageMatches", `No language matches "${searchQuery}"`, { query: searchQuery })}
+            </p>
           </div>
         ) : (
           filteredLanguages.map((lang) => {
@@ -195,7 +199,7 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
       {showError && (
         <div className="mt-2.5 py-1.5 px-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2 shrink-0">
           <span>⚠️</span>
-          <span>Please select a language to continue.</span>
+          <span>{t("common.selectToContinue", "Please select a language to continue.")}</span>
         </div>
       )}
 
@@ -204,10 +208,10 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
         <div className="text-xs text-neutral-400 truncate min-w-0">
           {selectedLang ? (
             <span className="truncate block">
-              Selected: <strong className="text-white">{selectedLang.nativeName}</strong> <span className="hidden sm:inline">({selectedLang.name})</span>
+              {t("common.selectedLabel", "Selected:")} <strong className="text-white">{selectedLang.nativeName}</strong> <span className="hidden sm:inline">({selectedLang.name})</span>
             </span>
           ) : (
-            <span>No language selected yet</span>
+            <span>{t("common.noLanguageSelectedYet", "No language selected yet")}</span>
           )}
         </div>
 
@@ -216,7 +220,7 @@ export const LanguageGateway: React.FC<LanguageGatewayProps> = ({
           onClick={handleContinue}
           className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-medium text-xs sm:text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all active:scale-98 shrink-0 cursor-pointer"
         >
-          <span>Continue</span>
+          <span>{t("common.continue", "Continue")}</span>
           <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
       </div>

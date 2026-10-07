@@ -26,34 +26,34 @@ export const te: Partial<TranslationDictionary> = {
     "askAgriSeva": "AgriSeva-AI ని అడగండి",
     "loading": "లోడ్ అవుతోంది...",
     "loadingApp": "AgriSeva-AI లోడ్ అవుతోంది...",
-    "slogan": "ప్రతి రైతు ఒక రాజు, వారి పక్కన AI ఉంటుంది.",
+    "slogan": "ప్రతి రైతు ఒక రాజు, AI వారి తోడుగా.",
     "notFoundTitle": "పేజీ కనుగొనబడలేదు",
-    "notFoundHeader": "ఏరియా సర్వే చేయబడలేదు",
-    "notFoundDesc": "మీరు వెతుకుతున్న పేజీ AgriSeva-AIలో కనుగొనబడలేదు.",
-    "notFoundHint": "లింక్ పాతది కావచ్చు లేదా మీరు విరిగిన URLని అనుసరించి ఉండవచ్చు.",
-    "backToHome": "తిరిగి ఇంటికి",
-    "goBack": "వెనక్కి వెళ్ళు",
-    "cookiesTitle": "AgriSeva-AIలో కుక్కీలు",
-    "cookiesDesc": "మిమ్మల్ని సైన్ ఇన్ చేసి ఉంచడానికి మేము ఖచ్చితంగా అవసరమైన కుక్కీని ఉపయోగిస్తాము. మీ అనుమతితో మేము వినియోగ విధానాలను అర్థం చేసుకోవడంలో మాకు సహాయం చేయడానికి Firebase Analyticsని కూడా ప్రారంభిస్తాము.",
-    "strictlyNecessary": "ఖచ్చితంగా అవసరం",
-    "analytics": "విశ్లేషణలు",
-    "rejectAnalytics": "విశ్లేషణలను తిరస్కరించండి",
-    "acceptAnalytics": "విశ్లేషణలను అంగీకరించండి",
-    "hideDetails": "కుక్కీ వివరాలను దాచండి",
-    "showDetails": "కుక్కీ వివరాలను చూపించు",
-    "signalLost": "సిగ్నల్ లాస్ట్",
+    "notFoundHeader": "సర్వే చేయని ప్రాంతం",
+    "notFoundDesc": "మీరు వెతుకుతున్న పేజీ అగ్రిసేవా-AIలో కనుగొనబడలేదు.",
+    "notFoundHint": "లింక్ గడువు ముగిసి ఉండవచ్చు లేదా విరిగిన URL కావచ్చు.",
+    "backToHome": "హోమ్‌కు తిరిగి వెళ్లండి",
+    "goBack": "వెనుకకు వెళ్లండి",
+    "cookiesTitle": "అగ్రిసేవా-AIలో కుక్కీలు",
+    "cookiesDesc": "మిమ్మల్ని సైన్ ఇన్ ఉంచడానికి మేము తప్పనిసరి కుక్కీని ఉపయోగిస్తాము. మీ అనుమతితో మేము ఫైర్‌బేస్ అనలిటిక్స్‌ను కూడా ప్రారంభిస్తాము.",
+    "strictlyNecessary": "ఖచ్చితంగా అవసరమైనవి",
+    "analytics": "అనలిటిక్స్",
+    "rejectAnalytics": "అనలిటిక్స్ తిరస్కరించండి",
+    "acceptAnalytics": "అనలిటిక్స్ అంగీకరించండి",
+    "hideDetails": "కుకీ వివరాలను దాచండి",
+    "showDetails": "కుకీ వివరాలను చూపండి",
+    "signalLost": "సిగ్నల్ కోల్పోయింది",
     "privacyPolicy": "గోప్యతా విధానం",
     "terms": "సేవా నిబంధనలు",
     "voiceRecorder": "వాయిస్ రికార్డర్",
     "transcript": "ట్రాన్స్‌క్రిప్ట్",
     "chars": "అక్షరాలు",
-    "speechPlaceholder": "మీ ప్రసంగం ఇక్కడ కనిపిస్తుంది...",
+    "speechPlaceholder": "మీ మాటలు ఇక్కడ కనిపిస్తాయి...",
     "clear": "క్లియర్",
-    "submit": "సమర్పించండి",
+    "submit": "సమర్పించు",
     "sending": "పంపుతోంది...",
     "questionsGenerated": "ప్రశ్నలు",
     "questionsGeneratedHint": "ఇవి మీ ట్రాన్స్‌క్రిప్ట్ నుండి రూపొందించబడిన ప్రశ్నలు",
-    "toggleRecording": "రికార్డింగ్ టోగుల్ చేయండి",
+    "toggleRecording": "రికార్డింగ్ ప్రారంభించు/ఆపు",
     "voiceHelp": "1. వాయిస్ హెల్ప్‌లైన్ మరియు కాలింగ్",
     "whatsappHelp": "2. వాట్సాప్ AI సహాయం మరియు చాట్",
     "helper": "3. అగ్రిసేవా-AI సహాయకుడు",
@@ -119,7 +119,59 @@ export const te: Partial<TranslationDictionary> = {
     "aiListening": "మీ వాయిస్‌ని వింటోంది...",
     "aiReady": "సిద్ధంగా ఉంది",
     "speakMicTitle": "మీ మైక్రోఫోన్‌లో మాట్లాడండి",
-    "speakMicDesc": "ఏదైనా పంట వ్యాధి, పురుగుమందు మోతాదు లేదా మార్కెట్ ధర ప్రశ్నను మీ స్వంత భాషలో అడగండి."
+    "speakMicDesc": "ఏదైనా పంట వ్యాధి, పురుగుమందు మోతాదు లేదా మార్కెట్ ధర ప్రశ్నను మీ స్వంత భాషలో అడగండి.",
+    "endCall": "కాల్ ముగించు",
+    "imageTooLarge": "చిత్రం పరిమాణం 10MB కంటే తక్కువగా ఉండాలి",
+    "assistantWelcome": "నమస్కారం! నేను మీ అగ్రిసేవా AI సహాయకుడిని. పంట వ్యాధులు, పురుగుమందుల మోతాదు, మార్కెట్ ధరలు లేదా అగ్రిసేవా-AI నావిగేషన్ గురించి ఏదైనా అడగండి.",
+    "analyzingCropImage": "దయచేసి ఈ పంట చిత్రాన్ని పరిశీలించి రోగ నిర్ధారణ మరియు చికిత్సను సూచించండి",
+    "browserVoiceNotSupported": "ఈ బ్రౌజర్‌లో వాయిస్ ఇన్‌పుట్ సపోర్ట్ చేయదు. దయచేసి Chrome లేదా Edge ఉపయోగించండి.",
+    "live24x7": "24x7 ప్రత్యక్షం",
+    "helplines": "ప్రత్యక్ష హెల్ప్‌లైన్లు",
+    "callFarmer": "రైతుకు కాల్ చేయండి",
+    "free100": "100% ఉచితం",
+    "webCallButton": "ఉచిత వెబ్ వాయిస్ కాల్ ప్రారంభించండి",
+    "helplineNumberTitle": "అగ్రిసేవా AI హెల్ప్‌లైన్",
+    "helplineNumberDesc": "అధికారిక అగ్రిసేవా సంప్రదింపు నంబర్. మా ఆటోమేటెడ్ హెల్ప్‌లైన్‌ను సంప్రదించడానికి ఏదైనా ఫోన్ నుండి డయల్ చేయండి.",
+    "kisanCallCenterTitle": "కిసాన్ కాల్ సెంటర్ (టోల్-ఫ్రీ)",
+    "callAction": "కాల్ చేయండి",
+    "kisanCallCenterDesc": "వ్యవసాయ & రైతు సంక్షేమ మంత్రిత్వ శాఖ వారి జాతీయ వ్యవసాయ సలహా సేవ.",
+    "checkingFarmer": "నమోదైన రైతు ప్రొఫైల్‌ను తనిఖీ చేస్తోంది...",
+    "registeredFarmer": "నమోదైన రైతు",
+    "whatsAppModalTitle": "అగ్రిసేవా వాట్సాప్ కనెక్ట్",
+    "whatsAppModalDesc": "AI సలహాదారుతో చాట్ చేయండి మరియు రైతు అప్‌డేట్‌లను పంపండి",
+    "aiBotTab": "అగ్రిసేవా AI బాట్",
+    "messageFarmerTab": "రైతుకు సందేశం పంపండి",
+    "agriSevaAiWhatsApp": "అగ్రిసేవా AI వాట్సాప్",
+    "message": "సందేశ పాఠ్యం (ఐచ్ఛికం)",
+    "waMessagePlaceholder": "రైతుకు పంపడానికి వ్యవసాయ సలహా లేదా సందేశాన్ని నమోదు చేయండి...",
+    "aiAssistantTitle": "అగ్రిసేవా AI సహాయకుడు",
+    "onlineBadge": "ఆన్‌లైన్",
+    "whatsAppAction": "వాట్సాప్",
+    "cropPhotoAttached": "పంట ఫోటో జోడించబడింది",
+    "removePhoto": "ఫోటో తీసివేయండి",
+    "attachCropImage": "పంట ఫోటోను జతచేయండి",
+    "twentyThreeLanguages": "23 భాషలు",
+    "close": "మూసివేయి",
+    "searchLanguagePlaceholder": "భాషను శోధించండి...",
+    "noLanguageMatches": "\"{searchQuery}\"తో సరిపోలే భాష కనుగొనబడలేదు",
+    "selectedLabel": "ఎంపిక చేయబడింది:",
+    "noLanguageSelectedYet": "ఇంకా ఏ భాషా ఎంపిక కాలేదు",
+    "notifications": "నోటిఫికేషన్‌లు",
+    "onThisPage": "ఈ పేజీలో",
+    "effectiveDate": "అమలు తేదీ: ",
+    "contactUs": "మమ్మల్ని సంప్రదించండి",
+    "legalContactDesc": "ఈ పాలసీపై సందేహాల కోసం, ఇమెయిల్ చేయండి ",
+    "dataCommitment": "అగ్రిసేవా-AI రైతు డేటాను రక్షించడానికి కట్టుబడి ఉంది. సేవలను అందించడానికి అవసరమైన వివరాలను మాత్రమే మేము సేకరిస్తాము.",
+    "allRightsReserved": "సర్వహక్కులు ప్రత్యేకించబడ్డాయి.",
+    "encryptedInTransit": "ట్రాన్సిట్‌లో గుప్తీకరించబడింది",
+    "verifyingAccess": "మోడరేటర్ యాక్సెస్ ధృవీకరిస్తోంది...",
+    "cookieAuthDesc": "ఫైర్‌బేస్ ప్రామాణీకరణ సెషన్. దీన్ని నిలిపివేయలేరు.",
+    "cookieAnalyticsDesc": "ఫైర్‌బేస్ అనలిటిక్స్ (_ga, _gid). మీ సమ్మతితో మాత్రమే ఉపయోగించబడుతుంది.",
+    "youFarmer": "మీరు (రైతు)",
+    "speakerMuted": "AI ఆడియో మ్యూట్ చేయబడింది",
+    "speakerActive": "AI ఆడియో సక్రియంగా ఉంది",
+    "unmuteSpeaker": "స్పీకర్ అన్‌మ్యూట్ చేయండి",
+    "muteSpeaker": "స్పీకర్ మ్యూట్ చేయండి"
   },
   "nav": {
     "howItWorks": "ఇది ఎలా పనిచేస్తుంది",
@@ -306,7 +358,14 @@ export const te: Partial<TranslationDictionary> = {
     "rememberPassword": "పాస్‌వర్డ్ గుర్తొచ్చిందా?",
     "signUpLink": "సైన్ అప్",
     "signInLink": "సైన్ ఇన్",
-    "emailPlaceholder": "farmer@agriseva.ai"
+    "emailPlaceholder": "farmer@agriseva.ai",
+    "passwordPlaceholder": "••••••••",
+    "backToSignIn": "సైన్ ఇన్ కు తిరిగి వెళ్లండి",
+    "backToHome": "హోమ్ కు తిరిగి వెళ్లండి",
+    "processing": "ప్రాసెస్ చేస్తోంది...",
+    "authenticating": "ధృవీకరిస్తోంది మరియు ప్రొఫైల్ లోడ్ చేస్తోంది...",
+    "hidePassword": "పాస్‌వర్డ్ దాచండి",
+    "showPassword": "పాస్‌వర్డ్ చూపండి"
   },
   "dashboard": {
     "allSources": "అన్ని మూలాలు",
@@ -484,7 +543,11 @@ export const te: Partial<TranslationDictionary> = {
     "reviewStageDesc": "ప్రతి సమీక్ష స్థాయిలో ఆమోదించబడిన ప్రశ్నల పంపిణీని చూపుతోంది.",
     "stageAuthor": "రచయిత",
     "stageLevel": "స్థాయి {level}",
-    "completedTasks": "పూర్తయిన పనులు"
+    "completedTasks": "పూర్తయిన పనులు",
+    "yearOverview": "నెలవారీ అవలోకనం - మొత్తం 12 నెలలు",
+    "weeklyBreakdown": "వారపు విభజన",
+    "dailyBreakdown": "రోజువారీ విభజన",
+    "hourlyBreakdown": "గంటలవారీ విభజన"
   },
   "sidebar": {
     "dashboard": "డాష్‌బోర్డ్",
@@ -514,8 +577,30 @@ export const te: Partial<TranslationDictionary> = {
     "logoutConfirmDesc": "మీ ఖాతాను యాక్సెస్ చేయడానికి మీరు మళ్లీ లాగిన్ అవ్వాలి.",
     "cancel": "రద్దు చేయండి",
     "badgeNew": "కొత్తది",
-    "profileSettings": "Profile Settings",
-    "profileSettingsDesc": "Manage your account information and preferences"
+    "profileSettings": "ప్రొఫైల్ సెట్టింగ్‌లు",
+    "profileSettingsDesc": "మీ ఖాతా సమాచారం మరియు ప్రాధాన్యతలను నిర్వహించండి",
+    "savingProfile": "ప్రొఫైల్ సేవ్ చేయబడుతోంది...",
+    "savingProfileDesc": "మేము మీ వివరాలను అప్‌డేట్ చేసే వరకు వేచి ఉండండి.",
+    "profileUpdated": "ప్రొఫైల్ నవీకరించబడింది!",
+    "selectStateError": "దయచేసి రాష్ట్రాన్ని ఎంచుకోండి.",
+    "selectDistrictError": "దయచేసి జిల్లాను ఎంచుకోండి.",
+    "enterKvkNameError": "దయచేసి KVK పేరును నమోదు చేయండి.",
+    "invalidImageError": "దయచేసి సరైన చిత్ర ఫైల్‌ను ఎంచుకోండి",
+    "imageTooLargeError": "చిత్రం పరిమాణం 70KB కంటే తక్కువగా ఉండాలి",
+    "avatarUpdated": "ప్రొఫైల్ చిత్రం నవీకరించబడింది!",
+    "avatarUpdateFailed": "ప్రొఫైల్ చిత్రాన్ని నవీకరించడంలో విఫలమైంది",
+    "avatarRemoved": "ప్రొఫైల్ చిత్రం తీసివేయబడింది!",
+    "avatarRemoveFailed": "ప్రొఫైల్ చిత్రాన్ని తీసివేయడంలో విఫలమైంది",
+    "incorrectCurrentPassword": "ప్రస్తుత పాస్‌వర్డ్ తప్పు.",
+    "newPasswordRequired": "కొత్త పాస్‌వర్డ్ అవసరం.",
+    "newPasswordMinLength": "కొత్త పాస్‌వర్డ్ కనీసం 6 అక్షరాలు ఉండాలి.",
+    "newPasswordSameAsCurrent": "కొత్త పాస్‌వర్డ్ ప్రస్తుత పాస్‌వర్డ్‌లా ఉండకూడదు.",
+    "confirmPasswordRequired": "దయచేసి మీ కొత్త పాస్‌వర్డ్‌ను నిర్ధారించండి.",
+    "passwordsMismatch": "పాస్‌వర్డ్‌లు సరిపోలడం లేదు.",
+    "passwordUpdateFailed": "పాస్‌వర్డ్ నవీకరించడంలో విఫలమైంది. మళ్ళీ ప్రయత్నించండి.",
+    "passwordUpdatedSuccess": "పాస్‌వర్డ్ విజయవంతంగా నవీకరించబడింది!",
+    "clickAvatarHint": "ప్రొఫైల్ చిత్రాన్ని మార్చడానికి దానిపై క్లిక్ చేయండి",
+    "removeAvatar": "అవతార్ తీసివేయండి"
   },
   "notifications": {
     "titleNotifications": "నోటిఫికేషన్లు",
@@ -596,7 +681,8 @@ export const te: Partial<TranslationDictionary> = {
     "emailInUse": "ఈ ఈమెయిల్ ఇప్పటికే నమోదై ఉంది. దయచేసి సైన్ ఇన్ చేయండి.",
     "accountCreateFailed": "ఖాతా సృష్టించడం విఫలమైంది.",
     "resetSent": "రీసెట్ వివరాలు పంపబడ్డాయి! మీ ఈమెయిల్‌ను తనిఖీ చేయండి.",
-    "resetFailed": "రీసెట్ లింక్ పంపడం విఫలమైంది. దయచేసి మీ ఈమెయిల్‌ను తనిఖీ చేయండి."
+    "resetFailed": "రీసెట్ లింక్ పంపడం విఫలమైంది. దయచేసి మీ ఈమెయిల్‌ను తనిఖీ చేయండి.",
+    "accessDenied": "యాక్సెస్ నిరాకరించబడింది. మోడరేటర్ అనుమతులు అవసరం."
   },
   "accessibility": {
     "close": "మూసివేయండి",
@@ -719,7 +805,8 @@ export const te: Partial<TranslationDictionary> = {
       "verifiedBadge": "ధృవీకరించబడింది",
       "viewAndOffer": "చూడండి & ఆఫర్ చేయండి →",
       "dealsFulfilled": "డీల్స్ పూర్తయ్యాయి",
-      "buyerTypeDefault": "కొనుగోలుదారు"
+      "buyerTypeDefault": "కొనుగోలుదారు",
+      "viewAllBuyers": "అందరు కొనుగోలుదారులు"
     },
     "prices": {
       "title": "మార్కెట్ ధరలు",
@@ -748,7 +835,16 @@ export const te: Partial<TranslationDictionary> = {
       "stale": "పాతది",
       "market": "మార్కెట్",
       "sourceAgmarknet": "AGMARKNET",
-      "sourceEnam": "eNAM"
+      "sourceEnam": "eNAM",
+      "mandi": "మండి / APMC",
+      "mandiPlaceholder": "ఉదా: APMC గుంటూరు",
+      "errorTitle": "మార్కెట్ ధరలను లోడ్ చేయడం సాధ్యపడలేదు",
+      "errorFallback": "మార్కెట్ డేటా సర్వర్ అందుబాటులో లేదు. దయచేసి కొద్దిసేపటి తర్వాత మళ్లీ ప్రయత్నించండి.",
+      "errorNoDemo": "సర్వర్ అందుబాటులో లేనప్పుడు డెమో డేటా చూపబడదు.",
+      "emptyHint": "ఈ పంట జాతీయ ధరలను చూడటానికి 'అన్ని రాష్ట్రాలు' ఎంచుకోండి లేదా వేరే పంటను ఎంచుకోండి.",
+      "clearLocation": "రాష్ట్రం / జిల్లా ఫిల్టర్ క్లియర్ చేయండి",
+      "aggregateHint": "రాష్ట్ర స్థాయి సగటు, నిర్దిష్ట మండి కాదు",
+      "aggregate": "రాష్ట్ర సగటు"
     },
     "buyers": {
       "title": "కొనుగోలుదారులను కనుగొనండి",
@@ -768,7 +864,14 @@ export const te: Partial<TranslationDictionary> = {
       "cropsProcured": "{count} పంటలు కొనుగోలు చేయబడ్డాయి",
       "cropLabel": "పంట:",
       "stateLabel": "రాష్ట్రం:",
-      "viewProfile": "కొనుగోలుదారు ప్రొఫైల్ చూడండి →"
+      "viewProfile": "కొనుగోలుదారు ప్రొఫైల్ చూడండి →",
+      "loading": "ధృవీకరించబడిన కొనుగోలుదారులను కనుగొంటోంది…",
+      "error": "కొనుగోలుదారులను లోడ్ చేయడంలో విఫలమైంది.",
+      "retry": "మళ్లీ ప్రయత్నించండి",
+      "govtEnamVerified": "ప్రభుత్వ / ఈ-నామ్ ధృవీకరించబడింది",
+      "agrisevaVerified": "అగ్రిసేవా ధృవీకరించబడింది",
+      "agrisevaRegistered": "అగ్రిసేవా నమోదిత",
+      "unverified": "ధృవీకరించబడనిది"
     },
     "buyerDetail": {
       "notFound": "కొనుగోలుదారు దొరకలేదు.",
@@ -813,7 +916,14 @@ export const te: Partial<TranslationDictionary> = {
       "sortLabel": "క్రమబద్ధీకరించు",
       "sortNewest": "మొదటిది సరికొత్తది",
       "sortOldest": "మొదటిది పురాతనమైనది",
-      "sortQty": "అతిపెద్ద పరిమాణం"
+      "sortQty": "అతిపెద్ద పరిమాణం",
+      "viewAll": "అన్ని లాట్‌లను చూడండి",
+      "loading": "మీ లాట్‌లు లోడ్ అవుతున్నాయి…",
+      "error": "లాట్‌లను లోడ్ చేయడంలో విఫలమైంది.",
+      "retry": "మళ్లీ ప్రయత్నించండి",
+      "emptyTitle": "లాట్‌లు కనుగొనబడలేదు",
+      "emptyFilter": "ఎంచుకున్న ఫిల్టర్‌కు సరిపోలే లాట్‌లు లేవు.",
+      "createFirst": "మొదటి లాట్‌ను సృష్టించండి"
     },
     "createLot": {
       "title": "కొత్త లాట్‌ని సృష్టించండి",
@@ -902,7 +1012,10 @@ export const te: Partial<TranslationDictionary> = {
       "deleteHint": "ఇది ఈ లాట్‌లోని అన్ని ఆఫర్‌లను కూడా తీసివేస్తుంది. ఇది రద్దు చేయబడదు.",
       "errQty": "పరిమాణం తప్పనిసరిగా సానుకూలంగా ఉండాలి.",
       "errPrice": "ధర తప్పనిసరిగా సానుకూలంగా ఉండాలి.",
-      "errBuyer": "కొనుగోలుదారు పేరును నమోదు చేయండి."
+      "errBuyer": "కొనుగోలుదారు పేరును నమోదు చేయండి.",
+      "loading": "లాట్ వివరాలు లోడ్ అవుతున్నాయి…",
+      "aggregateHint": "రాష్ట్ర స్థాయి సగటు, నిర్దిష్ట మండి కాదు",
+      "aggregate": "రాష్ట్ర సగటు"
     },
     "offers": {
       "title": "నా ఆఫర్‌లు",
@@ -923,7 +1036,13 @@ export const te: Partial<TranslationDictionary> = {
       "counterPrice": "మీ కౌంటర్ ధర (రూ/కిలో)",
       "counterNote": "ఐచ్ఛిక గమనిక",
       "sendCounter": "కౌంటర్ పంపండి",
-      "counterError": "సానుకూల ధరను నమోదు చేయండి."
+      "counterError": "సానుకూల ధరను నమోదు చేయండి.",
+      "loading": "ఆఫర్‌లు లోడ్ అవుతున్నాయి…",
+      "error": "ఆఫర్‌లను లోడ్ చేయడంలో విఫలమైంది.",
+      "retry": "మళ్లీ ప్రయత్నించండి",
+      "emptyAll": "ఇంకా ఎలాంటి బిడ్‌లు లేదా ఆఫర్‌లు రాలేదు",
+      "emptyFilter": "ఈ ఫిల్టర్‌కు సరిపోలే ఆఫర్‌లు లేవు",
+      "emptyHint": "ధృవీకరించబడిన కొనుగోలుదారులు మీ పంటపై బిడ్‌లు వేసినప్పుడు అవి ఇక్కడ కనిపిస్తాయి."
     },
     "logistics": {
       "title": "లాజిస్టిక్స్ & రవాణా",
@@ -935,7 +1054,12 @@ export const te: Partial<TranslationDictionary> = {
       "rate": "రేట్ చేయండి",
       "select": "ఈ రవాణాదారుని ఎంచుకోండి",
       "selected": "ఎంపిక చేయబడింది",
-      "eta": "ETA"
+      "eta": "ETA",
+      "selectedHint": "ప్రస్తుతం ఎంచుకున్నది: ",
+      "loading": "రవాణా మార్గాలు లోడ్ అవుతున్నాయి…",
+      "error": "రవాణా ఎంపికలను లోడ్ చేయడంలో విఫలమైంది.",
+      "retry": "మళ్లీ ప్రయత్నించండి",
+      "emptyHint": "వాహన సామర్థ్యం మరియు దూరం ఆధారంగా ప్రామాణిక రవాణా ఖర్చు సుమారు కిలోకు ₹1.5 - ₹3.0 ఉంటుంది."
     },
     "storage": {
       "title": "నిల్వ సౌకర్యాలు",
@@ -958,7 +1082,11 @@ export const te: Partial<TranslationDictionary> = {
       "bookingsHint": "మీ సక్రియ రిజర్వేషన్‌లు",
       "errKg": "సానుకూల పరిమాణాన్ని నమోదు చేయండి.",
       "errDays": "సానుకూల వ్యవధిని నమోదు చేయండి.",
-      "errGeneric": "రిజర్వ్ చేయడం సాధ్యపడలేదు. మళ్లీ ప్రయత్నించండి."
+      "errGeneric": "రిజర్వ్ చేయడం సాధ్యపడలేదు. మళ్లీ ప్రయత్నించండి.",
+      "loading": "నిల్వ సౌకర్యాలు లోడ్ అవుతున్నాయి…",
+      "error": "నిల్వ సౌకర్యాలను లోడ్ చేయడంలో విఫలమైంది.",
+      "retry": "మళ్లీ ప్రయత్నించండి",
+      "emptyHint": "WDRA నమోదిత గిడ్డంగులు మరియు SWC కోల్డ్ స్టోరేజ్ హబ్‌లు ఇక్కడ కనిపిస్తాయి."
     },
     "payments": {
       "title": "చెల్లింపులు",
@@ -972,7 +1100,13 @@ export const te: Partial<TranslationDictionary> = {
         "failed": "విఫలమైంది"
       },
       "empty": "ఈ వీక్షణలో ఇంకా చెల్లింపులు లేవు.",
-      "raiseDispute": "వివాదాన్ని లేవనెత్తండి"
+      "raiseDispute": "వివాదాన్ని లేవనెత్తండి",
+      "loading": "చెల్లింపులు లోడ్ అవుతున్నాయి…",
+      "error": "చెల్లింపులను లోడ్ చేయడంలో విఫలమైంది.",
+      "retry": "మళ్లీ ప్రయత్నించండి",
+      "emptyAll": "ఇంకా ఎలాంటి చెల్లింపులు నమోదు కాలేదు",
+      "emptyFilter": "ఈ ఫిల్టర్‌కు సరిపోలే చెల్లింపులు లేవు",
+      "emptyHint": "అంగీకరించిన ఆఫర్‌లు బ్యాంక్ బదిలీ లేదా UPI ద్వారా పరిష్కరించబడినప్పుడు రశీదులు ఇక్కడ ఉంటాయి."
     },
     "grievances": {
       "title": "మనోవేదనలు",
@@ -1048,7 +1182,10 @@ export const te: Partial<TranslationDictionary> = {
       "viewLot": "చాలా చూడండి",
       "pickMarket": "ఈ మార్కెట్ ఉపయోగించండి",
       "chooseLot": "చాలా కోసం సరిపోల్చండి",
-      "rankBadge": "#{rank}"
+      "rankBadge": "#{rank}",
+      "noLotsTitle": "క్రియాశీల లాట్ కనుగొనబడలేదు",
+      "aggregateHint": "రాష్ట్ర స్థాయి సగటు, నిర్దిష్ట మండి కాదు",
+      "aggregate": "రాష్ట్ర సగటు"
     },
     "common": {
       "back": "వెనుకకు",
@@ -1057,7 +1194,28 @@ export const te: Partial<TranslationDictionary> = {
       "sourceLive": "ప్రత్యక్ష ప్రసారం",
       "submitting": "సమర్పిస్తోంది...",
       "save": "సేవ్ చేయండి",
-      "sourceMulti": "Agmarknet + eNAM"
+      "sourceMulti": "Agmarknet + eNAM",
+      "sourceMixed": "మిశ్రమ — కొన్ని నమూనా రికార్డులు ఉన్నాయి"
+    },
+    "reliability": {
+      "loading": "మూల విశ్వసనీయతను తనిఖీ చేస్తోంది…",
+      "label": "డేటా స్థితి:",
+      "lowWarningTitle": "లైవ్ డేటా తాజా పరిమితి కంటే తక్కువగా ఉంది.",
+      "lowWarningBody": "బలహీనమైన మూలం: {source} స్కోర్ {score}/100 ({band}). నేటి ధరలను సూచికగా మాత్రమే భావించి స్థానిక మండీలో ధృవీకరించుకోండి."
     }
+  },
+  "onboarding": {
+    "phoneRequired": "దయచేసి మీ 10 అంకెల మొబైల్ నంబర్‌ను నమోదు చేయండి.",
+    "phoneInvalid": "దయచేసి సరైన 10 అంకెల భారతీయ మొబైల్ నంబర్‌ను నమోదు చేయండి (ఉదా: 9876543210).",
+    "phoneSaved": "సంప్రదింపు నంబర్ విజయవంతంగా ధృవీకరించబడింది మరియు సేవ్ చేయబడింది!",
+    "contactTitle": "మీ సంప్రదింపు సంఖ్యను జోడించండి",
+    "contactBadge": "ముఖ్యమైన దశ • అగ్రిసేవా-AI కమ్యూనికేషన్ సెటప్",
+    "contactDesc": "మీ ఫోన్ నంబర్ కాలింగ్ మరియు వాట్సాప్ సేవలను అందించడంలో అగ్రిసేవా-AIకి సహాయపడుతుంది.",
+    "mobileNumber": "మొబైల్ నంబర్",
+    "phoneHint": "కంట్రీ కోడ్ లేకుండా మీ 10 అంకెల మొబైల్ నంబర్‌ను నమోదు చేయండి.",
+    "saving": "సంప్రదింపు సంఖ్య సేవ్ చేయబడుతోంది...",
+    "continue": "కొనసాగించండి",
+    "skipForNow": "ఇప్పటికి దాటవేయి",
+    "privacyAssurance": "మీ ఫోన్ నంబర్ సురక్షితంగా ఉంటుంది మరియు మూడవ పక్షాలతో ఎప్పటికీ భాగస్వామ్యం చేయబడదు."
   }
 };

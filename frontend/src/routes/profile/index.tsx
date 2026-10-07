@@ -75,8 +75,8 @@ export default function ProfilePage() {
   const handleSubmit = async (data: IUser, showToast: boolean = true, id?: string) => {
     let currentToastId: string | number | undefined;
     if (showToast) {
-      currentToastId = toastLoading("Saving profile...", {
-        desc: "Please wait while we update your details.",
+      currentToastId = toastLoading(t("userProfile.savingProfile", "Saving profile..."), {
+        desc: t("userProfile.savingProfileDesc", "Please wait while we update your details."),
       });
     } else {
       currentToastId = id;
@@ -85,7 +85,7 @@ export default function ProfilePage() {
       await updateUser(data);
       if (showToast && currentToastId) {
         toastDismiss(currentToastId);
-        toastSuccess("Profile updated!");
+        toastSuccess(t("userProfile.profileUpdated", "Profile updated!"));
       }
     } catch (error) {
       if (showToast && currentToastId) {
@@ -236,6 +236,7 @@ const validateUniversity = (value: string) => {
 };
 
 const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<IUser>({
     ...user,
     mobile: user?.mobile || (user as any)?.farmerProfile?.phone || "",
@@ -313,15 +314,15 @@ const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
     };
     // State, district and KVK name are all required.
     if (!item.state) {
-      toast.error("Please select a state.");
+      toast.error(t("userProfile.selectStateError", "Please select a state."));
       return;
     }
     if (!item.district) {
-      toast.error("Please select a district.");
+      toast.error(t("userProfile.selectDistrictError", "Please select a district."));
       return;
     }
     if (!item.name) {
-      toast.error("Please enter the KVK name.");
+      toast.error(t("userProfile.enterKvkNameError", "Please enter the KVK name."));
       return;
     }
     // Skip duplicates (same state + district + name, case-insensitive).
@@ -399,11 +400,11 @@ const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file");
+      toast.error(t("userProfile.invalidImageError", "Please select a valid image file"));
       return;
     }
     if (file.size > 70 * 1024) {
-      toast.error("Image size must be less than 70KB");
+      toast.error(t("userProfile.imageTooLargeError", "Image size must be less than 70KB"));
       return;
     }
     const reader = new FileReader();
@@ -415,9 +416,9 @@ const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
       try {
         await onSubmit?.({ ...formData, avatar: base64 }, false);
         useAuthStore.getState().updateUser({ avatar: base64 });
-        toast.success("Profile picture updated!");
+        toast.success(t("userProfile.avatarUpdated", "Profile picture updated!"));
       } catch (error) {
-        toast.error("Failed to update profile picture");
+        toast.error(t("userProfile.avatarUpdateFailed", "Failed to update profile picture"));
         setAvatarPreview(userFromStore?.avatar || "");
         if (fileInputRef.current) fileInputRef.current.value = "";
       } finally {
@@ -436,9 +437,9 @@ const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
      await onSubmit?.(updatedData, false);
      useAuthStore.getState().updateUser({ avatar: "" });
      if (fileInputRef.current) fileInputRef.current.value = "";
-     toast.success("Profile picture removed!");
+     toast.success(t("userProfile.avatarRemoved", "Profile picture removed!"));
    } catch (error) {
-     toast.error("Failed to remove profile picture");
+     toast.error(t("userProfile.avatarRemoveFailed", "Failed to remove profile picture"));
    } finally {
      setIsRemovingAvatar(false);
    }
@@ -603,27 +604,27 @@ const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
 
     // -------- VALIDATION --------
     if (!currentPassword || currentPassword.length < 6) {
-      newErrors.currentPassword = "Incorrect current password.";
+      newErrors.currentPassword = t("userProfile.incorrectCurrentPassword", "Incorrect current password.");
     }
 
     if (!newPassword) {
-      newErrors.newPassword = "New password is required.";
+      newErrors.newPassword = t("userProfile.newPasswordRequired", "New password is required.");
     } else {
 
       if (newPassword.length < 6) {
-        newErrors.newPassword = "New password must be at least 6 characters.";
+        newErrors.newPassword = t("userProfile.newPasswordMinLength", "New password must be at least 6 characters.");
       }
 
       if (newPassword === currentPassword) {
         newErrors.newPassword =
-          "New password cannot be the same as the current password.";
+          t("userProfile.newPasswordSameAsCurrent", "New password cannot be the same as the current password.");
       }
     }
 
     if (!confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your new password.";
+      newErrors.confirmPassword = t("userProfile.confirmPasswordRequired", "Please confirm your new password.");
     } else if (confirmPassword !== newPassword) {
-      newErrors.confirmPassword = "Passwords do not match.";
+      newErrors.confirmPassword = t("userProfile.passwordsMismatch", "Passwords do not match.");
     }
 
     if (
@@ -642,7 +643,7 @@ const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
     if (!reauth.success) {
       setPasswordErrors((prev) => ({
         ...prev,
-        currentPassword: "Incorrect current password.",
+        currentPassword: t("userProfile.incorrectCurrentPassword", "Incorrect current password."),
       }));
       setIsChangingPassword(false);
       return; //  STOP — do not update password
@@ -654,14 +655,14 @@ const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
     if (!update.success) {
       setPasswordErrors((prev) => ({
         ...prev,
-        general: "Failed to update password. Try again.",
+        general: t("userProfile.passwordUpdateFailed", "Failed to update password. Try again."),
       }));
       setIsChangingPassword(false);
       return;
     }
 
     // Success
-    toast.success("Password updated successfully!");
+    toast.success(t("userProfile.passwordUpdatedSuccess", "Password updated successfully!"));
     setPasswordErrors({
       currentPassword: "",
       newPassword: "",
@@ -743,7 +744,7 @@ const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
             </p>
 
             <p className="text-xs text-muted-foreground text-center sm:text-left">
-              Click on the profile picture to update it
+              {t("userProfile.clickAvatarHint", "Click on the profile picture to update it")}
             </p>
             {avatarPreview && (
               <button
@@ -752,7 +753,7 @@ const ProfileForm = ({ user, onSubmit, isUpdating }: ProfileFormProps) => {
                 disabled={isUploadingAvatar}
                 className="text-xs text-red-500 hover:text-red-600 underline text-center sm:text-left w-fit disabled:opacity-50"
               >
-                Remove Avatar
+                {t("userProfile.removeAvatar", "Remove Avatar")}
               </button>
             )}
           </div>

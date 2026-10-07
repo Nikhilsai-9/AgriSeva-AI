@@ -42,13 +42,14 @@ function slugify(s: string) {
 }
 
 function ScrollSpy({ sections }: { sections: LegalSection[] }) {
+  const { t } = useTranslation();
   return (
     <nav
       aria-label="Table of contents"
       className="sticky top-6 hidden lg:block w-64 shrink-0 self-start"
     >
       <p className="text-xs font-bold uppercase tracking-widest text-emerald-900/60 mb-3">
-        On this page
+        {t("common.onThisPage", "On this page")}
       </p>
       <ul className="space-y-2 text-sm">
         {sections.map((s) => (
@@ -108,7 +109,7 @@ export function LegalPage(props: LegalPageProps) {
             {props.pageTitle}
           </h1>
           <p className="mt-3 text-sm text-emerald-900/70">
-            Effective date: {props.effectiveDate}
+            {t("common.effectiveDate", "Effective date: ")}{props.effectiveDate}
           </p>
 
           <div className="mt-8 space-y-3 text-[15px] leading-relaxed text-emerald-900/85">
@@ -135,10 +136,10 @@ export function LegalPage(props: LegalPageProps) {
 
           <section className="mt-12 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5 sm:p-6">
             <h2 className="text-lg font-bold text-emerald-950 inline-flex items-center gap-2">
-              <Mail size={18} /> Contact us
+              <Mail size={18} /> {t("common.contactUs", "Contact us")}
             </h2>
             <p className="mt-2 text-sm text-emerald-900/85">
-              For questions about this {props.pageTitle.toLowerCase()}, email{" "}
+              {t("common.legalContactDesc", "For questions about this policy, email ")}{" "}
               <a
                 href={`mailto:${props.contactEmail}`}
                 className="font-semibold text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
@@ -150,8 +151,7 @@ export function LegalPage(props: LegalPageProps) {
           </section>
 
           <p className="mt-10 text-xs text-emerald-900/50 inline-flex items-center gap-1.5">
-            <ShieldCheck size={12} /> AgriSeva-AI is committed to protecting
-            farmer data. We collect only what we need to deliver the service.
+            <ShieldCheck size={12} /> {t("common.dataCommitment", "AgriSeva-AI is committed to protecting farmer data. We collect only what we need to deliver the service.")}
           </p>
         </article>
       </main>
@@ -160,17 +160,17 @@ export function LegalPage(props: LegalPageProps) {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-emerald-900/70">
           <p className="inline-flex items-center gap-1.5">
             <Database size={12} /> © {new Date().getFullYear()} AgriSeva-AI.
-            All rights reserved.
+            {" "}{t("common.allRightsReserved", "All rights reserved.")}
           </p>
           <nav aria-label="Legal" className="flex items-center gap-4">
             <Link to="/privacy" className="hover:text-emerald-700">
-              Privacy
+              {t("common.privacyPolicy", "Privacy")}
             </Link>
             <Link to="/terms" className="hover:text-emerald-700">
-              Terms
+              {t("common.terms", "Terms")}
             </Link>
             <span className="inline-flex items-center gap-1">
-              <Lock size={12} /> Encrypted in transit
+              <Lock size={12} /> {t("common.encryptedInTransit", "Encrypted in transit")}
             </span>
           </nav>
         </div>

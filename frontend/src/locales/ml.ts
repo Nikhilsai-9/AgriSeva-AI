@@ -26,34 +26,34 @@ export const ml: Partial<TranslationDictionary> = {
     "askAgriSeva": "AgriSeva-AI-യോട് ചോദിക്കുക",
     "loading": "ലോഡ് ചെയ്യുന്നു...",
     "loadingApp": "AgriSeva-AI ലോഡ് ചെയ്യുന്നു...",
-    "slogan": "ഓരോ കർഷകനും ഒരു രാജാവ്, AI അവരുടെ അരികിൽ.",
+    "slogan": "ഓരോ കർഷകനും ഒരു രാജാവ്, AI അവരുടെ കൂടെ.",
     "notFoundTitle": "പേജ് കണ്ടെത്തിയില്ല",
-    "notFoundHeader": "സർവേ ചെയ്യാത്ത ഏരിയ",
-    "notFoundDesc": "നിങ്ങൾ തിരയുന്ന പേജ് AgriSeva-AI-ൽ കാണാനായില്ല.",
-    "notFoundHint": "ലിങ്ക് കാലഹരണപ്പെട്ടതാകാം അല്ലെങ്കിൽ നിങ്ങൾ ഒരു തകർന്ന URL പിന്തുടർന്നിരിക്കാം.",
-    "backToHome": "തിരികെ വീട്ടിലേക്ക്",
-    "goBack": "മടങ്ങിപ്പോവുക",
-    "cookiesTitle": "AgriSeva-AI-ലെ കുക്കികൾ",
-    "cookiesDesc": "നിങ്ങളെ സൈൻ ഇൻ ചെയ്‌തിരിക്കുന്നതിന് ഞങ്ങൾ കർശനമായി ആവശ്യമായ ഒരു കുക്കി ഉപയോഗിക്കുന്നു. നിങ്ങളുടെ അനുമതിയോടെ ഉപയോഗ പാറ്റേണുകൾ മനസ്സിലാക്കാൻ ഞങ്ങളെ സഹായിക്കുന്നതിന് ഫയർബേസ് അനലിറ്റിക്‌സും ഞങ്ങൾ പ്രവർത്തനക്ഷമമാക്കും.",
-    "strictlyNecessary": "കർശനമായി ആവശ്യമാണ്",
+    "notFoundHeader": "സർവേ ചെയ്യാത്ത പ്രദേശം",
+    "notFoundDesc": "നിങ്ങൾ തിരയുന്ന പേജ് അഗ്രിസേവ-AI-ൽ കണ്ടെത്താനായില്ല.",
+    "notFoundHint": "ലിങ്ക് കാലഹരണപ്പെട്ടതോ തെറ്റായതോ ആകാം.",
+    "backToHome": "ഹോമിലേക്ക് മടങ്ങുക",
+    "goBack": "തിരികെ പോകുക",
+    "cookiesTitle": "അഗ്രിസേവ-AI കുക്കികൾ",
+    "cookiesDesc": "നിങ്ങളെ സൈൻ ഇൻ ചെയ്ത് നിലനിർത്താൻ ഞങ്ങൾ ആവശ്യമായ കുക്കി ഉപയോഗിക്കുന്നു. നിങ്ങളുടെ അനുമതിയോടെ Firebase Analytics ഉം ഞങ്ങൾ ഉപയോഗിക്കും.",
+    "strictlyNecessary": "അത്യന്താപേക്ഷിതം",
     "analytics": "അനലിറ്റിക്സ്",
-    "rejectAnalytics": "അനലിറ്റിക്സ് നിരസിക്കുക",
-    "acceptAnalytics": "അനലിറ്റിക്‌സ് സ്വീകരിക്കുക",
-    "hideDetails": "കുക്കി വിശദാംശങ്ങൾ മറയ്ക്കുക",
-    "showDetails": "കുക്കി വിശദാംശങ്ങൾ കാണിക്കുക",
+    "rejectAnalytics": "നിരസിക്കുക",
+    "acceptAnalytics": "സ്വീകരിക്കുക",
+    "hideDetails": "കുക്കി വിവരങ്ങൾ മറയ്ക്കുക",
+    "showDetails": "കുക്കി വിവരങ്ങൾ കാണിക്കുക",
     "signalLost": "സിഗ്നൽ നഷ്ടപ്പെട്ടു",
     "privacyPolicy": "സ്വകാര്യതാ നയം",
     "terms": "സേവന നിബന്ധനകൾ",
-    "voiceRecorder": "Voice Recorder",
-    "transcript": "Transcript",
-    "chars": "chars",
-    "speechPlaceholder": "Your speech will appear here...",
-    "clear": "Clear",
-    "submit": "Submit",
-    "sending": "Sending...",
-    "questionsGenerated": "Questions",
-    "questionsGeneratedHint": "These are questions generated from your transcript",
-    "toggleRecording": "Toggle recording",
+    "voiceRecorder": "വോയ്‌സ് റെക്കോർഡർ",
+    "transcript": "ട്രാൻസ്ക്രിപ്റ്റ്",
+    "chars": "അക്ഷരങ്ങൾ",
+    "speechPlaceholder": "നിങ്ങൾ പറയുന്നത് ഇവിടെ കാണാം...",
+    "clear": "മായ്ക്കുക",
+    "submit": "സമർപ്പിക്കുക",
+    "sending": "അയയ്ക്കുന്നു...",
+    "questionsGenerated": "ചോദ്യങ്ങൾ",
+    "questionsGeneratedHint": "ഇവ നിങ്ങളുടെ സംഭാഷണത്തിൽ നിന്ന് സൃഷ്ടിച്ച ചോദ്യങ്ങളാണ്",
+    "toggleRecording": "റെക്കോർഡിംഗ് ആരംഭിക്കുക/നിർത്തുക",
     "voiceHelp": "1. വോയ്‌സ് ഹെൽപ്പ്‌ലൈൻ & കോളിംഗ്",
     "whatsappHelp": "2. വാട്ട്‌സ്ആപ്പ് AI സഹായവും ചാറ്റും",
     "helper": "3. അഗ്രിസേവ-AI അസിസ്റ്റന്റ്",
@@ -119,7 +119,59 @@ export const ml: Partial<TranslationDictionary> = {
     "aiListening": "നിങ്ങളുടെ ശബ്ദം കേൾക്കുന്നു...",
     "aiReady": "തയ്യാറാണ്",
     "speakMicTitle": "നിങ്ങളുടെ മൈക്രോഫോണിൽ സംസാരിക്കുക",
-    "speakMicDesc": "ഏതെങ്കിലും വിള രോഗം, കീടനാശിനി അളവ് അല്ലെങ്കിൽ മാർക്കറ്റ് വില നിങ്ങളുടെ ഭാഷയിൽ ചോദിക്കുക."
+    "speakMicDesc": "ഏതെങ്കിലും വിള രോഗം, കീടനാശിനി അളവ് അല്ലെങ്കിൽ മാർക്കറ്റ് വില നിങ്ങളുടെ ഭാഷയിൽ ചോദിക്കുക.",
+    "endCall": "കോൾ അവസാനിപ്പിക്കുക",
+    "imageTooLarge": "ചിത്രത്തിന്റെ വലുപ്പം 10MB-യിൽ കുറവായിരിക്കണം",
+    "assistantWelcome": "നമസ്കാരം! ഞാൻ നിങ്ങളുടെ അഗ്രിസേവ AI സഹായിയാണ്. വിള രോഗങ്ങൾ, കീടനാശിനി അളവ്, വിപണി വിലകൾ അല്ലെങ്കിൽ അഗ്രിസേവ-AI ഉപയോഗം എന്നിവയെക്കുറിച്ച് എന്തും ചോദിക്കാം.",
+    "analyzingCropImage": "ദയവായി ഈ വിള ചിത്രം പരിശോധിച്ച് രോഗനിർണ്ണയവും ചികിത്സയും നിർദ്ദേശിക്കുക",
+    "browserVoiceNotSupported": "ഈ ബ്രൗസറിൽ വോയ്‌സ് ഇൻപുട്ട് പിന്തുണയ്ക്കുന്നില്ല. ദയവായി Chrome അല്ലെങ്കിൽ Edge ഉപയോഗിക്കുക.",
+    "live24x7": "24x7 ലൈവ്",
+    "helplines": "നേരിട്ടുള്ള ഹെൽപ്പ്‌ലൈനുകൾ",
+    "callFarmer": "കർഷകനെ വിളിക്കുക",
+    "free100": "100% സൗജന്യം",
+    "webCallButton": "സൗജന്യ വെബ് വോയ്‌സ് കോൾ ആരംഭിക്കുക",
+    "helplineNumberTitle": "അഗ്രിസേവ AI ഹെൽപ്പ്‌ലൈൻ",
+    "helplineNumberDesc": "ഔദ്യോഗിക അഗ്രിസേവ ബന്ധപ്പെടാനുള്ള നമ്പർ. ഞങ്ങളുടെ ഓട്ടോമേറ്റഡ് ഹെൽപ്പ്‌ലൈനിൽ ബന്ധപ്പെടാൻ ഏത് ഫോണിൽ നിന്നും വിളിക്കുക.",
+    "kisanCallCenterTitle": "കിസാൻ കോൾ സെന്റർ (ടോൾ-ഫ്രീ)",
+    "callAction": "വിളിക്കുക",
+    "kisanCallCenterDesc": "കൃഷി & കർഷക ക്ഷേമ മന്ത്രാലയത്തിന്റെ ദേശീയ കാർഷിക ഉപദേശക സേവനം.",
+    "checkingFarmer": "രജിസ്റ്റർ ചെയ്ത കർഷകന്റെ പ്രൊഫൈൽ പരിശോധിക്കുന്നു...",
+    "registeredFarmer": "രജിസ്റ്റർ ചെയ്ത കർഷകൻ",
+    "whatsAppModalTitle": "അഗ്രിസേവ വാട്ട്‌സ്ആപ്പ് കണക്റ്റ്",
+    "whatsAppModalDesc": "AI ഉപദേശകനുമായി ചാറ്റ് ചെയ്യുക, കർഷകന് വിവരങ്ങൾ അയയ്ക്കുക",
+    "aiBotTab": "അഗ്രിസേവ AI ബോട്ട്",
+    "messageFarmerTab": "കർഷകന് സന്ദേശമയക്കുക",
+    "agriSevaAiWhatsApp": "അഗ്രിസേവ AI വാട്ട്‌സ്ആപ്പ്",
+    "message": "സന്ദേശ വാചകം (ഓപ്ഷണൽ)",
+    "waMessagePlaceholder": "കർഷകന് അയക്കാൻ കാർഷിക ഉപദേശമോ സന്ദേശമോ നൽകുക...",
+    "aiAssistantTitle": "അഗ്രിസേവ AI സഹായി",
+    "onlineBadge": "ഓൺലൈൻ",
+    "whatsAppAction": "വാട്ട്‌സ്ആപ്പ്",
+    "cropPhotoAttached": "വിള ഫോട്ടോ ചേർത്തു",
+    "removePhoto": "ഫോട്ടോ നീക്കം ചെയ്യുക",
+    "attachCropImage": "വിള ഫോട്ടോ ചേർക്കുക",
+    "twentyThreeLanguages": "23 ഭാഷകൾ",
+    "close": "അടയ്ക്കുക",
+    "searchLanguagePlaceholder": "ഭാഷ തിരയുക...",
+    "noLanguageMatches": "\"{searchQuery}\" എന്നതുമായി പൊരുത്തപ്പെടുന്ന ഭാഷകളൊന്നുമില്ല",
+    "selectedLabel": "തിരഞ്ഞെടുത്തത്:",
+    "noLanguageSelectedYet": "ഇതുവരെ ഭാഷയൊന്നും തിരഞ്ഞെടുത്തിട്ടില്ല",
+    "notifications": "അറിയിപ്പുകൾ",
+    "onThisPage": "ഈ പേജിൽ",
+    "effectiveDate": "പ്രാബല്യത്തിൽ വന്ന തീയതി: ",
+    "contactUs": "ഞങ്ങളെ ബന്ധപ്പെടുക",
+    "legalContactDesc": "ഈ നയത്തെക്കുറിച്ചുള്ള ചോദ്യങ്ങൾക്ക്, ഇമെയിൽ ചെയ്യുക ",
+    "dataCommitment": "അഗ്രിസേവ-AI കർഷകരുടെ ഡാറ്റ പരിരക്ഷിക്കാൻ പ്രതിജ്ഞാബദ്ധമാണ്. സേവനം നൽകാൻ ആവശ്യമായ വിവരങ്ങൾ മാത്രമേ ഞങ്ങൾ ശേഖരിക്കൂ.",
+    "allRightsReserved": "എല്ലാ അവകാശങ്ങളും നിക്ഷിപ്തം.",
+    "encryptedInTransit": "ട്രാൻസിറ്റിൽ എൻക്രിപ്റ്റ് ചെയ്തത്",
+    "verifyingAccess": "മോഡറേറ്റർ ആക്സസ് പരിശോധിക്കുന്നു...",
+    "cookieAuthDesc": "Firebase പ്രാമാണീകരണ സെഷൻ. ഇത് പ്രവർത്തനരഹിതമാക്കാൻ കഴിയില്ല.",
+    "cookieAnalyticsDesc": "Firebase Analytics (_ga, _gid). നിങ്ങളുടെ അനുമതിയോടെ മാത്രമേ ഉപയോഗിക്കൂ.",
+    "youFarmer": "നിങ്ങൾ (കർഷകൻ)",
+    "speakerMuted": "AI ഓഡിയോ നിശബ്ദമാക്കി",
+    "speakerActive": "AI ഓഡിയോ സജീവമാണ്",
+    "unmuteSpeaker": "സ്പീക്കർ ഓൺ ചെയ്യുക",
+    "muteSpeaker": "സ്പീക്കർ നിശബ്ദമാക്കുക"
   },
   "nav": {
     "howItWorks": "ഇത് എങ്ങനെ പ്രവർത്തിക്കുന്നു",
@@ -306,7 +358,14 @@ export const ml: Partial<TranslationDictionary> = {
     "rememberPassword": "പാസ്‌വേഡ് ഓർക്കുന്നുണ്ടോ?",
     "signUpLink": "സൈൻ അപ്പ്",
     "signInLink": "സൈൻ ഇൻ",
-    "emailPlaceholder": "farmer@agriseva.ai"
+    "emailPlaceholder": "farmer@agriseva.ai",
+    "passwordPlaceholder": "••••••••",
+    "backToSignIn": "സൈൻ ഇന്നിലേക്ക് മടങ്ങുക",
+    "backToHome": "ഹോമിലേക്ക് മടങ്ങുക",
+    "processing": "പ്രോസസ്സ് ചെയ്യുന്നു...",
+    "authenticating": "പ്രാമാണീകരിച്ച് പ്രൊഫൈൽ ലോഡ് ചെയ്യുന്നു...",
+    "hidePassword": "പാസ്‌വേഡ് മറയ്ക്കുക",
+    "showPassword": "പാസ്‌വേഡ് കാണിക്കുക"
   },
   "dashboard": {
     "activeFilters": "క్రియాశీల ఫిల్టర్లు",
@@ -484,7 +543,11 @@ export const ml: Partial<TranslationDictionary> = {
     "hideInfo": "Hide Info",
     "internal": "Internal",
     "external": "External",
-    "exit": "Exit"
+    "exit": "Exit",
+    "yearOverview": "പ്രതിമാസ അവലോകനം - മുഴുവൻ 12 മാസങ്ങളും",
+    "weeklyBreakdown": "പ്രതിവാര വിവരങ്ങൾ",
+    "dailyBreakdown": "ദൈനംദിന വിവരങ്ങൾ",
+    "hourlyBreakdown": "മണിക്കൂർ തോറുമുള്ള വിവരങ്ങൾ"
   },
   "sidebar": {
     "dashboard": "ഡാഷ്‌ബോർഡ്",
@@ -514,8 +577,30 @@ export const ml: Partial<TranslationDictionary> = {
     "logoutConfirmDesc": "നിങ്ങളുടെ അക്കൗണ്ട് ആക്സസ് ചെയ്യാൻ വീണ്ടും ലോഗിൻ ചെയ്യേണ്ടതുണ്ട്.",
     "cancel": "റദ്ദാക്കുക",
     "badgeNew": "പുതിയത്",
-    "profileSettings": "Profile Settings",
-    "profileSettingsDesc": "Manage your account information and preferences"
+    "profileSettings": "പ്രൊഫൈൽ ക്രമീകരണങ്ങൾ",
+    "profileSettingsDesc": "നിങ്ങളുടെ അക്കൗണ്ട് വിവരങ്ങളും മുൻഗണനകളും നിയന്ത്രിക്കുക",
+    "savingProfile": "പ്രൊഫൈൽ സംരക്ഷിക്കുന്നു...",
+    "savingProfileDesc": "വിശദാംശങ്ങൾ അപ്‌ഡേറ്റ് ചെയ്യുമ്പോൾ ദയവായി കാത്തിരിക്കുക.",
+    "profileUpdated": "പ്രൊഫൈൽ അപ്‌ഡേറ്റ് ചെയ്തു!",
+    "selectStateError": "ദയവായി ഒരു സംസ്ഥാനം തിരഞ്ഞെടുക്കുക.",
+    "selectDistrictError": "ദയവായി ഒരു ജില്ല തിരഞ്ഞെടുക്കുക.",
+    "enterKvkNameError": "ദയവായി KVK പേര് നൽകുക.",
+    "invalidImageError": "ദയവായി സാധുവായ ഒരു ഇമേജ് ഫയൽ തിരഞ്ഞെടുക്കുക",
+    "imageTooLargeError": "ഇമേജ് വലുപ്പം 70KB-യിൽ കുറവായിരിക്കണം",
+    "avatarUpdated": "പ്രൊഫൈൽ ചിത്രം അപ്‌ഡേറ്റ് ചെയ്തു!",
+    "avatarUpdateFailed": "പ്രൊഫൈൽ ചിത്രം അപ്‌ഡേറ്റ് ചെയ്യാനായില്ല",
+    "avatarRemoved": "പ്രൊഫൈൽ ചിത്രം നീക്കം ചെയ്തു!",
+    "avatarRemoveFailed": "പ്രൊഫൈൽ ചിത്രം നീക്കം ചെയ്യാനായില്ല",
+    "incorrectCurrentPassword": "നിലവിലെ പാസ്‌വേഡ് തെറ്റാണ്.",
+    "newPasswordRequired": "പുതിയ പാസ്‌വേഡ് ആവശ്യമാണ്.",
+    "newPasswordMinLength": "പുതിയ പാസ്‌വേഡിന് കുറഞ്ഞത് 6 അക്ഷരങ്ങൾ വേണം.",
+    "newPasswordSameAsCurrent": "പുതിയ പാസ്‌വേഡ് നിലവിലെ പാസ്‌വേഡിന് തുല്യമാകാൻ പാടില്ല.",
+    "confirmPasswordRequired": "ദയവായി നിങ്ങളുടെ പുതിയ പാസ്‌വേഡ് സ്ഥിരീകരിക്കുക.",
+    "passwordsMismatch": "പാസ്‌വേഡുകൾ പൊരുത്തപ്പെടുന്നില്ല.",
+    "passwordUpdateFailed": "പാസ്‌വേഡ് അപ്‌ഡേറ്റ് ചെയ്യാനായില്ല. വീണ്ടും ശ്രമിക്കുക.",
+    "passwordUpdatedSuccess": "പാസ്‌വേഡ് വിജയകരമായി അപ്‌ഡേറ്റ് ചെയ്തു!",
+    "clickAvatarHint": "പ്രൊഫൈൽ ചിത്രം മാറ്റാൻ അതിൽ ക്ലിക്ക് ചെയ്യുക",
+    "removeAvatar": "അവതാർ നീക്കം ചെയ്യുക"
   },
   "notifications": {
     "titleNotifications": "അറിയിപ്പുകൾ",
@@ -596,7 +681,8 @@ export const ml: Partial<TranslationDictionary> = {
     "emailInUse": "ഈ ഇമെയിൽ ഇതിനകം രജിസ്റ്റർ ചെയ്തിട്ടുണ്ട്. സൈൻ ഇൻ ചെയ്യുക.",
     "accountCreateFailed": "അക്കൗണ്ട് സൃഷ്ടിക്കാൻ കഴിഞ്ഞില്ല.",
     "resetSent": "റീസെറ്റ് വിവരങ്ങൾ അയച്ചു! ഇമെയിൽ പരിശോധിക്കുക.",
-    "resetFailed": "റീസെറ്റ് ലിങ്ക് അയയ്ക്കുന്നതിൽ പരാജയപ്പെട്ടു."
+    "resetFailed": "റീസെറ്റ് ലിങ്ക് അയയ്ക്കുന്നതിൽ പരാജയപ്പെട്ടു.",
+    "accessDenied": "ആക്സസ് നിരസിച്ചു. മോഡറേറ്റർ അനുമതികൾ ആവശ്യമാണ്."
   },
   "accessibility": {
     "close": "അടയ്ക്കുക",
@@ -719,7 +805,8 @@ export const ml: Partial<TranslationDictionary> = {
       "verifiedBadge": "പരിശോധിച്ചുറപ്പിച്ചത്",
       "viewAndOffer": "കാണുക & ഓഫർ ചെയ്യുക →",
       "dealsFulfilled": "ഇടപാടുകൾ പൂർത്തിയായി",
-      "buyerTypeDefault": "വാങ്ങുന്നയാൾ"
+      "buyerTypeDefault": "വാങ്ങുന്നയാൾ",
+      "viewAllBuyers": "എല്ലാ വാങ്ങലുകാരും"
     },
     "prices": {
       "title": "വിപണി വിലകൾ",
@@ -748,7 +835,16 @@ export const ml: Partial<TranslationDictionary> = {
       "fresh": "പുതിയത്",
       "stale": "പഴകിയ",
       "market": "വിപണി",
-      "sourceEnam": "eNAM"
+      "sourceEnam": "eNAM",
+      "mandi": "മണ്ഡി / APMC",
+      "mandiPlaceholder": "ഉദാ: APMC പാലക്കാട്",
+      "errorTitle": "വിപണി നിരക്കുകൾ ലോഡ് ചെയ്യാനായില്ല",
+      "errorFallback": "മാർക്കറ്റ് ഡാറ്റാ സെർവർ ലഭ്യമല്ല. ദയവായി അൽപ്പസമയത്തിന് ശേഷം വീണ്ടും ശ്രമിക്കുക.",
+      "errorNoDemo": "സെർവർ ലഭ്യമല്ലാത്തപ്പോൾ ഡെമോ ഡാറ്റ കാണിക്കില്ല.",
+      "emptyHint": "ദേശീയ വിപണി നിരക്കുകൾ കാണാൻ 'എല്ലാ സംസ്ഥാനങ്ങളും' തിരഞ്ഞെടുക്കുക അല്ലെങ്കിൽ മറ്റൊരു വിള തിരഞ്ഞെടുക്കുക.",
+      "clearLocation": "സംസ്ഥാനം / ജില്ല ഫിൽട്ടർ മായ്‌ക്കുക",
+      "aggregateHint": "സംസ്ഥാന തല ശരാശരി, പ്രത്യേക മണ്ടിയല്ല",
+      "aggregate": "സംസ്ഥാന ശരാശരി"
     },
     "buyers": {
       "title": "വാങ്ങുന്നവരെ കണ്ടെത്തുക",
@@ -768,7 +864,14 @@ export const ml: Partial<TranslationDictionary> = {
       "cropsProcured": "{count} വിളകൾ വാങ്ങി",
       "cropLabel": "വിള:",
       "stateLabel": "സംസ്ഥാനം:",
-      "viewProfile": "പ്രൊഫൈൽ കാണുക →"
+      "viewProfile": "പ്രൊഫൈൽ കാണുക →",
+      "loading": "പരിശോധിച്ചുറപ്പിച്ച വാങ്ങലുകാരെ കണ്ടെത്തുന്നു…",
+      "error": "വാങ്ങലുകാരെ ലോഡ് ചെയ്യാനായില്ല.",
+      "retry": "വീണ്ടും ശ്രമിക്കുക",
+      "govtEnamVerified": "സർക്കാർ / ഇ-നാം സ്ഥിരീകരിച്ചത്",
+      "agrisevaVerified": "അഗ്രിസേവ സ്ഥിരീകരിച്ചത്",
+      "agrisevaRegistered": "അഗ്രിസേവ രജിസ്റ്റർ ചെയ്തത്",
+      "unverified": "സ്ഥിരീകരിക്കാത്തത്"
     },
     "buyerDetail": {
       "notFound": "വാങ്ങുന്നയാളെ കണ്ടെത്തിയില്ല.",
@@ -813,7 +916,14 @@ export const ml: Partial<TranslationDictionary> = {
       "sortLabel": "അടുക്കുക",
       "sortNewest": "ഏറ്റവും പുതിയത് ആദ്യം",
       "sortOldest": "ഏറ്റവും പഴയത് ആദ്യം",
-      "sortQty": "ഏറ്റവും വലിയ അളവ്"
+      "sortQty": "ഏറ്റവും വലിയ അളവ്",
+      "viewAll": "എല്ലാ ലോട്ടുകളും കാണുക",
+      "loading": "നിങ്ങളുടെ വിള ലോട്ടുകൾ ലോഡ് ചെയ്യുന്നു…",
+      "error": "ലോട്ടുകൾ ലോഡ് ചെയ്യാനായില്ല.",
+      "retry": "വീണ്ടും ശ്രമിക്കുക",
+      "emptyTitle": "ലോട്ടുകളൊന്നും കണ്ടെത്തിയില്ല",
+      "emptyFilter": "ഈ ഫിൽട്ടറുമായി പൊരുത്തപ്പെടുന്ന ലോട്ടുകളൊന്നുമില്ല.",
+      "createFirst": "ആദ്യ ലോട്ട് ഉണ്ടാക്കുക"
     },
     "createLot": {
       "title": "പുതിയ ലോട്ട് സൃഷ്ടിക്കുക",
@@ -902,7 +1012,10 @@ export const ml: Partial<TranslationDictionary> = {
       "deleteHint": "ഇത് ഈ ലോട്ടിലെ എല്ലാ ഓഫറുകളും നീക്കം ചെയ്യും. ഇത് പഴയപടിയാക്കാനാകില്ല.",
       "errQty": "അളവ് പോസിറ്റീവ് ആയിരിക്കണം.",
       "errPrice": "വില പോസിറ്റീവ് ആയിരിക്കണം.",
-      "errBuyer": "ഒരു വാങ്ങുന്നയാളുടെ പേര് നൽകുക."
+      "errBuyer": "ഒരു വാങ്ങുന്നയാളുടെ പേര് നൽകുക.",
+      "loading": "ലോട്ട് വിവരങ്ങൾ ലോഡ് ചെയ്യുന്നു…",
+      "aggregateHint": "സംസ്ഥാന തല ശരാശരി, പ്രത്യേക മണ്ടിയല്ല",
+      "aggregate": "സംസ്ഥാന ശരാശരി"
     },
     "offers": {
       "title": "എൻ്റെ ഓഫറുകൾ",
@@ -923,7 +1036,13 @@ export const ml: Partial<TranslationDictionary> = {
       "counterPrice": "നിങ്ങളുടെ കൗണ്ടർ വില (രൂപ/കിലോ)",
       "counterNote": "ഓപ്ഷണൽ കുറിപ്പ്",
       "sendCounter": "കൗണ്ടർ അയയ്ക്കുക",
-      "counterError": "ഒരു പോസിറ്റീവ് വില നൽകുക."
+      "counterError": "ഒരു പോസിറ്റീവ് വില നൽകുക.",
+      "loading": "ഓഫറുകൾ ലോഡ് ചെയ്യുന്നു…",
+      "error": "ഓഫറുകൾ ലോഡ് ചെയ്യാനായില്ല.",
+      "retry": "വീണ്ടും ശ്രമിക്കുക",
+      "emptyAll": "ഇതുവരെ ബിഡുകളോ ഓഫറുകളോ ലഭിച്ചിട്ടില്ല",
+      "emptyFilter": "ഈ ഫിൽട്ടറുമായി പൊരുത്തപ്പെടുന്ന ഓഫറുകളൊന്നുമില്ല",
+      "emptyHint": "വാങ്ങുന്നവർ നിങ്ങളുടെ വിളകൾക്ക് ലേലം വിളിക്കുമ്പോൾ, അവ ഇവിടെ ദൃശ്യമാകും."
     },
     "logistics": {
       "title": "ലോജിസ്റ്റിക്സും ഗതാഗതവും",
@@ -935,7 +1054,12 @@ export const ml: Partial<TranslationDictionary> = {
       "rate": "നിരക്ക്",
       "select": "ഈ ട്രാൻസ്പോർട്ടർ തിരഞ്ഞെടുക്കുക",
       "selected": "തിരഞ്ഞെടുത്തു",
-      "eta": "ETA"
+      "eta": "ETA",
+      "selectedHint": "നിലവിൽ തിരഞ്ഞെടുത്തത്: ",
+      "loading": "ഗതാഗത വഴികൾ ലോഡ് ചെയ്യുന്നു…",
+      "error": "ഗതാഗത ഓപ്ഷനുകൾ ലോഡ് ചെയ്യാനായില്ല.",
+      "retry": "വീണ്ടും ശ്രമിക്കുക",
+      "emptyHint": "വാഹന ശേഷിയും ദൂരവും അടിസ്ഥാനമാക്കി കിലോഗ്രാമിന് ₹1.5 - ₹3.0 വരെയാണ് സാധാരണ ചരക്കുകൂലി."
     },
     "storage": {
       "title": "സംഭരണ ​​സൗകര്യങ്ങൾ",
@@ -958,7 +1082,11 @@ export const ml: Partial<TranslationDictionary> = {
       "bookingsHint": "നിങ്ങളുടെ സജീവ റിസർവേഷനുകൾ",
       "errKg": "ഒരു പോസിറ്റീവ് അളവ് നൽകുക.",
       "errDays": "ഒരു പോസിറ്റീവ് കാലയളവ് നൽകുക.",
-      "errGeneric": "റിസർവ് ചെയ്യാൻ കഴിഞ്ഞില്ല. വീണ്ടും ശ്രമിക്കുക."
+      "errGeneric": "റിസർവ് ചെയ്യാൻ കഴിഞ്ഞില്ല. വീണ്ടും ശ്രമിക്കുക.",
+      "loading": "സംഭരണ സൗകര്യങ്ങൾ ലോഡ് ചെയ്യുന്നു…",
+      "error": "സംഭരണ സൗകര്യങ്ങൾ ലോഡ് ചെയ്യാനായില്ല.",
+      "retry": "വീണ്ടും ശ്രമിക്കുക",
+      "emptyHint": "WDRA രജിസ്റ്റർ ചെയ്ത വെയർഹൗസുകളും കോൾഡ് സ്റ്റോറേജുകളും നിങ്ങളുടെ ജില്ലയുമായി ബന്ധിപ്പിക്കുമ്പോൾ ഇവിടെ കാണാം."
     },
     "payments": {
       "title": "പേയ്മെൻ്റുകൾ",
@@ -972,7 +1100,13 @@ export const ml: Partial<TranslationDictionary> = {
         "failed": "പരാജയപ്പെട്ടു"
       },
       "empty": "ഈ കാഴ്ചയിൽ ഇതുവരെ പേയ്‌മെൻ്റുകളൊന്നുമില്ല.",
-      "raiseDispute": "തർക്കം ഉന്നയിക്കുക"
+      "raiseDispute": "തർക്കം ഉന്നയിക്കുക",
+      "loading": "പേയ്‌മെന്റുകൾ ലോഡ് ചെയ്യുന്നു…",
+      "error": "പേയ്‌മെന്റുകൾ ലോഡ് ചെയ്യാനായില്ല.",
+      "retry": "വീണ്ടും ശ്രമിക്കുക",
+      "emptyAll": "ഇതുവരെ പേയ്‌മെന്റുകളൊന്നും രേഖപ്പെടുത്തിയിട്ടില്ല",
+      "emptyFilter": "ഈ ഫിൽട്ടറുമായി പൊരുത്തപ്പെടുന്ന പേയ്‌മെന്റുകളൊന്നുമില്ല",
+      "emptyHint": "സ്വീകരിച്ച ഓഫറുകൾ ബാങ്ക് ട്രാൻസ്ഫറോ UPI യോ വഴി നൽകുമ്പോൾ രസീതുകൾ ഇവിടെ കാണാം."
     },
     "grievances": {
       "title": "പരാതികൾ",
@@ -1048,7 +1182,10 @@ export const ml: Partial<TranslationDictionary> = {
       "viewLot": "ധാരാളം കാണുക",
       "pickMarket": "ഈ മാർക്കറ്റ് ഉപയോഗിക്കുക",
       "chooseLot": "പലതിനും താരതമ്യം ചെയ്യുക",
-      "rankBadge": "#{rank}"
+      "rankBadge": "#{rank}",
+      "noLotsTitle": "സജീവമായ ലോട്ടുകളൊന്നും കണ്ടെത്തിയില്ല",
+      "aggregateHint": "സംസ്ഥാന തല ശരാശരി, പ്രത്യേക മണ്ടിയല്ല",
+      "aggregate": "സംസ്ഥാന ശരാശരി"
     },
     "common": {
       "back": "തിരികെ",
@@ -1057,7 +1194,28 @@ export const ml: Partial<TranslationDictionary> = {
       "sourceLive": "തത്സമയം",
       "submitting": "സമർപ്പിക്കുന്നു...",
       "save": "സംരക്ഷിക്കുക",
-      "sourceMulti": "Agmarknet + eNAM"
+      "sourceMulti": "Agmarknet + eNAM",
+      "sourceMixed": "മിശ്രിതം — ചില ഡെമോ റെക്കോർഡുകളുണ്ട്"
+    },
+    "reliability": {
+      "loading": "ഡാറ്റാ ഉറവിടത്തിന്റെ വിശ്വാസ്യത പരിശോധിക്കുന്നു…",
+      "label": "ഡാറ്റാ നില:",
+      "lowWarningTitle": "തത്സമയ ഡാറ്റ ആവശ്യത്തിന് പുതിയതല്ല.",
+      "lowWarningBody": "ദുർബലമായ ഉറവിടം: {source} സ്കോർ {score}/100 ({band}). ഇന്നത്തെ വിലകൾ സൂചകമായി മാത്രം കണ്ട് പ്രാദേശിക വിപണിയിൽ സ്ഥിരീകരിക്കുക."
     }
+  },
+  "onboarding": {
+    "phoneRequired": "ദയവായി നിങ്ങളുടെ 10 അക്ക മൊബൈൽ നമ്പർ നൽകുക.",
+    "phoneInvalid": "ദയവായി സാധുവായ 10 അക്ക ഇന്ത്യൻ മൊബൈൽ നമ്പർ നൽകുക (ഉദാ: 9876543210).",
+    "phoneSaved": "ബന്ധപ്പെടാനുള്ള നമ്പർ വിജയകരമായി പരിശോധിച്ചു സംരക്ഷിച്ചു!",
+    "contactTitle": "നിങ്ങളുടെ ബന്ധപ്പെടാനുള്ള നമ്പർ ചേർക്കുക",
+    "contactBadge": "പ്രധാന ഘട്ടം • അഗ്രിസേവ-AI ആശയവിനിമയ ക്രമീകരണം",
+    "contactDesc": "കോളിംഗ്, വാട്ട്‌സ്ആപ്പ് സേവനങ്ങൾ നൽകാൻ നിങ്ങളുടെ നമ്പർ അഗ്രിസേവ-AI-യെ സഹായിക്കുന്നു.",
+    "mobileNumber": "മൊബൈൽ നമ്പർ",
+    "phoneHint": "രാജ്യത്തിന്റെ കോഡ് ഇല്ലാതെ 10 അക്ക മൊബൈൽ നമ്പർ നൽകുക.",
+    "saving": "നമ്പർ സംരക്ഷിക്കുന്നു...",
+    "continue": "തുടരുക",
+    "skipForNow": "ഇപ്പോഴത്തേക്ക് ഒഴിവാക്കുക",
+    "privacyAssurance": "നിങ്ങളുടെ ഫോൺ നമ്പർ സുരക്ഷിതമായിരിക്കും, മൂന്നാം കക്ഷികളുമായി പങ്കിടില്ല."
   }
 };

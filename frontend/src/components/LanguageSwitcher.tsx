@@ -12,7 +12,7 @@ interface LanguageSwitcherProps {
 export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   className = "",
   variant = "glass",
-  showModalOnlyWhenOpen = true,
+  showModalOnlyWhenOpen = false,
 }) => {
   const { currentLanguage, isSelectorOpen, openLanguageSelector } = useLanguageStore();
 
