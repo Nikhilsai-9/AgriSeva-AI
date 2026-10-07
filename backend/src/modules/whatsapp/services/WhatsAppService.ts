@@ -32,7 +32,7 @@ import type { QuestionSource } from '#root/shared/interfaces/models.js';
  * Returns null when the input does not resemble a language selection at all.
  * This is the single authoritative lookup to fix the infinite language-loop bug.
  */
-function matchLanguageChoice(raw: string): string | null {
+export function matchLanguageChoice(raw: string): string | null {
   const s = (raw || '').trim();
   if (!s) return null;
 
@@ -50,6 +50,26 @@ function matchLanguageChoice(raw: string): string | null {
     '6': 'mr-IN', '7': 'bn-IN', '8': 'gu-IN', '9': 'pa-IN', '10': 'ml-IN',
   };
   if (DIGIT_MAP[s]) return DIGIT_MAP[s];
+
+  // Formatted list selections: "1. Telugu", "1 - తెలుగు", "2) Hindi", etc.
+  const numberedMatch = s.match(/^(\d{1,2})[\.\-\)\:]\s*(.+)$/);
+  if (numberedMatch) {
+    const num = numberedMatch[1];
+    const rest = numberedMatch[2].trim();
+    const langFromRest = matchLanguageChoice(rest);
+    if (langFromRest) return langFromRest;
+    if (DIGIT_MAP[num] && !isLikelyAgriculturalQuery(rest)) return DIGIT_MAP[num];
+  }
+
+  const numberedSpaceMatch = s.match(/^(\d{1,2})\s+([a-zA-Z\u0080-\uffff]+)$/);
+  if (numberedSpaceMatch) {
+    const langFromRest = matchLanguageChoice(numberedSpaceMatch[2]);
+    if (langFromRest) return langFromRest;
+  }
+
+  // Common phrases: "switch to telugu", "change language to hindi", "set to tamil"
+  const phraseMatch = lower.match(/(?:switch|change|set|select|choose|want|in)?\s*(?:language\s*(?:to|as)?|to|in)?\s*([a-z\u0080-\uffff]+)/i);
+  const candidate = phraseMatch ? phraseMatch[1].trim() : lower;
 
   // 3. Language names in any form: English name, native script, or common transliteration
   const NAME_MAP: Record<string, string> = {
@@ -75,8 +95,39 @@ function matchLanguageChoice(raw: string): string | null {
 
   if (NAME_MAP[s]) return NAME_MAP[s];   // exact match (case-sensitive for scripts)
   if (NAME_MAP[lower]) return NAME_MAP[lower]; // case-insensitive English match
+  if (NAME_MAP[candidate]) return NAME_MAP[candidate]; // phrase-extracted match
+
+  // Clean trailing punctuation e.g. "telugu." or "hindi!"
+  const cleanPunct = lower.replace(/[.,/#!$%^&*;:{}=\-_~()]/g, '').trim();
+  if (NAME_MAP[cleanPunct]) return NAME_MAP[cleanPunct];
 
   return null;
+}
+
+/**
+ * Checks if the text is explicitly a language selection command or name
+ * (e.g. "Telugu", "Hindi", "change to Tamil", "తెలుగు") and not an agricultural question.
+ */
+export function isExplicitLanguageNameChoice(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const clean = text.trim();
+  if (!clean) return false;
+
+  // If text is long (> 30 characters), it is almost certainly a query, not a standalone language pick
+  if (clean.length > 30) return false;
+
+  // If it matches an explicit language name or digit or phrase
+  const matched = matchLanguageChoice(clean);
+  if (!matched) return false;
+
+  // Disqualify if it has distinct agricultural words
+  const lower = clean.toLowerCase();
+  const agriWords = ['disease', 'crop', 'leaf', 'spray', 'fertilizer', 'urea', 'pesticide', 'seed', 'price', 'mandi', 'रोग', 'पत्ता', 'పంట', 'తెగులు'];
+  if (agriWords.some(w => lower.includes(w))) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -248,6 +299,7 @@ export interface IWhatsAppSession {
   userName?: string;
   preferredLanguage?: string;
   languageSelectedExplicitly?: boolean;
+  awaitingLanguageSelection?: boolean;
   blocked?: boolean;
   blockedAt?: Date;
   blockReason?: string;
@@ -1347,6 +1399,28 @@ export class WhatsAppService implements IWhatsAppService {
   }
 
   /**
+   * Helper that checks whether a text already contains native characters in the target language's script.
+   */
+  private isAlreadyInTargetScript(text: string, langCode: string): boolean {
+    if (!text || !langCode) return false;
+    const lower = langCode.toLowerCase();
+    if (lower.startsWith('te')) return /[\u0C00-\u0C7F]/.test(text); // Telugu
+    if (lower.startsWith('ta')) return /[\u0B80-\u0BFF]/.test(text); // Tamil
+    if (lower.startsWith('kn')) return /[\u0C80-\u0CFF]/.test(text); // Kannada
+    if (lower.startsWith('ml')) return /[\u0D00-\u0D7F]/.test(text); // Malayalam
+    if (lower.startsWith('gu')) return /[\u0A80-\u0AFF]/.test(text); // Gujarati
+    if (lower.startsWith('pa')) return /[\u0A00-\u0A7F]/.test(text); // Punjabi
+    if (lower.startsWith('bn') || lower.startsWith('as')) return /[\u0980-\u09FF]/.test(text); // Bengali / Assamese
+    if (lower.startsWith('od') || lower.startsWith('or')) return /[\u0B00-\u0B7F]/.test(text); // Odia
+    if (lower.startsWith('ur')) return /[\u0600-\u06FF]/.test(text); // Urdu
+    if (lower.startsWith('hi') || lower.startsWith('mr') || lower.startsWith('ne') || lower.startsWith('mai') || lower.startsWith('kok') || lower.startsWith('doi')) {
+      return /[\u0900-\u097F]/.test(text); // Devanagari script
+    }
+    if (lower.startsWith('en')) return true; // English doesn't need script translation
+    return false;
+  }
+
+  /**
    * Diagnoses crop images using Gemini Multimodal Vision with strict agricultural grounding
    */
   private async processCropImage(
@@ -1356,15 +1430,35 @@ export class WhatsAppService implements IWhatsAppService {
     langCode: string,
   ): Promise<string> {
     const geminiKey = aiConfig.geminiApiKey || process.env.GEMINI_API_KEY;
+    const targetName = getLanguageDisplayName(langCode);
+
     if (!geminiKey) {
-      return 'Crop image received. Vision service is currently unavailable. Please describe the symptoms in text.';
+      const fallbackMsgs: Record<string, string> = {
+        'te-IN': '📷 పంట ఫోటో స్వీకరించబడింది. ఇమేజ్ విశ్లేషణ సేవ ప్రస్తుతం అందుబాటులో లేదు. దయచేసి సమస్యను టెక్స్ట్‌లో వివరించండి.',
+        'hi-IN': '📷 फसल की फोटो प्राप्त हुई। इमेज विश्लेषण सेवा वर्तमान में अनुपलब्ध है। कृपया समस्या का टेक्स्ट में वर्णन करें।',
+        'ta-IN': '📷 பயிர் புகைப்படம் பெறப்பட்டது. பார்வை சேவை தற்போது கிடைக்கவில்லை. சிக்கலை உரை வடிவில் விவரிக்கவும்.',
+        'kn-IN': '📷 ಬೆಳೆಯ ಫೋಟೋ ಸ್ವೀಕರಿಸಲಾಗಿದೆ. ದೃಶ್ಯ ವಿಶ್ಲೇಷಣೆ ಸೇವೆ ಸದ್ಯಕ್ಕೆ ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ರೋಗಲಕ್ಷಣಗಳನ್ನು ಪಠ್ಯದಲ್ಲಿ ವಿವರಿಸಿ.',
+        'en-IN': '📷 Crop image received. Vision service is currently unavailable. Please describe the symptoms in text.',
+        'mr-IN': '📷 पिकाचा फोटो मिळाला. प्रतिमा विश्लेषण सेवा सध्या अनुपलब्ध आहे. कृपया लक्षणांचे मजकुरात वर्णन करा.',
+        'bn-IN': '📷 ফসলের ছবি পাওয়া গেছে। ইমেজ বিশ্লেষণ সেবা বর্তমানে অনুপলব্ধ। অনুগ্রহ করে লক্ষণগুলো টেক্সটে লিখুন।',
+        'gu-IN': '📷 પાકનો ફોટો મળ્યો છે. ઇમેજ વિશ્લેષણ સેવા હાલમાં ઉપલબ્ધ નથી. કૃપા કરીને ટેક્સ્ટમાં લક્ષણો વર્ણવો.',
+        'pa-IN': '📷 ਫਸਲ ਦੀ ਫੋਟੋ ਮਿਲੀ ਹੈ। ਚਿੱਤਰ ਵਿਸ਼ਲੇਸ਼ਣ ਸੇਵਾ ਫਿਲਹਾਲ ਉਪਲਬਧ ਨਹੀਂ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਲੱਛਣ ਟੈਕਸਟ ਵਿੱਚ ਲਿਖੋ।',
+        'ml-IN': '📷 വിളയുടെ ഫോട്ടോ ലഭിച്ചു. ഇമേജ് വിശകലന സേവനം ഇപ്പോൾ ലഭ്യമല്ല. ദയവായി ലക്ഷണങ്ങൾ ടെക്സ്റ്റിൽ എഴുതുക.',
+        'od-IN': '📷 ଫସଲ ଫଟୋ ଗ୍ରହଣ କରାଗଲା। ଚିତ୍ର ବିଶ୍ଳେଷଣ ସେବା ବର୍ତ୍ତମାନ ଉପଲବ୍ଧ ନାହିଁ। ଦୟାକରି ଲକ୍ଷଣଗୁଡ଼ିକ ଟେକ୍ସଟରେ ବର୍ଣ୍ଣନା କରନ୍ତୁ।',
+      };
+      return fallbackMsgs[langCode] || fallbackMsgs['en-IN'];
     }
 
-    const model = aiConfig.geminiModel || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+    const primaryModel = aiConfig.geminiModel || process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+    const fallbackModel = aiConfig.geminiFallbackModel || 'gemini-3.6-flash';
 
     const prompt = `You are AgriSeva-AI, the National Agricultural Multilingual Advisory Expert.
 Analyze this crop image and user's query: "${caption || 'What problem does this plant have and what is the treatment?'}"
+
+CRITICAL MANDATORY LANGUAGE RULE:
+The farmer's authoritative selected language is ${targetName} (${langCode}).
+You MUST generate your ENTIRE diagnostic response strictly in ${targetName} (${langCode}).
+Do NOT reply in English unless ${langCode} is English.
 
 Provide an agricultural advisory response:
 1. Visual Assessment: Identify the crop and visible symptoms (disease, pest damage, nutrient deficiency, weather stress).
@@ -1376,36 +1470,41 @@ Provide an agricultural advisory response:
 Keep paragraphs concise, structured with bullet points and emojis, suitable for reading on WhatsApp.`;
 
     const cleanMime = mimeType.split(';')[0] || 'image/jpeg';
-    try {
-      const res = await axios.post(
-        url,
+    const payload = {
+      system_instruction: {
+        parts: [{ text: `You are AgriSeva-AI. You MUST generate the ENTIRE response strictly in ${targetName} (${langCode}).` }],
+      },
+      contents: [
         {
-          contents: [
+          parts: [
             {
-              parts: [
-                {
-                  inline_data: {
-                    mime_type: cleanMime,
-                    data: buffer.toString('base64'),
-                  },
-                },
-                { text: prompt },
-              ],
+              inline_data: {
+                mime_type: cleanMime,
+                data: buffer.toString('base64'),
+              },
             },
+            { text: prompt },
           ],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 800,
-          },
         },
-        { timeout: 25000 },
-      );
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 800,
+      },
+    };
 
-      return res.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-    } catch (err: any) {
-      console.error('[WhatsAppService] Error analyzing crop image:', err.message);
-      return '';
+    for (const modelToTry of [primaryModel, fallbackModel]) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelToTry}:generateContent?key=${geminiKey}`;
+        const res = await axios.post(url, payload, { timeout: 25000 });
+        const text = res.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text) return text;
+      } catch (err: any) {
+        console.warn(`[WhatsAppService] Gemini vision error with model ${modelToTry}:`, err.message);
+      }
     }
+
+    return '';
   }
 
   /**
@@ -1476,15 +1575,32 @@ ${text}
     history?: { role: 'user' | 'assistant' | 'expert' | 'system'; content: string }[],
   ): Promise<string> {
     const apiKey = aiConfig.geminiApiKey || process.env.GEMINI_API_KEY;
+    const targetName = getLanguageDisplayName(langCode);
+
     if (!apiKey) {
-      return `Thank you for contacting AgriSeva-AI regarding "${query}". Our agricultural advisory system is currently processing your request. Please visit https://agriseva-ai.web.app or contact toll-free Kisan line 1800-180-1551.`;
+      const fallbackReplies: Record<string, string> = {
+        'te-IN': `AgriSeva-AI సంప్రదించినందుకు ధన్యవాదాలు. "${query}" కి సంబంధించి మా వ్యవసాయ సలహా వ్యవస్థ వివరాలను పరిశీలిస్తోంది. దయచేసి కిసాన్ కాల్ సెంటర్ టోల్-ఫ్రీ 1800-180-1551 ని సంప్రదించండి.`,
+        'hi-IN': `AgriSeva-AI से संपर्क करने के लिए धन्यवाद। "${query}" के संबंध में हमारा कृषि सलाहकार तंत्र विवरण तैयार कर रहा है। कृपया किसान कॉल सेंटर टोल-फ्री 1800-180-1551 पर संपर्क करें।`,
+        'ta-IN': `AgriSeva-AI-ஐ தொடர்பு கொண்டதற்கு நன்றி. "${query}" குறித்த ஆலோசனை தயாராகி வருகிறது. உழவர் அழைப்பு மையம் 1800-180-1551 என்ற எண்ணில் தொடர்பு கொள்ளலாம்.`,
+        'kn-IN': `AgriSeva-AI ಸಂಪರ್ಕಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು. "${query}" ಕುರಿತು ನಮ್ಮ ಕೃಷಿ ಸಲಹಾ ವ್ಯವಸ್ಥೆ ಪರಿಶೀಲಿಸುತ್ತಿದೆ. ಕಿಸಾನ್ ಕಾಲ್ ಸೆಂಟರ್ 1800-180-1551 ಸಂಪರ್ಕಿಸಿ.`,
+        'en-IN': `Thank you for contacting AgriSeva-AI regarding "${query}". Our agricultural advisory system is currently processing your request. Please visit https://agriseva-ai.web.app or contact toll-free Kisan line 1800-180-1551.`,
+        'mr-IN': `AgriSeva-AI शी संपर्क साधल्याबद्दल धन्यवाद. "${query}" बाबत आमची कृषी सल्लागार यंत्रणा माहिती तयार करत आहे. कृपया किसान कॉल सेंटर 1800-180-1551 वर संपर्क साधा.`,
+        'bn-IN': `AgriSeva-AI এর সাথে যোগাযোগের জন্য ধন্যবাদ। "${query}" সংক্রান্ত পরামর্শ তৈরি করা হচ্ছে। অনুগ্রহ করে কিষাণ কল সেন্টার 1800-180-1551 নম্বরে যোগাযোগ করুন।`,
+        'gu-IN': `AgriSeva-AI નો સંપર્ક કરવા બદલ આભાર. "${query}" સંબંધિત અમારી કૃષિ સલાહકાર સિસ્ટમ કાર્ય કરી રહી છે. કૃપા કરીને કિસાન કૉલ સેન્ટર 1800-180-1551 પર સંપર્ક કરો.`,
+        'pa-IN': `AgriSeva-AI ਨਾਲ ਸੰਪਰਕ ਕਰਨ ਲਈ ਧੰਨਵਾਦ। "${query}" ਬਾਰੇ ਸਾਡਾ ਖੇਤੀਬਾੜੀ ਸਲਾਹਕਾਰ ਸਿਸਟਮ ਜਾਂਚ ਕਰ ਰਿਹਾ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਕਿਸਾਨ ਕਾਲ ਸੈਂਟਰ 1800-180-1551 ’ਤੇ ਸੰਪਰਕ ਕਰੋ।`,
+        'ml-IN': `AgriSeva-AI യുമായി ബന്ധപ്പെട്ടതിന് നന്ദി. "${query}" സംബന്ധിച്ച നിർദ്ദേശങ്ങൾ തയ്യാറാക്കുന്നു. കിസാൻ കോൾ സെന്റർ 1800-180-1551 ൽ ബന്ധപ്പെടുക.`,
+        'od-IN': `AgriSeva-AI ସହିତ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ। "${query}" ପାଇଁ କୃଷି ପରାମର୍ଶ ପ୍ରସ୍ତୁତ ହେଉଛି। କିଷାନ କଲ୍ ସେଣ୍ଟର 1800-180-1551 ରେ ଯୋଗାଯୋଗ କରନ୍ତୁ।`,
+      };
+      return fallbackReplies[langCode] || fallbackReplies['en-IN'];
     }
 
-    const model = aiConfig.geminiModel || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const primaryModel = aiConfig.geminiModel || process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+    const fallbackModel = aiConfig.geminiFallbackModel || 'gemini-3.6-flash';
 
     const systemInstruction = `You are AgriSeva-AI, India's National Multilingual Agricultural Advisory Voice & WhatsApp Assistant.
-Provide clear, empathetic, farmer-friendly, scientifically accurate guidance on crop health, pest control, weather, soil nutrients, or mandi market intelligence.
+CRITICAL MANDATORY INSTRUCTION:
+The farmer's selected response language is ${targetName} (${langCode}).
+Regardless of whether the farmer typed in English, Hinglish, or any other language, and regardless of any previous chat history language, you MUST generate your entire response exclusively and fluently in ${targetName} (${langCode}).
 Follow CIBRC guidelines for any pesticide or chemical recommendations. Always mention organic and cultural practices first.
 Keep replies concise, structured, and easy to read on WhatsApp with bullet points and emojis.`;
 
@@ -1503,29 +1619,45 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
 
     contents.push({
       role: 'user',
-      parts: [{ text: `${systemInstruction}\n\nFarmer WhatsApp Query: "${query}"` }],
+      parts: [{ text: `[DIRECTIVE: Generate entire response exclusively in ${targetName} (${langCode})]\n\nFarmer WhatsApp Query: "${query}"` }],
     });
 
-    try {
-      const response = await axios.post(
-        url,
-        {
-          contents,
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 750,
-          },
-        },
-        { timeout: 20000 },
-      );
+    const payload = {
+      system_instruction: {
+        parts: [{ text: systemInstruction }],
+      },
+      contents,
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 750,
+      },
+    };
 
-      const candidate = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if (candidate) return candidate;
-    } catch (err: any) {
-      console.warn('[WhatsAppService] Direct generation error:', err.message);
+    for (const modelToTry of [primaryModel, fallbackModel]) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelToTry}:generateContent?key=${apiKey}`;
+        const response = await axios.post(url, payload, { timeout: 20000 });
+        const candidate = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (candidate) return candidate;
+      } catch (err: any) {
+        console.warn(`[WhatsAppService] Direct generation error with model ${modelToTry}:`, err.message);
+      }
     }
 
-    return `Thank you for contacting AgriSeva-AI regarding "${query}". Our agricultural advisory system is currently processing your request. Please visit https://agriseva-ai.web.app or contact toll-free Kisan line 1800-180-1551.`;
+    const fallbackReplies: Record<string, string> = {
+      'te-IN': `AgriSeva-AI సంప్రదించినందుకు ధన్యవాదాలు. "${query}" కి సంబంధించి మా వ్యవసాయ సలహా వ్యవస్థ వివరాలను పరిశీలిస్తోంది. దయచేసి కిసాన్ కాల్ సెంటర్ టోల్-ఫ్రీ 1800-180-1551 ని సంప్రదించండి.`,
+      'hi-IN': `AgriSeva-AI से संपर्क करने के लिए धन्यवाद। "${query}" के संबंध में हमारा कृषि सलाहकार तंत्र विवरण तैयार कर रहा है। कृपया किसान कॉल सेंटर टोल-फ्री 1800-180-1551 पर संपर्क करें।`,
+      'ta-IN': `AgriSeva-AI-ஐ தொடர்பு கொண்டதற்கு நன்றி. "${query}" குறித்த ஆலோசனை தயாராகி வருகிறது. உழவர் அழைப்பு மையம் 1800-180-1551 என்ற எண்ணில் தொடர்பு கொள்ளலாம்.`,
+      'kn-IN': `AgriSeva-AI ಸಂಪರ್ಕಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು. "${query}" ಕುರಿತು ನಮ್ಮ ಕೃಷಿ ಸಲಹಾ ವ್ಯವಸ್ಥೆ ಪರಿಶೀಲಿಸುತ್ತಿದೆ. ಕಿಸಾನ್ ಕಾಲ್ ಸೆಂಟರ್ 1800-180-1551 ಸಂಪರ್ಕಿಸಿ.`,
+      'en-IN': `Thank you for contacting AgriSeva-AI regarding "${query}". Our agricultural advisory system is currently processing your request. Please visit https://agriseva-ai.web.app or contact toll-free Kisan line 1800-180-1551.`,
+      'mr-IN': `AgriSeva-AI शी संपर्क साधल्याबद्दल धन्यवाद. "${query}" बाबत आमची कृषी सल्लागार यंत्रणा माहिती तयार करत आहे. कृपया किसान कॉल सेंटर 1800-180-1551 वर संपर्क साधा.`,
+      'bn-IN': `AgriSeva-AI এর সাথে যোগাযোগের জন্য ধন্যবাদ। "${query}" সংক্রান্ত পরামর্শ তৈরি করা হচ্ছে। অনুগ্রহ করে কিষাণ কল সেন্টার 1800-180-1551 নম্বরে যোগাযোগ করুন।`,
+      'gu-IN': `AgriSeva-AI નો સંપર્ક કરવા બદલ આભાર. "${query}" સંબંધિત અમારી કૃષિ સલાહકાર સિસ્ટમ કાર્ય કરી રહી છે. કૃપા કરીને કિસાન કૉલ સેન્ટર 1800-180-1551 પર સંપર્ક કરો.`,
+      'pa-IN': `AgriSeva-AI ਨਾਲ ਸੰਪਰਕ ਕਰਨ ਲਈ ਧੰਨਵਾਦ। "${query}" ਬਾਰੇ ਸਾਡਾ ਖੇਤੀਬਾੜੀ ਸਲਾਹਕਾਰ ਸਿਸਟਮ ਜਾਂਚ ਕਰ ਰਿਹਾ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਕਿਸਾਨ ਕਾਲ ਸੈਂਟਰ 1800-180-1551 ’ਤੇ ਸੰਪਰਕ ਕਰੋ।`,
+      'ml-IN': `AgriSeva-AI യുമായി ബന്ധപ്പെട്ടതിന് നന്ദി. "${query}" സംബന്ധിച്ച നിർദ്ദേശങ്ങൾ തയ്യാറാക്കുന്നു. കിസാൻ കോൾ സെന്റർ 1800-180-1551 ൽ ബന്ധപ്പെടുക.`,
+      'od-IN': `AgriSeva-AI ସହିତ ଯୋଗାଯୋଗ କରିଥିବାରୁ ଧନ୍ୟବାଦ। "${query}" ପାଇଁ କୃଷି ପରାମର୍ଶ ପ୍ରସ୍ତୁତ ହେଉଛି। କିଷାନ କଲ୍ ସେଣ୍ଟର 1800-180-1551 ରେ ଯୋଗାଯୋଗ କରନ୍ତୁ।`,
+    };
+    return fallbackReplies[langCode] || fallbackReplies['en-IN'];
   }
 
   /**
@@ -1650,28 +1782,48 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
       norm === 'மொழி' ||
       norm === 'ಭಾಷೆ';
 
-    // Requirement: Standalone "1" or "language" triggers language selection reopen without agricultural answer
-    // Only applies if the user has ALREADY selected a language. If not yet selected, '1' maps to option 1 (Telugu).
-    if (session.languageSelectedExplicitly) {
-      if (norm === '1' || isLangCommand) {
-        console.log(`[WhatsAppService] User ${from} requested language selection menu via shortcut "${norm}"`);
-        await this.sendLanguageSelectionMenu(from, targetPhoneId, 1);
-        return;
-      }
+    // Requirement: Standalone "1" or "language" triggers language selection menu
+    // If user is NOT awaiting language selection, typing "1" or a language command opens the menu.
+    if ((norm === '1' || isLangCommand) && !session.awaitingLanguageSelection) {
+      console.log(`[WhatsAppService:Diag] User ${from} requested language selection menu via shortcut "${norm}". Setting awaitingLanguageSelection = true`);
+      session.awaitingLanguageSelection = true;
+      session.updatedAt = new Date();
+      await sessionsCol.updateOne({ phoneNumber: canonicalPhone }, { $set: session }, { upsert: true });
+      await this.sendLanguageSelectionMenu(from, targetPhoneId, 1);
+      return;
     }
 
     // Check if incoming input is an interactive or typed language choice
     const langCodeFromInteractive = interactiveId ? matchLanguageChoice(interactiveId) : null;
     const isMediaOnly = (extra?.msgType === 'audio' || extra?.msgType === 'voice' || extra?.msgType === 'image') && !text;
-    const langCodeFromTyped = (!isMediaOnly && !langCodeFromInteractive && !session.languageSelectedExplicitly)
-      ? matchLanguageChoice(text || '')
-      : null;
+
+    let langCodeFromTyped: string | null = null;
+    if (!isMediaOnly && !langCodeFromInteractive && text) {
+      if (session.awaitingLanguageSelection) {
+        // Farmer is actively choosing from the language menu (supports digits "1"-"10", language names, native scripts)
+        // BUT if the text is clearly an agricultural query (e.g. "1 kg urea fertilizer for paddy"),
+        // it is an agricultural question, NOT a language choice! Cancel awaiting selection.
+        if (isLikelyAgriculturalQuery(text) && !isExplicitLanguageNameChoice(text) && !/^\d{1,2}$/.test(text.trim())) {
+          session.awaitingLanguageSelection = false;
+        } else {
+          langCodeFromTyped = matchLanguageChoice(text);
+        }
+      } else if (isExplicitLanguageNameChoice(text)) {
+        // Farmer typed an explicit language name e.g. "Telugu", "Hindi", "change to tamil" at any point
+        langCodeFromTyped = matchLanguageChoice(text);
+      } else if (!session.languageSelectedExplicitly) {
+        // First-time incoming message before explicit selection
+        langCodeFromTyped = matchLanguageChoice(text);
+      }
+    }
+
     const resolvedLangCode = langCodeFromInteractive || langCodeFromTyped;
 
     if (resolvedLangCode) {
       const chosenCode = resolvedLangCode;
       session.preferredLanguage = chosenCode;
       session.languageSelectedExplicitly = true;
+      session.awaitingLanguageSelection = false;
       session.updatedAt = new Date();
 
       const pending = session.pendingFirstMessage;
@@ -1682,6 +1834,25 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
         { $set: session },
         { upsert: true },
       );
+
+      // Requirement 8: Synchronize preferredLanguage with MongoDB users collection
+      try {
+        const usersCol = await this.mongoDatabase.getCollection<IUser>('users');
+        if (session.userId) {
+          await usersCol.updateOne(
+            { _id: new ObjectId(session.userId.toString()) },
+            { $set: { 'farmerProfile.preferredLanguage': chosenCode, updatedAt: new Date() } },
+          );
+        } else {
+          await usersCol.updateOne(
+            { mobile: canonicalPhone },
+            { $set: { 'farmerProfile.preferredLanguage': chosenCode, updatedAt: new Date() } },
+          );
+        }
+        console.log(`[WhatsAppService:Diag] Synchronized preferredLanguage=${chosenCode} to users collection for ${canonicalPhone}`);
+      } catch (syncErr: any) {
+        console.warn('[WhatsAppService] Could not sync preferredLanguage to users collection:', syncErr.message);
+      }
 
       console.log(`[WhatsAppService] User ${from} selected language: ${chosenCode}`);
 
@@ -1749,6 +1920,7 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
         caption: extra?.image?.caption,
         timestamp: new Date(),
       };
+      session.awaitingLanguageSelection = true;
       await sessionsCol.updateOne(
         { phoneNumber: canonicalPhone },
         { $set: session },
@@ -1758,6 +1930,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
       console.log(`[WhatsAppService] Preserved first message from new user ${from}. Sending language selector.`);
       await this.sendLanguageSelectionMenu(from, targetPhoneId, 1);
       return;
+    }
+
+    // If farmer was awaiting selection but sent an agricultural question instead of selecting, clear awaiting flag
+    if (session.awaitingLanguageSelection) {
+      session.awaitingLanguageSelection = false;
+      await sessionsCol.updateOne({ phoneNumber: canonicalPhone }, { $set: { awaitingLanguageSelection: false } });
     }
 
     const currentLang = session.preferredLanguage || 'en-IN';
@@ -1782,6 +1960,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
           'hi-IN': '⚠️ *चेतावनी (Safety Warning)*\n\nकृपया AgriSeva-AI पर अनुचित, अपमानजनक या आपत्तिजनक भाषा का प्रयोग न करें। यह सेवा केवल किसान भाइयों की कृषि सहायता हेतु है।\n\nदोबारा उल्लंघन करने पर आपका नंबर ब्लॉक कर दिया जाएगा।',
           'ta-IN': '⚠️ *எச்சரிக்கை (Safety Warning)*\n\nதயவுசெய்து AgriSeva-AI-ல் தகாத அல்லது தவறான சொற்களைப் பயன்படுத்த வேண்டாம். இது விவசாயிகளின் சேவைக்காக மட்டுமே.\n\nமீண்டும் விதிகளை மீறினால் உங்கள் எண் முடக்கப்படும்.',
           'kn-IN': '⚠️ *ಎಚ್ಚರಿಕೆ (Safety Warning)*\n\nದಯವಿಟ್ಟು AgriSeva-AI ನಲ್ಲಿ ಅನುಚಿತ ಅಥವಾ ನಿಂದನೀಯ ಭಾಷೆಯನ್ನು ಬಳಸಬೇಡಿ. ಇದು ಕೇವಲ ರೈತರ ಕೃಷಿ ಸೇವೆಗಾಗಿ ಮಾತ್ರ.\n\nಮತ್ತೊಮ್ಮೆ ನಿಯಮ ಉಲ್ಲಂಘಿಸಿದರೆ ನಿಮ್ಮ ಸಂಖ್ಯೆಯನ್ನು ನಿರ್ಬಂಧಿಸಲಾಗುವುದು.',
+          'mr-IN': '⚠️ *चेतावणी (Safety Warning)*\n\nकृपया AgriSeva-AI वर अयोग्य किंवा अपमानास्पद भाषा वापरू नका. ही सेवा केवळ शेतकऱ्यांच्या कृषी सहाय्यासाठी आहे.\n\nपुन्हा नियम मोडल्यास आपला नंबर ब्लॉक केला जाईल.',
+          'bn-IN': '⚠️ *সতর্কবার্তা (Safety Warning)*\n\nঅনুগ্রহ করে AgriSeva-AI-তে অনুপযুক্ত বা অবমাননাকর ভাষা ব্যবহার করবেন না। এটি শুধুমাত্র কৃষকদের কৃষি সহায়তার জন্য তৈরি।\n\nপুনরায় নিয়ম লঙ্ঘন করলে আপনার নম্বর ব্লক করা হবে।',
+          'gu-IN': '⚠️ *ચેતવણી (Safety Warning)*\n\nકૃપા કરીને AgriSeva-AI પર અયોગ્ય અથવા અપમાનજનક ભાષાનો ઉપયોગ કરશો નહીં. આ સેવા માત્ર ખેડૂતોની કૃષિ સહાય માટે છે.\n\nફરીથી નિયમોનું ઉલ્લંઘન કરવાથી તમારો નંબર બ્લૉક કરવામાં આવશે.',
+          'pa-IN': '⚠️ *ਚੇਤਾਵਨੀ (Safety Warning)*\n\nਕਿਰਪਾ ਕਰਕੇ AgriSeva-AI ’ਤੇ ਅਣਉਚਿਤ ਜਾਂ ਇਤਰਾਜ਼ਯੋਗ ਭਾਸ਼ਾ ਦੀ ਵਰਤੋਂ ਨਾ ਕਰੋ। ਇਹ ਸੇਵਾ ਸਿਰਫ਼ ਕਿਸਾਨਾਂ ਦੀ ਖੇਤੀਬਾੜੀ ਸਹਾਇਤਾ ਲਈ ਹੈ।\n\nਦੁਬਾਰਾ ਉਲੰਘਣਾ ਕਰਨ ’ਤੇ ਤੁਹਾਡਾ ਨੰਬਰ ਬਲਾਕ ਕਰ ਦਿੱਤਾ ਜਾਵੇਗਾ।',
+          'ml-IN': '⚠️ *മുന്നറിയിപ്പ് (Safety Warning)*\n\nദയവായി AgriSeva-AI-ൽ അനുചിതമായ അല്ലെങ്കിൽ അപകീർത്തികരമായ ഭാഷ ഉപയോഗിക്കരുത്. ഇത് കർഷകരുടെ കാർഷിക സഹായത്തിന് മാത്രമുള്ളതാണ്.\n\nനിയമം വീണ്ടും ലംഘിച്ചാൽ നിങ്ങളുടെ നമ്പർ ബ്ലോക്ക് ചെയ്യപ്പെടും.',
+          'od-IN': '⚠️ *ଚେତାବନୀ (Safety Warning)*\n\nଦୟାକରି AgriSeva-AI ରେ ଅନୁପଯୁକ୍ତ ବା ଅପମାନଜନକ ଭାଷା ବ୍ୟବହାର କରନ୍ତୁ ନାହିଁ। ଏହା କେବଳ କୃଷକମାନଙ୍କ କୃଷି ସହାୟତା ପାଇଁ ଉଦ୍ଦିଷ୍ଟ।\n\nପୁଣି ନିୟମ ଉଲ୍ଲଂଘନ କଲେ ଆପଣଙ୍କ ନମ୍ବର ବ୍ଲକ କରାଯିବ।',
           'en-IN': '⚠️ *Safety Warning*\n\nPlease refrain from using inappropriate, abusive, or illegal language. AgriSeva-AI is dedicated solely to agricultural and farming assistance.\n\nFurther violations will result in your number being blocked.',
         };
         const warningMsg = warningMessages[currentLang] || warningMessages['en-IN'];
@@ -1814,6 +1998,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
           'hi-IN': '🚫 *नंबर ब्लॉक कर दिया गया है (Account Blocked)*\n\nबार-बार नियमों का उल्लंघन करने के कारण आपका नंबर AgriSeva-AI पर स्थायी रूप से ब्लॉक कर दिया गया है।',
           'ta-IN': '🚫 *எண் முடக்கப்பட்டது (Account Blocked)*\n\nவிதிமுறைகளை தொடர்ந்து மீறியதால் உங்கள் எண் AgriSeva-AI சேவைகளில் முடக்கப்பட்டுள்ளது.',
           'kn-IN': '🚫 *ಸಂಖ್ಯೆಯನ್ನು ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ (Account Blocked)*\n\nನಿಯಮಗಳನ್ನು ಪದೇ ಪದೇ ಉಲ್ಲಂಘಿಸಿದ್ದಕ್ಕಾಗಿ ನಿಮ್ಮ ಸಂಖ್ಯೆಯನ್ನು AgriSeva-AI ನಲ್ಲಿ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ.',
+          'mr-IN': '🚫 *खाते ब्लॉक केले गेले (Account Blocked)*\n\nवारंवार नियमांचे उल्लंघन केल्यामुळे आपला मोबाईल नंबर AgriSeva-AI वर कायमस्वरूपी ब्लॉक करण्यात आला आहे.',
+          'bn-IN': '🚫 *অ্যাকাউন্ট ব্লক করা হয়েছে (Account Blocked)*\n\nবারংবার নিয়ম লঙ্ঘনের কারণে আপনার নম্বর AgriSeva-AI সেবায় স্থায়ীভাবে ব্লক করা হয়েছে।',
+          'gu-IN': '🚫 *એકાઉન્ટ બ્લૉક કરવામાં આવ્યું (Account Blocked)*\n\nવારંવાર નિયમોના ઉલ્લંઘનને કારણે તમારો નંબર AgriSeva-AI પર કાયમ માટે બ્લૉક કરવામાં આવ્યો છે.',
+          'pa-IN': '🚫 *ਨੰਬਰ ਬਲਾਕ ਕੀਤਾ ਗਿਆ (Account Blocked)*\n\nਵਾਰ-ਵਾਰ ਨਿਯਮਾਂ ਦੀ ਉਲੰਘਣਾ ਕਰਨ ਕਰਕੇ ਤੁਹਾਡਾ ਨੰਬਰ AgriSeva-AI ’ਤੇ ਪੱਕੇ ਤੌਰ ’ਤੇ ਬਲਾਕ ਕਰ ਦਿੱਤਾ ਗਿਆ ਹੈ।',
+          'ml-IN': '🚫 *അക്കൗണ്ട് ബ്ലോക്ക് ചെയ്തു (Account Blocked)*\n\nതുടർച്ചയായ നിയമലംഘനം കാരണം നിങ്ങളുടെ നമ്പർ AgriSeva-AI സേവനങ്ങളിൽ സ്ഥിരമായി ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു.',
+          'od-IN': '🚫 *ଆକାଉଣ୍ଟ ବ୍ଲକ କରାଗଲା (Account Blocked)*\n\nବାରମ୍ବାର ନିୟମ ଉଲ୍ଲଂଘନ ହେତୁ ଆପଣଙ୍କ ମୋବାଇଲ ନମ୍ବର AgriSeva-AI ସେବାରୁ ସ୍ଥାୟୀ ଭାବେ ବ୍ଲକ କରାଯାଇଛି।',
           'en-IN': '🚫 *Account Blocked*\n\nDue to repeated violations of community safety guidelines, your number has been blocked from accessing AgriSeva-AI services.',
         };
         const blockMsg = blockedNotices[currentLang] || blockedNotices['en-IN'];
@@ -1840,7 +2030,13 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
       'te-IN': '🌐 భాష మార్చడానికి "1" లేదా "language" అని పంపండి',
       'hi-IN': '🌐 भाषा बदलने के लिए "1" या "language" लिखें',
       'ta-IN': '🌐 மொழியை மாற்ற "1" அல்லது "language" என தட்டச்சு செய்யவும்',
-      'kn-IN': '🌐 ಭಾಷೆ ಬದಲಾಯಿಸಲು "1" ಅಥವಾ "language" ಎಂದು ಕಳುಹಿಸಿ',
+      'kn-IN': '🌐 ಭಾಷೆ ಬದಲಾಯಿಸಲು "1" లేదా "language" ಎಂದು ಕಳುಹಿಸಿ',
+      'mr-IN': '🌐 भाषा बदलण्यासाठी "1" किंवा "language" पाठवा',
+      'bn-IN': '🌐 भाषा परिवर्तन করতে "1" বা "language" লিখুন',
+      'gu-IN': '🌐 ભાષા બદલવા માટે "1" અથવા "language" લખો',
+      'pa-IN': '🌐 ਭਾਸ਼ਾ ਬਦਲਣ ਲਈ "1" ਜਾਂ "language" ਲਿਖੋ',
+      'ml-IN': '🌐 ഭാഷ മാറ്റാൻ "1" അല്ലെങ്കിൽ "language" എന്ന് അയക്കുക',
+      'od-IN': '🌐 ଭାଷା ବଦଳାଇବା ପାଇଁ "1" କିମ୍ବା "language" ଲେଖନ୍ତୁ',
       'en-IN': '🌐 Type "1" or "language" anytime to change language',
     };
 
@@ -1853,7 +2049,13 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
             'te-IN': '🌾 *నమస్తే! AgriSeva-AI కి స్వాగతం.*\n\nమీ పంటల ఆరోగ్యం, ఎరువులు, తెగుళ్ల నివారణ లేదా మార్కెట్ ధరల గురించి ఏవైనా ప్రశ్నలు అడగండి. మేము రైతులకు సహాయం చేయడానికి సిద్ధంగా ఉన్నాము!\n\n_టెక్స్ట్ మెసేజ్, వాయిస్ నోట్ లేదా పంట ఫోటో పంపవచ్చు._',
             'hi-IN': '🌾 *नमस्ते! AgriSeva-AI में आपका स्वागत है।*\n\nअपनी फसल, खाद-उर्वरक, कीट-रोग या मंडी भाव से जुड़ा कोई भी प्रश्न पूछें। हम किसान भाइयों की सहायता के लिए तैयार हैं!\n\n_टेक्स्ट मैसेज, वॉइस नोट या फसल की फोटो भेज सकते हैं।_',
             'ta-IN': '🌾 *வணக்கம்! AgriSeva-AI-க்கு நல்வரவு.*\n\nபயிர் பாதுகாப்பு, உரம், பூச்சி மேலாண்மை அல்லது சந்தை விலைகள் குறித்து ஏதேனும் கேள்விகளைக் கேளுங்கள். உதவ நாங்கள் தயாராக உள்ளோம்!\n\n_உரை, குரல் பதிவு அல்லது பயிர் புகைப்படம் அனுப்பலாம்._',
-            'kn-IN': '🌾 *ನಮಸ್ಕಾರ! AgriSeva-AI ಗೆ ಸ್ವಾಗತ.*\n\nಬೆಳೆ ರೋಗಗಳು, ರಸಗೊಬ್ಬರಗಳು ಅಥವಾ ಮಂಡಿ ದರಗಳ ಬಗ್ಗೆ ಯಾವುದೇ ಪ್ರಶ್ನೆಗಳನ್ನು ಕೇಳಿ. ನಾವು ರೈತರಿಗೆ ಸಹಾಯ ಮಾಡಲು ಸಿದ್ಧರಿದ್ದೇವೆ!\n\n_ಪಠ್ಯ, ಧ್ವನಿ ಸಂದೇಶ ಅಥವಾ ಬೆಳೆಯ ಫೋಟೋ ಕಳುಹಿಸಬಹುದು._',
+            'kn-IN': '🌾 *ನಮಸ್ಕಾರ! AgriSeva-AI ಗೆ ಸ್ವಾಗತ.*\n\nಬೆಳೆ ರೋಗಗಳು, ರಸಗೊಬ್ಬರಗಳು ಅಥವಾ ಮಂಡಿ ದರಗಳ ಬಗ್ಗೆ ಯಾವುದೇ ಪ್ರಶ್ನೆಗಳನ್ನು ಕೇಳಿ. ನಾವು ರೈತರಿಗೆ ಸಹಾಯ ಮಾಡಲು ಸಿದ್ಧರಿದ್ದೇವೆ!\n\n_ಪಠ್ಯ, ಧ್ವನಿ ಸಂದೇಶ లేదా ಬೆಳೆಯ ಫೋಟೋ ಕಳುಹಿಸಬಹುದು._',
+            'mr-IN': '🌾 *नमस्कार! AgriSeva-AI मध्ये आपले स्वागत आहे.*\n\nआपली पिके, खते, कीड नियंत्रण किंवा बाजारभावाविषयी कोणताही प्रश्न विचारा. आम्ही शेतकऱ्यांच्या मदतीसाठी सज्ज आहोत!\n\n_मजकूर संदेश, व्हॉइस नोट किंवा पिकाचा फोटो पाठवू शकता._',
+            'bn-IN': '🌾 *নমস্কার! AgriSeva-AI-তে স্বাগতম।*\n\nআপনার ফসল, সার, কীট ও রোগ বা বাজার দর সংক্রান্ত যেকোনো প্রশ্ন জিজ্ঞাসা করুন। আমরা কৃষকদের সহায়তায় প্রস্তুত!\n\n_টেক্সট মেসেজ, ভয়েস নোট বা ফসলের ছবি পাঠাতে পারেন।_',
+            'gu-IN': '🌾 *નમસ્તે! AgriSeva-AI માં આપનું સ્વાગત છે.*\n\nતમારા પાક, ખાતર, જીવાત નિયંત્રણ અથવા બજાર ભાવ વિશે કોઈપણ પ્રશ્ન પૂછો. અમે ખેડૂતોની મદદ માટે તૈયાર છીએ!\n\n_ટેક્સ્ટ સંદેશ, વૉઇસ નોટ અથવા પાકનો ફોટો મોકલી શકો છો._',
+            'pa-IN': '🌾 *ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ! AgriSeva-AI ਵਿੱਚ ਤੁਹਾਡਾ ਸੁਆਗਤ ਹੈ।*\n\nਆਪਣੀ ਫਸਲ, ਖਾਦ, ਕੀੜੇ-ਮਕੌੜੇ ਜਾਂ ਮੰਡੀ ਭਾਅ ਬਾਰੇ ਕੋਈ ਵੀ ਸਵਾਲ ਪੁੱਛੋ। ਅਸੀਂ ਕਿਸਾਨ ਭਰਾਵਾਂ ਦੀ ਮਦਦ ਲਈ ਤਿਆਰ ਹਾਂ!\n\n_ਟੈਕਸਟ ਸੁਨੇਹਾ, ਵੌਇਸ ਨੋਟ ਜਾਂ ਫਸਲ ਦੀ ਫੋਟੋ ਭੇਜ ਸਕਦੇ ਹੋ।_',
+            'ml-IN': '🌾 *നമസ്കാരം! AgriSeva-AI-ലേക്ക് സ്വാഗതം.*\n\nവിള രോഗങ്ങൾ, വളങ്ങൾ, കീടനിയന്ത്രണം അല്ലെങ്കിൽ വിപണി വിലകൾ എന്നിവയെക്കുറിച്ച് എന്തും ചോദിക്കാം. കർഷകരെ സഹായിക്കാൻ ഞങ്ങൾ തയ്യാറാണ്!\n\n_ടെക്സ്റ്റ് സന്ദേശം, വോയ്‌സ് നോട്ട് അല്ലെങ്കിൽ വിളയുടെ ഫോട്ടോ അയക്കാം._',
+            'od-IN': '🌾 *ନମସ୍କାର! AgriSeva-AI କୁ ସ୍ୱାଗତ।*\n\nଆପଣଙ୍କ ଫସଲ, ସାର, କୀଟ ନିୟନ୍ତ୍ରଣ କିମ୍ବା ବଜାର ଦର ବିଷୟରେ ଯେକୌଣସି ପ୍ରଶ୍ନ ପଚାରନ୍ତୁ। ଆମେ କୃଷକମାନଙ୍କ ସାହାଯ୍ୟ ପାଇଁ ପ୍ରସ୍ତୁତ!\n\n_ଟେକ୍ସଟ୍ ମେସେଜ୍, ଭଏସ୍ ନୋଟ୍ କିମ୍ବା ଫସଲର ଫଟୋ ପଠାଇ ପାରିବେ।_',
             'en-IN': '🌾 *Hello! Welcome to AgriSeva-AI.*\n\nPlease ask any question about crop health, pest control, fertilizers, or mandi prices. We are here to assist you!\n\n_You can send a text message, voice note, or crop photo._',
           };
           reply = greetingsMap[currentLang] || greetingsMap['en-IN'];
@@ -1863,6 +2065,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
             'hi-IN': '🌾 *धन्यवाद!* किसान भाइयों की सेवा करना हमारा सौभाग्य है। कोई भी समस्या हो तो कभी भी पूछें!',
             'ta-IN': '🌾 *மிக்க நன்றி!* விவசாயிகளுக்கு உதவுவது எங்கள் கடமை. சந்தேகங்கள் இருந்தால் எப்போது வேண்டுமானாலும் கேளுங்கள்!',
             'kn-IN': '🌾 *ಧನ್ಯವಾದಗಳು!* ಕೃಷಿ ಕಾರ್ಯದಲ್ಲಿ ನೆರವಾಗುವುದು ನಮ್ಮ ಸಂತೋಷ. ಯಾವುದೇ ಸಂದೇಹವಿದ್ದರೂ ಯಾವಾಗಲೂ ಕೇಳಿ!',
+            'mr-IN': '🌾 *धन्यवाद!* शेतकऱ्यांची सेवा करण्यात आम्हाला आनंद आहे. शंका असल्यास कधीही विचारा!',
+            'bn-IN': '🌾 *ধন্যবাদ!* কৃষকদের সেবা করতে পেরে আমরা আনন্দিত। কোনো সন্দেহ থাকলে নির্দ্বিধায় জিজ্ঞাসা করুন!',
+            'gu-IN': '🌾 *ધન્યવાદ!* ખેડૂત ભાઈઓની સેવા કરવી એ અમારું સૌભાગ્ય છે. કોઈ પણ પ્રશ્ન હોય તો ગમે ત્યારે પૂછો!',
+            'pa-IN': '🌾 *ਧੰਨਵਾਦ!* ਕਿਸਾਨ ਵੀਰਾਂ ਦੀ ਸੇਵਾ ਕਰਨਾ ਸਾਡਾ ਸੁਭਾਗ ਹੈ। ਕੋਈ ਵੀ ਸ਼ੱਕ ਹੋਵੇ ਤਾਂ ਕਦੇ ਵੀ ਪੁੱਛੋ!',
+            'ml-IN': '🌾 *നന്ദി!* കർഷകരെ സഹായിക്കുന്നതിൽ ഞങ്ങൾക്ക് സന്തോഷമുണ്ട്. സംശയങ്ങൾ ഉണ്ടെങ്കിൽ എപ്പോൾ വേണമെങ്കിലും ചോദിക്കാം!',
+            'od-IN': '🌾 *ଧନ୍ୟବାଦ!* କୃଷକମାନଙ୍କ ସେବା କରିବା ଆମର ଆନନ୍ଦ। କୌଣସି ସନ୍ଦେହ ଥିଲେ ଯେକୌଣସି ସମୟରେ ପଚାରନ୍ତୁ!',
             'en-IN': '🌾 *You\'re welcome!* Happy to assist with your farming needs. Feel free to ask anytime!',
           };
           reply = gratitudeMap[currentLang] || gratitudeMap['en-IN'];
@@ -1872,6 +2080,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
             'hi-IN': '👍 *जी बिल्कुल!* किसी भी कृषि समस्या या जानकारी के लिए कभी भी पूछ सकते हैं।',
             'ta-IN': '👍 *சரிங்க!* விவசாயத் தேவைகளுக்கு எப்போது வேண்டுமானாலும் கேட்கலாம்.',
             'kn-IN': '👍 *ಸರಿ!* ಕೃಷಿ ಕುರಿತು ಯಾವುದೇ ಸಹಾಯ ಬೇಕಿದ್ದರೂ ಕೇಳಿ.',
+            'mr-IN': '👍 *नक्कीच!* आपल्या शेती कामासाठी शुभेच्छा. कोणतीही अडचण असल्यास नक्की विचारा.',
+            'bn-IN': '👍 *অবশ্যই!* কৃষিকাজে আপনার সাফল্যের কামনা করি। কোনো তথ্য প্রয়োজন হলে জানান।',
+            'gu-IN': '👍 *ચોક્કસ!* તમારા ખેતીકામ માટે શુભેચ્છાઓ. કોઈ પણ મદદ જોઈતી હોય તો પૂછો.',
+            'pa-IN': '👍 *ਜ਼ਰੂਰ!* ਤੁਹਾਡੇ ਖੇਤੀਬਾੜੀ ਕੰਮ ਲਈ ਸ਼ੁਭਕਾਮਨਾਵਾਂ। ਕੋਈ ਵੀ ਲੋੜ ਹੋਵੇ ਤਾਂ ਪੁੱਛੋ।',
+            'ml-IN': '👍 *തീർച്ചയായും!* നിങ്ങളുടെ കാർഷിക വിജയത്തിന് ആശംസകൾ. എന്തെങ്കിലും സംശയമുണ്ടെങ്കിൽ ചോദിക്കുക.',
+            'od-IN': '👍 *ନିଶ୍ଚୟ!* ଆପଣଙ୍କ କୃଷି କାର୍ଯ୍ୟ ପାଇଁ ଶୁଭକାମନା। କିଛି ଜାଣିବାକୁ ଥିଲେ ପଚାରନ୍ତୁ।',
             'en-IN': '👍 *Understood!* Wishing you great farming success. Feel free to ask if you have any questions.',
           };
           reply = ackMap[currentLang] || ackMap['en-IN'];
@@ -1881,6 +2095,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
             'hi-IN': '🌾 *मैं AgriSeva-AI डिजिटल कृषि सहायक हूँ।*\n\nकिसानों को फसल रोग निदान, कीट नियंत्रण, उर्वरक प्रबंधन और मंडी भाव पर सटीक सलाह देना मेरा कार्य है।\n\nआप अपनी समस्या टेक्स्ट, वॉइस संदेश या फसल की फोटो भेजकर पूछ सकते हैं!',
             'ta-IN': '🌾 *நான் AgriSeva-AI டிஜிட்டல் விவசாய உதவியாளர்.*\n\nவிவசாயிகளுக்கு பயிர் நோய், பூச்சி மேலாண்மை, உரம் மற்றும் சந்தை விலை குறித்த ஆலோசனைகளை வழங்குவதே என் பணி.\n\nநீங்கள் உரை, குரல் பதிவு அல்லது பயிர் புகைப்படம் அனுப்பலாம்!',
             'kn-IN': '🌾 *ನಾನು AgriSeva-AI ಡಿಜಿಟಲ್ ಕೃಷಿ ಸಹಾಯಕ.*\n\nರೈತರಿಗೆ ಬೆಳೆ ರೋಗ, ಕೀಟ ನಿಯಂತ್ರಣ, ರಸಗೊಬ್ಬರ ಮತ್ತು ಮಂಡಿ ದರಗಳ ಕುರಿತು ನಿಖರ ಸಲಹೆ ನೀಡುವುದು ನನ್ನ ಗುರಿ.\n\nನೀವು ಪಠ್ಯ, ಧ್ವನಿ ಅಥವಾ ಬೆಳೆಯ ಫೋಟೋ ಕಳುಹಿಸಬಹುದು!',
+            'mr-IN': '🌾 *मी AgriSeva-AI डिजिटल कृषी सहाय्यक आहे.*\n\nशेतकऱ्यांना पीक रोगनिदान, कीड व्यवस्थापन, खते आणि बाजारभावावर अचूक सल्ला देणे हे माझे काम आहे.\n\nआपण मजकूर, व्हॉइस संदेश किंवा पिकाचा फोटो पाठवून विचारू शकता!',
+            'bn-IN': '🌾 *আমি AgriSeva-AI ডিজিটাল কৃষি সহায়ক।*\n\nকৃষকদের ফসলের রোগ নির্ণয়, কীট ব্যবস্থাপনা, সার ও বাজার দরের সঠিক পরামর্শ দেওয়াই আমার কাজ।\n\nআপনি টেক্সট, ভয়েস বা ফসলের ছবি পাঠিয়ে জিজ্ঞাসা করতে পারেন!',
+            'gu-IN': '🌾 *હું AgriSeva-AI ડિજિટલ કૃષિ સહાયક છું.*\n\nખેડૂતોને પાક રોગ નિદાન, જીવાત નિયંત્રણ, ખાતર અને બજાર ભાવ અંગે ચોક્કસ સલાહ આપવી એ મારું કાર્ય છે.\n\nતમે ટેક્સ્ટ, વૉઇસ અથવા પાકનો ફોટો મોકલીને પૂછી શકો છો!',
+            'pa-IN': '🌾 *ਮੈਂ AgriSeva-AI ਡਿਜੀਟਲ ਖੇਤੀਬਾੜੀ ਸਹਾਇਕ ਹਾਂ।*\n\nਕਿਸਾਨਾਂ ਨੂੰ ਫਸਲੀ ਬਿਮਾਰੀਆਂ, ਕੀੜਿਆਂ ਦੀ ਰੋਕਥਾਮ, ਖਾਦਾਂ ਅਤੇ ਮੰਡੀ ਭਾਅ ’ਤੇ ਸਹੀ ਸਲਾਹ ਦੇਣਾ ਮੇਰਾ ਕੰਮ ਹੈ।\n\nਤੁਸੀਂ ਟੈਕਸਟ, ਵੌਇਸ ਜਾਂ ਫਸਲ ਦੀ ਫੋਟੋ ਭੇਜ ਕੇ ਪੁੱਛ ਸਕਦੇ ਹੋ!',
+            'ml-IN': '🌾 *ഞാൻ AgriSeva-AI ഡിജിറ്റൽ കാർഷിക സഹായിയാണ്.*\n\nവിള രോഗനിർണ്ണയം, കീടനിയന്ത്രണം, വളം, വിപണി വിലകൾ എന്നിവയിൽ കർഷകർക്ക് കൃത്യമായ ഉപദേശം നൽകുകയാണ് എന്റെ ലക്ഷ്യം.\n\nനിങ്ങൾക്ക് ടെക്സ്റ്റ്, വോയ്സ് അല്ലെങ്കിൽ വിളയുടെ ഫോട്ടോ അയക്കാം!',
+            'od-IN': '🌾 *ମୁଁ AgriSeva-AI ଡିଜିଟାଲ୍ କୃଷି ସହାୟକ।*\n\nକୃଷକମାନଙ୍କୁ ଫସଲ ରୋଗ ନିର୍ଣ୍ଣୟ, କୀଟ ନିୟନ୍ତ୍ରଣ, ସାର ଏବଂ ବଜାର ଦର ବିଷୟରେ ସଠିକ୍ ପରାମର୍ଶ ଦେବା ମୋର ଲକ୍ଷ୍ୟ।\n\nଆପଣ ଟେକ୍ସଟ୍, ଭଏସ୍ କିମ୍ବା ଫସଲର ଫଟୋ ପଠାଇ ପଚାରି ପାରିବେ!',
             'en-IN': '🌾 *I am AgriSeva-AI, your digital agricultural assistant.*\n\nI provide instant advisory on crop disease diagnosis, pest management, fertilizers, weather, and market rates.\n\nYou can ask via text, voice message, or send a crop photo!',
           };
           reply = aboutMap[currentLang] || aboutMap['en-IN'];
@@ -1890,6 +2110,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
             'hi-IN': '😊 मैं बिल्कुल ठीक हूँ, धन्यवाद! आपकी फसल कैसी है? आज आपको क्या कृषि जानकारी चाहिए? 🌾',
             'ta-IN': '😊 நான் நலமாக இருக்கிறேன், நன்றி! உங்கள் பயிர்கள் எப்படி உள்ளன? இன்று என்ன விவசாய உதவி வேண்டும்? 🌾',
             'kn-IN': '😊 ನಾನು ಚೆನ್ನಾಗಿದ್ದೇನೆ, ಧನ್ಯವಾದಗಳು! ನಿಮ್ಮ ಬೆಳೆ ಹೇಗಿದೆ? ಇಂದು ಯಾವ ಕೃಷಿ ಸಹಾಯ ಬೇಕು? 🌾',
+            'mr-IN': '😊 मी अगदी मजेत आहे, धन्यवाद! आपली पिके कशी आहेत? आज आपल्याला कोणती कृषी माहिती हवी आहे? 🌾',
+            'bn-IN': '😊 আমি ভালো আছি, ধন্যবাদ! আপনার ফসল কেমন আছে? আজ আপনাকে কী কৃষি পরামর্শ দিতে পারি? 🌾',
+            'gu-IN': '😊 હું એકદમ મજામાં છું, આભાર! તમારા પાક કેવા છે? આજે તમને કઈ કૃષિ માહિતી જોઈએ છે? 🌾',
+            'pa-IN': '😊 ਮੈਂ ਬਿਲਕੁਲ ਠੀਕ ਹਾਂ, ਧੰਨਵਾਦ! ਤੁਹਾਡੀ ਫਸਲ ਕਿਵੇਂ ਹੈ? ਅੱਜ ਤੁਹਾਨੂੰ ਕਿਹੜੀ ਖੇਤੀਬਾੜੀ ਜਾਣਕਾਰੀ ਚਾਹੀਦੀ ਹੈ? 🌾',
+            'ml-IN': '😊 എനിക്ക് സുഖമാണ്, നന്ദി! നിങ്ങളുടെ കൃഷി എങ്ങനെയുണ്ട്? ഇന്ന് എന്താണ് കാർഷിക സഹായം വേണ്ടത്? 🌾',
+            'od-IN': '😊 ମୁଁ ବହୁତ ଭଲରେ ଅଛି, ଧନ୍ୟବାଦ! ଆପଣଙ୍କ ଫସଲ କିପରି ଅଛି? ଆଜି ଆପଣଙ୍କୁ କେଉଁ କୃଷି ସହାୟତା ଦରକାର? 🌾',
             'en-IN': '😊 I\'m doing well, thank you! How are your crops doing? What agricultural assistance do you need today? 🌾',
           };
           reply = howAreYouMap[currentLang] || howAreYouMap['en-IN'];
@@ -1980,6 +2206,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
             'hi-IN': '🎙️ क्षमा करें, आपका वॉइस संदेश स्पष्ट सुनाई नहीं दिया। कृपया शांतिपूर्ण स्थान से पुनः बोलकर भेजें या टेक्स्ट में टाइप करें।',
             'ta-IN': '🎙️ மன்னிக்கவும், உங்கள் குரல் செய்தி தெளிவாக கேட்கவில்லை. தயவுசெய்து மீண்டும் தெளிவாக பேசி அனுப்பவும் அல்லது தட்டச்சு செய்யவும்.',
             'kn-IN': '🎙️ ಕ್ಷಮಿಸಿ, ನಿಮ್ಮ ಧ್ವನಿ ಸಂದೇಶ ಸ್ಪಷ್ಟವಾಗಿ ಕೇಳಿಸಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಪುನಃ ಸ್ಪಷ್ಟವಾಗಿ ಮಾತನಾಡಿ ಕಳುಹಿಸಿ ಅಥವಾ ಪಠ್ಯದಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ.',
+            'mr-IN': '🎙️ क्षमस्व, आपला व्हॉइस संदेश स्पष्ट ऐकू आला नाही. कृपया शांत ठिकाणाहून पुन्हा बोलून पाठवा किंवा मजकुरात टाइप करा.',
+            'bn-IN': '🎙️ দুঃখিত, আপনার ভয়েস বার্তা স্পষ্ট বোঝা যায়নি। অনুগ্রহ করে পুনরায় স্পষ্টভাবে বলে পাঠান অথবা টেক্সটে লিখে পাঠান।',
+            'gu-IN': '🎙️ ક્ષમા કરશો, તમારો વૉઇસ સંદેશ સ્પષ્ટ સંભળાયો નથી. કૃપા કરીને ફરીથી સ્પષ્ટ બોલીને મોકલો અથવા ટેક્સ્ટમાં લખો.',
+            'pa-IN': '🎙️ ਮਾਫ਼ ਕਰਨਾ, ਤੁਹਾਡਾ ਵੌਇਸ ਸੁਨੇਹਾ ਸਾਫ਼ ਨਹੀਂ ਸੁਣਿਆ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਬੋਲ ਕੇ ਭੇਜੋ ਜਾਂ ਟੈਕਸਟ ਵਿੱਚ ਲਿਖੋ।',
+            'ml-IN': '🎙️ ക്ഷമിക്കണം, നിങ്ങളുടെ ശബ്ദ സന്ദേശം വ്യക്തമായി കേൾക്കാൻ കഴിഞ്ഞില്ല. ദയവായി വീണ്ടും വ്യക്തമായി സംസാരിച്ചു അയക്കുക അല്ലെങ്കിൽ ടൈപ്പ് ചെയ്യുക.',
+            'od-IN': '🎙️ କ୍ଷମା କରିବେ, ଆପଣଙ୍କ ଭଏସ୍ ମେସେଜ୍ ସ୍ପଷ୍ଟ ଶୁଣାଗଲା ନାହିଁ। ଦୟାକରି ପୁନର୍ବାର ସ୍ପଷ୍ଟ ଭାବେ କହି ପଠାନ୍ତୁ କିମ୍ବା ଟାଇପ୍ କରନ୍ତୁ।',
             'en-IN': '🎙️ Sorry, we could not clearly understand your voice note. Please speak clearly without background noise and try again, or type your question in text.',
           };
           const failMsg = voiceFailures[currentLang] || voiceFailures['en-IN'];
@@ -2007,6 +2239,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
               'hi-IN': '🌱 *AgriSeva-AI फसल रोग निदान*',
               'ta-IN': '🌱 *AgriSeva-AI பயிர் நோய் கண்டறிதல்*',
               'kn-IN': '🌱 *AgriSeva-AI ಬೆಳೆ ರೋಗ ರೋಗನಿರ್ಣಯ*',
+              'mr-IN': '🌱 *AgriSeva-AI पीक रोगनिदान*',
+              'bn-IN': '🌱 *AgriSeva-AI ফসল রোগ নির্ণয়*',
+              'gu-IN': '🌱 *AgriSeva-AI પાક રોગ નિદાન*',
+              'pa-IN': '🌱 *AgriSeva-AI ਫਸਲੀ ਬਿਮਾਰੀ ਨਿਦਾਨ*',
+              'ml-IN': '🌱 *AgriSeva-AI വിള രോഗനിർണ്ണയം*',
+              'od-IN': '🌱 *AgriSeva-AI ଫସଲ ରୋଗ ନିର୍ଣ୍ଣୟ*',
               'en-IN': '🌱 *AgriSeva-AI Crop Disease Diagnosis*',
             };
             const imgFooters: Record<string, string> = {
@@ -2014,6 +2252,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
               'hi-IN': '🌐 भाषा बदलने के लिए "1" या "language" लिखें।',
               'ta-IN': '🌐 மொழியை மாற்ற "1" அல்லது "language" என தட்டச்சு செய்யவும்.',
               'kn-IN': '🌐 ಭಾಷೆ ಬದಲಾಯಿಸಲು "1" లేదా "language" ಎಂದು ಕಳುಹಿಸಿ.',
+              'mr-IN': '🌐 भाषा बदलण्यासाठी "1" किंवा "language" पाठवा.',
+              'bn-IN': '🌐 भाषा परिवर्तन করতে "1" বা "language" লিখুন।',
+              'gu-IN': '🌐 ભાષા બદલવા માટે "1" અથવા "language" લખો.',
+              'pa-IN': '🌐 ਭਾਸ਼ਾ ਬਦਲਣ ਲਈ "1" ਜਾਂ "language" ਲਿਖੋ।',
+              'ml-IN': '🌐 ഭാഷ മാറ്റാൻ "1" അല്ലെങ്കിൽ "language" എന്ന് അയക്കുക.',
+              'od-IN': '🌐 ଭାଷା ବଦଳାଇବା ପାଇଁ "1" କିମ୍ବା "language" ଲେଖନ୍ତୁ।',
               'en-IN': '🌐 Type "1" or "language" anytime to change language.',
             };
             const imgHeader = imgHeaders[currentLang] || imgHeaders['en-IN'];
@@ -2138,6 +2382,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
           'hi-IN': '\n\n📌 _नोट: आपके प्रश्न के लिए विस्तृत सलाह ऊपर दी गई है। अतिरिक्त सत्यापन के लिए इसे कृषि विशेषज्ञ (PAE) समीक्षा हेतु भी दर्ज किया गया है।_',
           'ta-IN': '\n\n📌 _குறிப்பு: உங்கள் கேள்விக்கான ஆலோசனை மேலே கொடுக்கப்பட்டுள்ளது. மேலதிக உறுதிப்படுத்தலுக்கு இது வேளாண் நிபுணர் (PAE) பார்வைக்கு அனுப்பப்பட்டுள்ளது._',
           'kn-IN': '\n\n📌 _ಸೂಚನೆ: ನಿಮ್ಮ ಪ್ರಶ್ನೆಗೆ ವಿವರವಾದ ಸಲಹೆಯನ್ನು ಮೇಲೆ ನೀಡಲಾಗಿದೆ. ಹೆಚ್ಚಿನ ಪರಿಶೀಲನೆಗಾಗಿ ಇದನ್ನು ಕೃಷಿ ತಜ್ಞರ (PAE) ಪರಿಶೀಲನೆಗೆ ದಾಖಲಿಸಲಾಗಿದೆ._',
+          'mr-IN': '\n\n📌 _टीप: आपल्या प्रश्नासाठी सविस्तर सल्ला वर दिला आहे. अतिरिक्त पडताळणीसाठी हे कृषी तज्ज्ञ (PAE) पुनरावलोकनासाठी नोंदवले गेले आहे._',
+          'bn-IN': '\n\n📌 _নোট: আপনার প্রশ্নের বিশদ পরামর্শ উপরে দেওয়া হয়েছে। অতিরিক্ত যাচাইয়ের জন্য এটি কৃষি বিশেষজ্ঞ (PAE) পর্যালোচনায় পাঠানো হয়েছে।_',
+          'gu-IN': '\n\n📌 _નોંધ: તમારા પ્રશ્ન માટે વિગતવાર સલાહ ઉપર આપેલ છે. વધુ ચકાસણી માટે આ કૃષિ નિષ્ણાત (PAE) સમીક્ષા માટે નોંધાયેલ છે._',
+          'pa-IN': '\n\n📌 _ਨੋਟ: ਤੁਹਾਡੇ ਸਵਾਲ ਲਈ ਵਿਸਤ੍ਰਿਤ ਸਲਾਹ ਉੱਪਰ ਦਿੱਤੀ ਗਈ ਹੈ। ਹੋਰ ਪੁਸ਼ਟੀ ਲਈ ਇਹ ਖੇਤੀਬਾੜੀ ਮਾਹਿਰ (PAE) ਸਮੀਖਿਆ ਲਈ ਦਰਜ ਕੀਤੀ ਗਈ ਹੈ।_',
+          'ml-IN': '\n\n📌 _കുറിപ്പ്: നിങ്ങളുടെ ചോദ്യത്തിന് വിശദമായ ഉപദേശം മുകളിൽ നൽകിയിട്ടുണ്ട്. കൂടുതൽ സ്ഥിരീകരണത്തിനായി ഇത് കാർഷിക വിദഗ്ദ്ധ (PAE) അവലോകനത്തിനായി രേഖപ്പെടുത്തിയിട്ടുണ്ട്._',
+          'od-IN': '\n\n📌 _ଟିପ୍ପଣୀ: ଆପଣଙ୍କ ପ୍ରଶ୍ନ ପାଇଁ ବିସ୍ତୃତ ପରାମର୍ଶ ଉପରେ ଦିଆଯାଇଛି। ଅଧିକ ଯାଞ୍ଚ ପାଇଁ ଏହା କୃଷି ବିଶେଷଜ୍ଞ (PAE) ସମୀକ୍ଷା ପାଇଁ ପଠାଯାଇଛି।_',
           'en-IN': '\n\n📌 _Note: Comprehensive advisory is provided above. This query has also been registered for Agricultural Expert (PAE) review._',
         };
         aiAnswer += paeNotes[currentLang] || paeNotes['en-IN'];
@@ -2146,7 +2396,7 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
 
     // Step 7: Final Translation into User's Selected Language (Requirements 11, 12, 44)
     let finalLocalizedAnswer = aiAnswer;
-    if (currentLang !== 'en-IN') {
+    if (currentLang !== 'en-IN' && !this.isAlreadyInTargetScript(aiAnswer, currentLang)) {
       finalLocalizedAnswer = await this.translateText(aiAnswer, currentLang);
     }
 
@@ -2156,6 +2406,12 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
       'hi-IN': '🌱 *AgriSeva-AI कृषि सलाह*',
       'ta-IN': '🌱 *AgriSeva-AI விவசாய ஆலோசனை*',
       'kn-IN': '🌱 *AgriSeva-AI ಕೃಷಿ ಸಲಹೆ*',
+      'mr-IN': '🌱 *AgriSeva-AI कृषी सल्ला*',
+      'bn-IN': '🌱 *AgriSeva-AI कृषि পরামর্শ*',
+      'gu-IN': '🌱 *AgriSeva-AI કૃષિ સલાહ*',
+      'pa-IN': '🌱 *AgriSeva-AI ਖੇਤੀਬਾੜੀ ਸਲਾਹ*',
+      'ml-IN': '🌱 *AgriSeva-AI കാർഷിക ഉപദേശം*',
+      'od-IN': '🌱 *AgriSeva-AI କୃଷି ପରାମର୍ଶ*',
       'en-IN': '🌱 *AgriSeva-AI Advisory*',
     };
 

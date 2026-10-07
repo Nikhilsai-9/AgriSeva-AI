@@ -947,18 +947,23 @@ STRICT COMPLIANCE RULES:
 2. Anti-Hallucination: Do NOT invent chemical dosages, pesticide quantities, fertilizer rates, disease diagnoses, or market prices that are absent from the evidence.
 3. Clarity: Write in simple, farmer-friendly, empathetic language without academic jargon.
 4. Accuracy: If the evidence does not specify exact dosage or timing, clearly state that the farmer should consult their local KVK or agricultural extension officer for specific dosage recommendations.
-5. MANDATORY USER LANGUAGE: The user submitted their question in ${langDisplayName} (${language}). You MUST generate your ENTIRE final response strictly in ${langDisplayName} (${language}). Do NOT respond in English unless ${language} is English. Even if the verified source evidence is in English, translate and synthesize the answer fluently into ${langDisplayName}.
+5. MANDATORY USER LANGUAGE: The user's authoritative selected response language is ${langDisplayName} (${language}). Regardless of whether the user typed their question in English, Hinglish, or any other language, and even if verified source evidence is in English, you MUST generate your ENTIRE final advisory response strictly and fluently in ${langDisplayName} (${language}). Never answer in English unless the selected language itself is English.
 6. Objectivity: Never claim 100% accuracy, perfection, or guaranteed cure. Use qualified, grounded advice only.`;
 
-    const userPrompt = `Farmer's Question:
+    const userPrompt = `[DIRECTIVE: Generate entire response exclusively in ${langDisplayName} (${language})]
+
+Farmer's Question:
 "${query}"
 
 Verified Evidence Available:
 ${evidenceText}
 
-Synthesize a helpful, grounded explanation for the farmer adhering strictly to the facts above.`;
+Synthesize a helpful, grounded explanation for the farmer adhering strictly to the facts above and in ${langDisplayName} only.`;
 
-    const requestBody = {
+    const requestBody: any = {
+      system_instruction: {
+        parts: [{ text: systemPrompt }],
+      },
       contents: [
         {
           role: 'user',
@@ -967,7 +972,7 @@ Synthesize a helpful, grounded explanation for the farmer adhering strictly to t
       ],
       generationConfig: {
         temperature: 0.2, // Low temperature for high factual grounding
-        maxOutputTokens: 500,
+        maxOutputTokens: 600,
       },
     };
 

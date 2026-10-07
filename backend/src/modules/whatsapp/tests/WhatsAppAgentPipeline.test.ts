@@ -6,6 +6,8 @@ import {
   checkContentSafety,
   isConversationalMessage,
   isLikelyAgriculturalQuery,
+  matchLanguageChoice,
+  isExplicitLanguageNameChoice,
 } from '../services/WhatsAppService.js';
 import type { IWhatsAppService } from '../interfaces/IWhatsAppService.js';
 import { ObjectId } from 'mongodb';
@@ -1000,4 +1002,384 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
       expect(session.history[0].content).toContain('Recommended watering schedule');
     });
   });
+
+  describe('Comprehensive 10-Point Language Switch & Pipeline Matrix (Requirement 19)', () => {
+    let service: WhatsAppService;
+    let mockUserRepo: any;
+    let mockDb: any;
+    let mockGroundedService: any;
+    let mockContextService: any;
+    let mockSessionsCol: any;
+    let mockUsersCol: any;
+    let sessionsMap: Map<string, any>;
+    let usersMap: Map<string, any>;
+
+    beforeEach(() => {
+      sessionsMap = new Map();
+      usersMap = new Map();
+
+      mockSessionsCol = {
+        findOne: vi.fn().mockImplementation(async (query: any) => {
+          const phone = query.$or?.[0]?.phoneNumber || query.phoneNumber;
+          return sessionsMap.get(phone) || null;
+        }),
+        updateOne: vi.fn().mockImplementation(async (filter: any, update: any, options: any) => {
+          const phone = filter.phoneNumber;
+          let current = sessionsMap.get(phone) || {};
+          if (update.$set) current = { ...current, ...update.$set };
+          sessionsMap.set(phone, current);
+          return { acknowledged: true, modifiedCount: 1, upsertedCount: options?.upsert ? 1 : 0 };
+        }),
+      };
+
+      mockUsersCol = {
+        findOne: vi.fn().mockImplementation(async () => null),
+        updateOne: vi.fn().mockImplementation(async (filter: any, update: any) => {
+          const mobile = filter.mobile || (filter._id ? filter._id.toString() : null);
+          let current = usersMap.get(mobile) || {};
+          if (update.$set) current = { ...current, ...update.$set };
+          usersMap.set(mobile, current);
+          return { acknowledged: true, modifiedCount: 1 };
+        }),
+        insertOne: vi.fn().mockImplementation(async (doc: any) => {
+          const id = new ObjectId();
+          usersMap.set(doc.mobile, { ...doc, _id: id });
+          return { acknowledged: true, insertedId: id };
+        }),
+      };
+
+      mockDb = {
+        getCollection: vi.fn().mockImplementation(async (colName: string) => {
+          if (colName === 'whatsapp_sessions') return mockSessionsCol;
+          if (colName === 'users') return mockUsersCol;
+          return {
+            findOne: vi.fn().mockResolvedValue(null),
+            insertOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+            updateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+          };
+        }),
+      };
+
+      mockGroundedService = {
+        generateGroundedAnswer: vi.fn().mockImplementation(async (params: any) => {
+          return {
+            questionId: 'q-test-matrix',
+            answer: `[ADVISORY ANSWER in ${params.language}] Proper fertilizer dosage for crops.`,
+            confidence: 'high',
+            status: 'grounded',
+            sources: [],
+            language: params.language,
+          };
+        }),
+      };
+
+      mockContextService = {
+        translate: vi.fn().mockImplementation(async (text: string, lang: string) => {
+          return { translated_text: `[TRANSLATED TO ${lang}] ${text}` };
+        }),
+      };
+
+      mockUserRepo = {
+        findById: vi.fn().mockResolvedValue(null),
+        findOne: vi.fn().mockResolvedValue(null),
+      };
+
+      service = new WhatsAppService(
+        mockUserRepo,
+        mockDb,
+        mockGroundedService,
+        mockContextService,
+      );
+
+      vi.spyOn<any, any>(service, 'sendTextMessage').mockResolvedValue({ message_id: 'out_msg_test' });
+      vi.spyOn<any, any>(service, 'sendInteractiveListMessage').mockResolvedValue({ message_id: 'out_list_test' });
+    });
+
+    it('unit: matchLanguageChoice accurately parses shortcuts, native scripts, formatted options and phrases', () => {
+      // 1. Digit shortcuts
+      expect(matchLanguageChoice('1')).toBe('te-IN');
+      expect(matchLanguageChoice('2')).toBe('hi-IN');
+      expect(matchLanguageChoice('3')).toBe('ta-IN');
+      expect(matchLanguageChoice('4')).toBe('kn-IN');
+      expect(matchLanguageChoice('5')).toBe('en-IN');
+      expect(matchLanguageChoice('6')).toBe('mr-IN');
+      expect(matchLanguageChoice('7')).toBe('bn-IN');
+      expect(matchLanguageChoice('8')).toBe('gu-IN');
+      expect(matchLanguageChoice('9')).toBe('pa-IN');
+      expect(matchLanguageChoice('10')).toBe('ml-IN');
+
+      // 2. Interactive list IDs
+      expect(matchLanguageChoice('lang_te-IN')).toBe('te-IN');
+      expect(matchLanguageChoice('lang_hi-IN')).toBe('hi-IN');
+      expect(matchLanguageChoice('lang_ta-IN')).toBe('ta-IN');
+
+      // 3. Formatted list lines
+      expect(matchLanguageChoice('1. Telugu')).toBe('te-IN');
+      expect(matchLanguageChoice('2 - हिन्दी')).toBe('hi-IN');
+      expect(matchLanguageChoice('3) தமிழ்')).toBe('ta-IN');
+      expect(matchLanguageChoice('4. Kannada')).toBe('kn-IN');
+
+      // 4. Standalone native scripts & names
+      expect(matchLanguageChoice('తెలుగు')).toBe('te-IN');
+      expect(matchLanguageChoice('हिन्दी')).toBe('hi-IN');
+      expect(matchLanguageChoice('தமிழ்')).toBe('ta-IN');
+      expect(matchLanguageChoice('ಕನ್ನಡ')).toBe('kn-IN');
+      expect(matchLanguageChoice('english')).toBe('en-IN');
+      expect(matchLanguageChoice('Marathi')).toBe('mr-IN');
+      expect(matchLanguageChoice('বাংলা')).toBe('bn-IN');
+      expect(matchLanguageChoice('ગુજરાતી')).toBe('gu-IN');
+      expect(matchLanguageChoice('ਪੰਜਾਬੀ')).toBe('pa-IN');
+      expect(matchLanguageChoice('മലയാളം')).toBe('ml-IN');
+      expect(matchLanguageChoice('ଓଡ଼ିଆ')).toBe('od-IN');
+
+      // 5. Switching phrases
+      expect(matchLanguageChoice('switch to telugu')).toBe('te-IN');
+      expect(matchLanguageChoice('change language to hindi')).toBe('hi-IN');
+      expect(matchLanguageChoice('set to tamil')).toBe('ta-IN');
+
+      // 6. Non-language inputs return null
+      expect(matchLanguageChoice('1 kg urea')).toBeNull();
+      expect(matchLanguageChoice('how to control tomato blight')).toBeNull();
+    });
+
+    it('unit: isExplicitLanguageNameChoice differentiates language picks from questions', () => {
+      expect(isExplicitLanguageNameChoice('Telugu')).toBe(true);
+      expect(isExplicitLanguageNameChoice('Hindi')).toBe(true);
+      expect(isExplicitLanguageNameChoice('தமிழ்')).toBe(true);
+      expect(isExplicitLanguageNameChoice('switch to telugu')).toBe(true);
+      expect(isExplicitLanguageNameChoice('1. Telugu')).toBe(true);
+
+      // Agricultural queries mentioning language or numbers should return false
+      expect(isExplicitLanguageNameChoice('1 kg urea fertilizer')).toBe(false);
+      expect(isExplicitLanguageNameChoice('Tomato crop disease in Telugu')).toBe(false);
+      expect(isExplicitLanguageNameChoice('What is paddy leaf disease in Hindi')).toBe(false);
+    });
+
+    it('test matrix: sequential repeated language switching (EN -> TE -> TA -> HI -> EN)', async () => {
+      const phone = '919876543299';
+      const phoneId = '104239857281928';
+
+      // 1. Initial Selection: English
+      sessionsMap.set('+919876543299', {
+        phoneNumber: '+919876543299',
+        rawFrom: phone,
+        preferredLanguage: 'en-IN',
+        languageSelectedExplicitly: true,
+      });
+
+      // Question 1 in English -> Expect English RAG
+      await service.handleIncomingWhatsAppCloudMessage(phone, 'What is the dosage for neem oil spray on tomatoes?', phoneId);
+      expect(mockGroundedService.generateGroundedAnswer).toHaveBeenLastCalledWith(
+        expect.objectContaining({ language: 'en-IN' }),
+      );
+
+      // 2. Switch to Telugu
+      await service.handleIncomingWhatsAppCloudMessage(phone, 'Telugu', phoneId);
+      expect(sessionsMap.get('+919876543299').preferredLanguage).toBe('te-IN');
+
+      // Question 2 in Telugu -> Expect Telugu RAG
+      await service.handleIncomingWhatsAppCloudMessage(phone, 'టమోటాలో ఆకుముడత నివారణ ఏమిటి?', phoneId);
+      expect(mockGroundedService.generateGroundedAnswer).toHaveBeenLastCalledWith(
+        expect.objectContaining({ language: 'te-IN' }),
+      );
+
+      // 3. Switch to Tamil
+      await service.handleIncomingWhatsAppCloudMessage(phone, 'Tamil', phoneId);
+      expect(sessionsMap.get('+919876543299').preferredLanguage).toBe('ta-IN');
+
+      // Question 3 in Tamil -> Expect Tamil RAG
+      await service.handleIncomingWhatsAppCloudMessage(phone, 'தக்காளி இலை சுருட்டை நோய்க்கான சிகிச்சை என்ன?', phoneId);
+      expect(mockGroundedService.generateGroundedAnswer).toHaveBeenLastCalledWith(
+        expect.objectContaining({ language: 'ta-IN' }),
+      );
+
+      // 4. Switch to Hindi
+      await service.handleIncomingWhatsAppCloudMessage(phone, 'Hindi', phoneId);
+      expect(sessionsMap.get('+919876543299').preferredLanguage).toBe('hi-IN');
+
+      // Question 4 in Hindi -> Expect Hindi RAG
+      await service.handleIncomingWhatsAppCloudMessage(phone, 'टमाटर में पत्ती मरोड़ रोग की रोकथाम कैसे करें?', phoneId);
+      expect(mockGroundedService.generateGroundedAnswer).toHaveBeenLastCalledWith(
+        expect.objectContaining({ language: 'hi-IN' }),
+      );
+
+      // 5. Switch back to English
+      await service.handleIncomingWhatsAppCloudMessage(phone, 'English', phoneId);
+      expect(sessionsMap.get('+919876543299').preferredLanguage).toBe('en-IN');
+
+      // Question 5 in English -> Expect English RAG
+      await service.handleIncomingWhatsAppCloudMessage(phone, 'What is the market price of onion in Nashik?', phoneId);
+      expect(mockGroundedService.generateGroundedAnswer).toHaveBeenLastCalledWith(
+        expect.objectContaining({ language: 'en-IN' }),
+      );
+    });
+
+    it('test matrix: cross-language input respects selected language strictly (Requirement 4)', async () => {
+      const phone = '919876543288';
+      const phoneId = '104239857281928';
+
+      // User has chosen Telugu
+      sessionsMap.set('+919876543288', {
+        phoneNumber: '+919876543288',
+        rawFrom: phone,
+        preferredLanguage: 'te-IN',
+        languageSelectedExplicitly: true,
+      });
+
+      // Farmer types question in ENGLISH: "How much urea should I apply for 1 acre paddy?"
+      await service.handleIncomingWhatsAppCloudMessage(phone, 'How much urea should I apply for 1 acre paddy?', phoneId);
+
+      // The pipeline MUST send language: 'te-IN' to GroundedAnswerService!
+      expect(mockGroundedService.generateGroundedAnswer).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          query: 'How much urea should I apply for 1 acre paddy?',
+          language: 'te-IN',
+        }),
+      );
+
+      // The final outbound response must use Telugu prefix
+      expect((service as any).sendTextMessage).toHaveBeenLastCalledWith(
+        phone,
+        phoneId,
+        expect.stringContaining('AgriSeva-AI సలహా'),
+      );
+    });
+
+    it('test matrix: crop disease image processing adheres to selected language (Requirement 7 & 19)', async () => {
+      const phone = '919876543277';
+      const phoneId = '104239857281928';
+
+      // User has selected Hindi
+      sessionsMap.set('+919876543277', {
+        phoneNumber: '+919876543277',
+        rawFrom: phone,
+        preferredLanguage: 'hi-IN',
+        languageSelectedExplicitly: true,
+      });
+
+      // Mock image download & multimodal vision
+      vi.spyOn<any, any>(service, 'downloadMetaMedia').mockResolvedValue({ buffer: Buffer.from('fake_image_bytes') });
+      vi.spyOn<any, any>(service, 'processCropImage').mockResolvedValue('फसल में अगेती झुलसा रोग के लक्षण हैं। मैन्कोजेब 2 ग्राम प्रति लीटर पानी में मिलाकर छिड़काव करें।');
+
+      await service.handleIncomingWhatsAppCloudMessage(
+        phone,
+        '',
+        phoneId,
+        {
+          msgType: 'image',
+          image: { id: 'media_img_999', mime_type: 'image/jpeg', caption: 'What disease is this?' },
+        },
+      );
+
+      // Verify image was diagnosed using Hindi language
+      expect((service as any).processCropImage).toHaveBeenCalledWith(
+        expect.any(Buffer),
+        'image/jpeg',
+        'What disease is this?',
+        'hi-IN',
+      );
+
+      // Verify Hindi crop diagnosis header is sent
+      expect((service as any).sendTextMessage).toHaveBeenCalledWith(
+        phone,
+        phoneId,
+        expect.stringContaining('🌱 *AgriSeva-AI फसल रोग निदान*'),
+      );
+    });
+
+    it('test matrix: voice note audio query adheres to selected language (Requirement 7 & 19)', async () => {
+      const phone = '919876543266';
+      const phoneId = '104239857281928';
+
+      // User has selected Telugu
+      sessionsMap.set('+919876543266', {
+        phoneNumber: '+919876543266',
+        rawFrom: phone,
+        preferredLanguage: 'te-IN',
+        languageSelectedExplicitly: true,
+      });
+
+      // Mock audio download & transcription
+      vi.spyOn<any, any>(service, 'downloadMetaMedia').mockResolvedValue({ buffer: Buffer.from('fake_audio_bytes') });
+      vi.spyOn<any, any>(service, 'transcribeAudio').mockResolvedValue('వరిలో కాండం తొలుచు పురుగు నివారణ ఏమిటి?');
+
+      await service.handleIncomingWhatsAppCloudMessage(
+        phone,
+        '',
+        phoneId,
+        {
+          msgType: 'audio',
+          audio: { id: 'media_audio_888', mime_type: 'audio/ogg' },
+        },
+      );
+
+      // Verify audio transcribed using Telugu language
+      expect((service as any).transcribeAudio).toHaveBeenCalledWith(
+        expect.any(Buffer),
+        'audio/ogg',
+        'te-IN',
+      );
+
+      // Verify GroundedAnswer called with Telugu
+      expect(mockGroundedService.generateGroundedAnswer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: 'వరిలో కాండం తొలుచు పురుగు నివారణ ఏమిటి?',
+          language: 'te-IN',
+        }),
+      );
+    });
+
+    it('test matrix: off-topic query in selected language receives polite localized scope message', async () => {
+      const phone = '919876543255';
+      const phoneId = '104239857281928';
+
+      // User has selected Telugu
+      sessionsMap.set('+919876543255', {
+        phoneNumber: '+919876543255',
+        rawFrom: phone,
+        preferredLanguage: 'te-IN',
+        languageSelectedExplicitly: true,
+      });
+
+      await service.handleIncomingWhatsAppCloudMessage(phone, 'Who won the cricket match yesterday?', phoneId);
+
+      // Should send localized Telugu off-topic message
+      expect((service as any).sendTextMessage).toHaveBeenCalledWith(
+        phone,
+        phoneId,
+        expect.stringContaining('వ్యవసాయ సహాయకుడు'),
+      );
+      expect(mockGroundedService.generateGroundedAnswer).not.toHaveBeenCalled();
+    });
+
+    it('test matrix: menu open vs chat state for shortcut "1"', async () => {
+      const phone = '919876543244';
+      const phoneId = '104239857281928';
+
+      // User is chatting normally in English
+      sessionsMap.set('+919876543244', {
+        phoneNumber: '+919876543244',
+        rawFrom: phone,
+        preferredLanguage: 'en-IN',
+        languageSelectedExplicitly: true,
+        awaitingLanguageSelection: false,
+      });
+
+      // 1. User types "1" while chatting -> Opens Language Menu
+      await service.handleIncomingWhatsAppCloudMessage(phone, '1', phoneId);
+      expect((service as any).sendInteractiveListMessage).toHaveBeenCalled();
+      expect(sessionsMap.get('+919876543244').awaitingLanguageSelection).toBe(true);
+
+      // 2. Now menu is open (awaitingLanguageSelection = true). User types "1" to pick Option 1: Telugu!
+      await service.handleIncomingWhatsAppCloudMessage(phone, '1', phoneId);
+      expect(sessionsMap.get('+919876543244').preferredLanguage).toBe('te-IN');
+      expect(sessionsMap.get('+919876543244').awaitingLanguageSelection).toBe(false);
+      expect((service as any).sendTextMessage).toHaveBeenCalledWith(
+        phone,
+        phoneId,
+        expect.stringContaining('తెలుగు'),
+      );
+    });
+  });
+
 });
