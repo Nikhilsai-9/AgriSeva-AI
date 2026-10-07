@@ -1108,6 +1108,7 @@ export class WhatsAppService implements IWhatsAppService {
       return null;
     }
 
+    const cleanTo = to.replace(/\D/g, '');
     const graphUrl = `https://graph.facebook.com/v21.0/${targetPhoneId}/messages`;
     try {
       const res = await axios.post(
@@ -1115,7 +1116,7 @@ export class WhatsAppService implements IWhatsAppService {
         {
           messaging_product: 'whatsapp',
           recipient_type: 'individual',
-          to,
+          to: cleanTo,
           type: 'interactive',
           interactive: {
             type: 'list',
@@ -1136,7 +1137,7 @@ export class WhatsAppService implements IWhatsAppService {
           timeout: 12000,
         },
       );
-      console.log(`[WhatsAppService] Interactive list message delivered to ${to}:`, res.data);
+      console.log(`[WhatsAppService] Interactive list message delivered to ${cleanTo}:`, res.data);
       return res.data;
     } catch (err: any) {
       console.error(
@@ -1168,7 +1169,7 @@ export class WhatsAppService implements IWhatsAppService {
         { id: 'lang_bn-IN', title: 'বাংলা (Bengali)', description: 'পশ্চিমবঙ্গ & ত্রিপুরা' },
         { id: 'lang_gu-IN', title: 'ગુજરાતી (Gujarati)', description: 'ગુજરાત' },
         { id: 'lang_pa-IN', title: 'ਪੰਜਾਬੀ (Punjabi)', description: 'ਪੰਜਾਬ & ਹਰਿਆਣਾ' },
-        { id: 'lang_page_2', title: '🌐 More / మరిన్ని (Page 2)', description: 'Odia, Assamese, Urdu, etc.' },
+        { id: 'lang_page_2', title: '🌐 More Languages', description: 'Odia, Assamese, Urdu, etc.' },
       ];
 
       await this.sendInteractiveListMessage(to, phoneNumberId, {
@@ -1218,6 +1219,7 @@ export class WhatsAppService implements IWhatsAppService {
       return null;
     }
 
+    const cleanTo = to.replace(/\D/g, '');
     const graphUrl = `https://graph.facebook.com/v21.0/${targetPhoneId}/messages`;
     try {
       const res = await axios.post(
@@ -1225,7 +1227,7 @@ export class WhatsAppService implements IWhatsAppService {
         {
           messaging_product: 'whatsapp',
           recipient_type: 'individual',
-          to,
+          to: cleanTo,
           type: 'text',
           text: {
             preview_url: false,
@@ -1240,7 +1242,7 @@ export class WhatsAppService implements IWhatsAppService {
           timeout: 15000,
         },
       );
-      console.log(`[WhatsAppService] Meta text message delivered to ${to}:`, res.data);
+      console.log(`[WhatsAppService] Meta text message delivered to ${cleanTo}:`, res.data);
       return res.data;
     } catch (err: any) {
       console.error(
