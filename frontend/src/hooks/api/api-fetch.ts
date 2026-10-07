@@ -95,7 +95,11 @@ export const apiFetch = async <T>(
         errorMessage = text;
       }
 
-      throw new Error(errorMessage);
+      const apiErr: any = new Error(errorMessage);
+      apiErr.status = res.status;
+      apiErr.code = data?.code;
+      apiErr.category = data?.category;
+      throw apiErr;
     }
 
     return data as T;

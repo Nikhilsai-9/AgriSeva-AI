@@ -1193,6 +1193,7 @@ export const en = {
         low: "Low",
         medium: "Medium",
         high: "High",
+        urgent: "Urgent",
       },
       // Market intelligence — prefill from payment dispute
       prefilledFrom: "Prefilled from payment {ref}",
@@ -1261,6 +1262,18 @@ export const en = {
       save: "Save",
       sourceMixed: "Mixed — some demo records present",
     },
+  },
+  voice: {
+    transcriptionUnavailable: "Voice transcription is temporarily unavailable. Please try again later or type your question.",
+    transcriptionQuotaExceeded: "Voice transcription is temporarily unavailable. Please type your question.",
+    transcriptionFailed: "Voice transcription could not be completed. Please try again or type your question.",
+    retry: "Retry",
+    typeQuestion: "Type your question",
+    typeYourQuestionHere: "Type your question here...",
+    networkError: "Connection issue during transcription. Please check your internet or type your question.",
+    audioTooLarge: "Audio recording is too long. Please record a shorter message or type your question.",
+    rateLimited: "Voice service is busy. Please try again in a few moments or type your question.",
+    cannotSubmitFailed: "Please record again or type your question before submitting.",
   },
 };
 

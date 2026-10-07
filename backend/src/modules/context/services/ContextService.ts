@@ -8,6 +8,7 @@ import {InternalServerError, BadRequestError} from 'routing-controllers';
 import { QuestionService } from '#root/modules/question/services/QuestionService.js';
 import { IContextService } from '../interfaces/IContextService.js';
 import { appConfig } from '#root/config/app.js';
+import { SttHttpError, SttErrorCode, SttErrorCategory } from '../errors/SttError.js';
 
 @injectable()
 export class ContextService extends BaseService implements IContextService {
@@ -173,30 +174,285 @@ export class ContextService extends BaseService implements IContextService {
     return chunks;
   }
 
+  private _sttHealthCache: {
+    status: 'healthy' | 'quota_exceeded' | 'authentication_error' | 'rate_limited' | 'provider_unavailable' | 'misconfigured' | 'unknown';
+    provider: string;
+    checkedAt: string;
+  } | null = null;
+  private _lastHealthCheckTime = 0;
+
+  async getSTTHealth(): Promise<{
+    status: 'healthy' | 'quota_exceeded' | 'authentication_error' | 'rate_limited' | 'provider_unavailable' | 'misconfigured' | 'unknown';
+    provider: string;
+    checkedAt: string;
+  }> {
+    const now = Date.now();
+    if (this._sttHealthCache && now - this._lastHealthCheckTime < 60000) {
+      return this._sttHealthCache;
+    }
+
+    const apiKey = appConfig.sarvamAPI;
+    if (!apiKey) {
+      this._sttHealthCache = {
+        status: 'misconfigured',
+        provider: 'sarvam',
+        checkedAt: new Date().toISOString(),
+      };
+      this._lastHealthCheckTime = now;
+      return this._sttHealthCache;
+    }
+
+    try {
+      const res = await fetch('https://api.sarvam.ai/speech-to-text-translate', {
+        method: 'POST',
+        headers: { 'api-subscription-key': apiKey },
+        signal: AbortSignal.timeout(5000),
+      });
+
+      let status:
+        | 'healthy'
+        | 'quota_exceeded'
+        | 'authentication_error'
+        | 'rate_limited'
+        | 'provider_unavailable'
+        | 'misconfigured'
+        | 'unknown' = 'unknown';
+
+      if (res.status === 200 || res.status === 400) {
+        status = 'healthy';
+      } else if (res.status === 402) {
+        status = 'quota_exceeded';
+      } else if (res.status === 401 || res.status === 403) {
+        status = 'authentication_error';
+      } else if (res.status === 429) {
+        status = 'rate_limited';
+      } else if (res.status >= 500) {
+        status = 'provider_unavailable';
+      }
+
+      this._sttHealthCache = {
+        status,
+        provider: 'sarvam',
+        checkedAt: new Date().toISOString(),
+      };
+      this._lastHealthCheckTime = now;
+      return this._sttHealthCache;
+    } catch {
+      this._sttHealthCache = {
+        status: 'provider_unavailable',
+        provider: 'sarvam',
+        checkedAt: new Date().toISOString(),
+      };
+      this._lastHealthCheckTime = now;
+      return this._sttHealthCache;
+    }
+  }
+
   async speechToText(
     file: Express.Multer.File,
     language: string,
   ): Promise<unknown> {
     const apiKey = appConfig.sarvamAPI;
-    if (!apiKey) throw new BadRequestError('Sarvam API key not configured');
+    if (!apiKey) {
+      console.error(
+        '[STT Service]',
+        JSON.stringify({
+          event: 'stt_failure',
+          provider: 'sarvam',
+          category: 'misconfigured',
+          status: 503,
+          timestamp: new Date().toISOString(),
+        })
+      );
+      throw new SttHttpError(
+        503,
+        'Voice transcription is temporarily unavailable. Please try again later or type your question.',
+        'STT_PROVIDER_UNAVAILABLE',
+        'misconfigured',
+        'sarvam',
+      );
+    }
+
+    if (!file || !file.buffer || file.buffer.length === 0) {
+      throw new SttHttpError(
+        400,
+        'Audio recording was empty. Please record again or type your question.',
+        'STT_INVALID_REQUEST',
+        'invalid_request',
+        'sarvam',
+      );
+    }
+
+    if (file.buffer.length > 25 * 1024 * 1024) {
+      console.error(
+        '[STT Service]',
+        JSON.stringify({
+          event: 'stt_failure',
+          provider: 'sarvam',
+          category: 'audio_too_large',
+          status: 413,
+          timestamp: new Date().toISOString(),
+        })
+      );
+      throw new SttHttpError(
+        413,
+        'Audio recording is too large. Please record a shorter message or type your question.',
+        'STT_AUDIO_TOO_LARGE',
+        'audio_too_large',
+        'sarvam',
+      );
+    }
 
     const formData = new FormData();
-    formData.append('file', new Blob([file.buffer], { type: file.mimetype }), file.originalname || 'recording.webm');
-    formData.append('language', language);
+    formData.append(
+      'file',
+      new Blob([file.buffer], { type: file.mimetype || 'audio/webm' }),
+      file.originalname || 'recording.webm'
+    );
+    formData.append('language', language || 'hi-IN');
 
-    const response = await fetch('https://api.sarvam.ai/speech-to-text-translate', {
-      method: 'POST',
-      headers: { 'api-subscription-key': apiKey },
-      body: formData,
-    });
+    let response: Response;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+    try {
+      response = await fetch('https://api.sarvam.ai/speech-to-text-translate', {
+        method: 'POST',
+        headers: { 'api-subscription-key': apiKey },
+        body: formData,
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      const isTimeout = fetchErr.name === 'AbortError';
+      const status = isTimeout ? 504 : 503;
+      const code: SttErrorCode = isTimeout ? 'STT_TIMEOUT' : 'STT_NETWORK_ERROR';
+      const category: SttErrorCategory = isTimeout ? 'timeout' : 'network_error';
+
+      console.error(
+        '[STT Service]',
+        JSON.stringify({
+          event: 'stt_failure',
+          provider: 'sarvam',
+          category,
+          status,
+          timestamp: new Date().toISOString(),
+        })
+      );
+
+      throw new SttHttpError(
+        status,
+        isTimeout
+          ? 'Voice transcription request timed out. Please try again or type your question.'
+          : 'Unable to connect to transcription service. Please check your connection or type your question.',
+        code,
+        category,
+        'sarvam',
+      );
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
-      const body = await response.text().catch(() => response.statusText);
-      throw new InternalServerError(`Sarvam STT error ${response.status}: ${body}`);
+      const requestId = response.headers.get('x-request-id') || undefined;
+      let rawBody: any = null;
+      try {
+        rawBody = await response.json();
+      } catch {
+        rawBody = await response.text().catch(() => response.statusText);
+      }
+
+      const bodyRequestId =
+        typeof rawBody === 'object' && rawBody !== null
+          ? rawBody.request_id || rawBody.error?.request_id
+          : undefined;
+      const effectiveRequestId = requestId || bodyRequestId;
+
+      let code: SttErrorCode;
+      let category: SttErrorCategory;
+      let message: string;
+      let clientStatus = response.status;
+
+      switch (response.status) {
+        case 402:
+          code = 'STT_QUOTA_EXCEEDED';
+          category = 'quota_exceeded';
+          clientStatus = 402;
+          message = 'Voice transcription is temporarily unavailable. Please try again later or type your question.';
+          break;
+        case 401:
+          code = 'STT_AUTH_ERROR';
+          category = 'authentication_error';
+          clientStatus = 401;
+          message = 'Voice transcription service authentication failed. Please try again later or type your question.';
+          break;
+        case 403:
+          code = 'STT_FORBIDDEN';
+          category = 'forbidden';
+          clientStatus = 403;
+          message = 'Voice transcription service access was denied. Please try again later or type your question.';
+          break;
+        case 400:
+          code = 'STT_INVALID_REQUEST';
+          category = 'invalid_request';
+          clientStatus = 400;
+          message = 'Voice transcription request could not be processed. Please try again or type your question.';
+          break;
+        case 413:
+          code = 'STT_AUDIO_TOO_LARGE';
+          category = 'audio_too_large';
+          clientStatus = 413;
+          message = 'The recorded audio is too large. Please record a shorter message or type your question.';
+          break;
+        case 415:
+          code = 'STT_UNSUPPORTED_AUDIO';
+          category = 'unsupported_audio';
+          clientStatus = 415;
+          message = 'Audio format is not supported. Please try again or type your question.';
+          break;
+        case 429:
+          code = 'STT_RATE_LIMITED';
+          category = 'rate_limited';
+          clientStatus = 429;
+          message = 'Voice transcription is busy. Please wait a moment and try again, or type your question.';
+          break;
+        case 500:
+        case 502:
+        case 503:
+        case 504:
+        default:
+          code = 'STT_PROVIDER_UNAVAILABLE';
+          category = 'provider_unavailable';
+          clientStatus = 503;
+          message = 'Voice transcription is temporarily unavailable. Please try again later or type your question.';
+          break;
+      }
+
+      console.error(
+        '[STT Service]',
+        JSON.stringify({
+          event: 'stt_failure',
+          provider: 'sarvam',
+          category,
+          status: response.status,
+          requestId: effectiveRequestId,
+          timestamp: new Date().toISOString(),
+        })
+      );
+
+      throw new SttHttpError(
+        clientStatus,
+        message,
+        code,
+        category,
+        'sarvam',
+        effectiveRequestId,
+      );
     }
 
     return response.json();
   }
+
 
   private async _callSarvamTranslate(
     input: string,

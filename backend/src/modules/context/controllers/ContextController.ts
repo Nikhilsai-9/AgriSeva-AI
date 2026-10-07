@@ -92,15 +92,23 @@ export class ContextController {
     return this.contextService.translate(text, targetLang, sourceLang);
   }
 
+  @Get('/speech-to-text/health')
+  @HttpCode(200)
+  @OpenAPI({ summary: 'Check health status of STT provider' })
+  async sttHealth(): Promise<{ status: string; provider: string; checkedAt: string }> {
+    return this.contextService.getSTTHealth();
+  }
+
   @Post('/speech-to-text')
   @HttpCode(200)
   @Authorized()
   @OpenAPI({ summary: 'Proxy speech-to-text request to Sarvam API' })
   async speechToText(
-    @UploadedFile('file', { options: { storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } } }) file: Express.Multer.File,
+    @UploadedFile('file', { options: { storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } } }) file: Express.Multer.File,
     @Req() req: any,
   ): Promise<unknown> {
     const language = req.body?.language || 'hi-IN';
     return this.contextService.speechToText(file, language);
   }
 }
+

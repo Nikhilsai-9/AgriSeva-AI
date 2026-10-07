@@ -40,11 +40,21 @@ export class ErrorResponse<T> {
   message: string;
   errors?: T;
   sentryEventId?: string;
+  code?: string;
+  category?: string;
 
-  constructor(message: string, errors?: T, sentryEventId?: string) {
+  constructor(
+    message: string,
+    errors?: T,
+    sentryEventId?: string,
+    code?: string,
+    category?: string,
+  ) {
     if (errors) this.errors = errors;
     this.message = message;
     if (sentryEventId) this.sentryEventId = sentryEventId;
+    if (code) this.code = code;
+    if (category) this.category = category;
   }
 }
 
@@ -234,9 +244,11 @@ export class HttpErrorHandler implements ExpressErrorMiddlewareInterface {
             new ErrorResponse<typeof error.errors>(error.message, error.errors, eventId),
           );
       } else {
+        const code = (error as any).code;
+        const category = (error as any).category;
         response
           .status(error.httpCode)
-          .json(new ErrorResponse<null>(error.message, null, eventId));
+          .json(new ErrorResponse<any>(error.message, (error as any).errors || null, eventId, code, category));
       }
     } else if (error instanceof Error) {
       response.status(500).json(
