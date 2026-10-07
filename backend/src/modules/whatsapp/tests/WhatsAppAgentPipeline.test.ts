@@ -1,7 +1,12 @@
 import 'reflect-metadata';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WhatsAppController } from '../controllers/WhatsAppController.js';
-import { WhatsAppService } from '../services/WhatsAppService.js';
+import {
+  WhatsAppService,
+  checkContentSafety,
+  isConversationalMessage,
+  isLikelyAgriculturalQuery,
+} from '../services/WhatsAppService.js';
 import type { IWhatsAppService } from '../interfaces/IWhatsAppService.js';
 import { ObjectId } from 'mongodb';
 import { IUser } from '#root/shared/index.js';
@@ -508,6 +513,210 @@ describe('WhatsApp Multilingual AI Agent Pipeline Tests', () => {
       expect(calls[0][2]).toContain('tomato');
       expect(calls[1][2]).toContain('zinc');
       expect(calls[0][2]).not.toEqual(calls[1][2]);
+    });
+
+    it('standalone "1" reopens language menu without executing agricultural QA, while "1 kg fertilizer" runs QA', async () => {
+      // User with existing explicit language selection
+      sessionsMap.set('+919876543210', {
+        phoneNumber: '+919876543210',
+        rawFrom: '919876543210',
+        preferredLanguage: 'te-IN',
+        languageSelectedExplicitly: true,
+      });
+
+      // 1. Farmer types standalone "1"
+      await service.handleIncomingWhatsAppCloudMessage(
+        '919876543210',
+        '1',
+        '104239857281928',
+      );
+
+      // Should reopen language menu
+      expect((service as any).sendInteractiveListMessage).toHaveBeenCalledWith(
+        '919876543210',
+        '104239857281928',
+        expect.objectContaining({
+          button: 'Select Language',
+          header: 'AgriSeva-AI',
+          body: expect.stringContaining('🌾 *Welcome to AgriSeva-AI*'),
+        }),
+      );
+      // Must NOT call GroundedAnswerService for standalone 1
+      expect(mockGroundedService.generateGroundedAnswer).not.toHaveBeenCalled();
+
+      // 2. Farmer types "1 kg urea fertilizer for paddy"
+      await service.handleIncomingWhatsAppCloudMessage(
+        '919876543210',
+        '1 kg urea fertilizer for paddy',
+        '104239857281928',
+      );
+
+      // This SHOULD trigger agricultural QA
+      expect(mockGroundedService.generateGroundedAnswer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: '1 kg urea fertilizer for paddy',
+          language: 'te-IN',
+        }),
+      );
+    });
+
+    it('greeting "Hi" from new user triggers clean language menu, and choosing language responds with greeting (no RAG)', async () => {
+      // New user sends "Hi"
+      await service.handleIncomingWhatsAppCloudMessage(
+        '919111222333',
+        'Hi',
+        '104239857281928',
+      );
+
+      // Prompts language menu with clean body and header
+      expect((service as any).sendInteractiveListMessage).toHaveBeenCalledWith(
+        '919111222333',
+        '104239857281928',
+        expect.objectContaining({
+          header: 'AgriSeva-AI',
+          body: '🌾 *Welcome to AgriSeva-AI*\n\nPlease select your preferred language:',
+          button: 'Select Language',
+        }),
+      );
+      expect(mockGroundedService.generateGroundedAnswer).not.toHaveBeenCalled();
+
+      // User selects Telugu
+      await service.handleIncomingWhatsAppCloudMessage(
+        '919111222333',
+        'తెలుగు (Telugu)',
+        '104239857281928',
+        {
+          interactive: {
+            list_reply: { id: 'lang_te-IN', title: 'తెలుగు (Telugu)' },
+          },
+        },
+      );
+
+      // Outbound message is the welcome greeting, NOT an agricultural RAG advisory for "Hi"
+      expect(mockGroundedService.generateGroundedAnswer).not.toHaveBeenCalled();
+      const sendMock = (service as any).sendTextMessage as any;
+      const lastCall = sendMock.mock.calls[sendMock.mock.calls.length - 1];
+      expect(lastCall[2]).toContain('AgriSeva-AI కి స్వాగతం');
+    });
+
+    it('conversational messages (thanks, ack, identity) receive instant localized replies without RAG', async () => {
+      sessionsMap.set('+919876543210', {
+        phoneNumber: '+919876543210',
+        rawFrom: '919876543210',
+        preferredLanguage: 'te-IN',
+        languageSelectedExplicitly: true,
+      });
+
+      // 1. Gratitude
+      await service.handleIncomingWhatsAppCloudMessage(
+        '919876543210',
+        'ధన్యవాదాలు',
+        '104239857281928',
+      );
+      expect(mockGroundedService.generateGroundedAnswer).not.toHaveBeenCalled();
+      const sendMock = (service as any).sendTextMessage as any;
+      expect(sendMock.mock.calls[sendMock.mock.calls.length - 1][2]).toContain('ధన్యవాదాలు');
+
+      // 2. Identity
+      await service.handleIncomingWhatsAppCloudMessage(
+        '919876543210',
+        'Who are you?',
+        '104239857281928',
+      );
+      expect(mockGroundedService.generateGroundedAnswer).not.toHaveBeenCalled();
+      expect(sendMock.mock.calls[sendMock.mock.calls.length - 1][2]).toContain('AgriSeva-AI డిజిటల్ వ్యవసాయ సహాయకుడిని');
+    });
+
+    it('safety moderation: 1st violation issues Warning, 2nd violation blocks user, and blocked messages are dropped silently', async () => {
+      sessionsMap.set('+919876543210', {
+        phoneNumber: '+919876543210',
+        rawFrom: '919876543210',
+        preferredLanguage: 'en-IN',
+        languageSelectedExplicitly: true,
+      });
+
+      const sendMock = (service as any).sendTextMessage as any;
+      sendMock.mockClear();
+
+      // 1st violation
+      await service.handleIncomingWhatsAppCloudMessage(
+        '919876543210',
+        'You asshole',
+        '104239857281928',
+      );
+
+      let session = sessionsMap.get('+919876543210');
+      expect(session.warningCount).toBe(1);
+      expect(session.blocked).toBeFalsy();
+      expect(sendMock).toHaveBeenCalledWith(
+        '919876543210',
+        '104239857281928',
+        expect.stringContaining('Safety Warning'),
+      );
+
+      // 2nd violation -> Block!
+      sendMock.mockClear();
+      await service.handleIncomingWhatsAppCloudMessage(
+        '919876543210',
+        'You bastard',
+        '104239857281928',
+      );
+
+      session = sessionsMap.get('+919876543210');
+      expect(session.blocked).toBe(true);
+      expect(session.warningCount).toBe(2);
+      expect(sendMock).toHaveBeenCalledWith(
+        '919876543210',
+        '104239857281928',
+        expect.stringContaining('Account Blocked'),
+      );
+
+      // 3rd message from blocked number -> silently dropped, zero calls
+      sendMock.mockClear();
+      mockGroundedService.generateGroundedAnswer.mockClear();
+      await service.handleIncomingWhatsAppCloudMessage(
+        '919876543210',
+        'Tomato price please',
+        '104239857281928',
+      );
+
+      expect(sendMock).not.toHaveBeenCalled();
+      expect(mockGroundedService.generateGroundedAnswer).not.toHaveBeenCalled();
+    });
+
+    it('agricultural context is exempt from safety flagging (kill pests, spray poison on insects)', async () => {
+      expect(checkContentSafety('spray pesticide to kill pests on tomato').isViolating).toBe(false);
+      expect(checkContentSafety('rat poison for warehouse rodent control').isViolating).toBe(false);
+      expect(checkContentSafety('పురుగులను చంపడానికి ఏ మందు వాడాలి?').isViolating).toBe(false);
+      expect(checkContentSafety('कीटों को मारने के लिए कीटनाशक स्प्रे').isViolating).toBe(false);
+    });
+
+    it('off-topic queries (What is money?) receive polite localized scope explanation without warning or block', async () => {
+      sessionsMap.set('+919876543210', {
+        phoneNumber: '+919876543210',
+        rawFrom: '919876543210',
+        preferredLanguage: 'te-IN',
+        languageSelectedExplicitly: true,
+      });
+
+      const sendMock = (service as any).sendTextMessage as any;
+      sendMock.mockClear();
+
+      await service.handleIncomingWhatsAppCloudMessage(
+        '919876543210',
+        'What is money?',
+        '104239857281928',
+      );
+
+      const session = sessionsMap.get('+919876543210');
+      expect(session.blocked).toBeFalsy();
+      expect(session.warningCount).toBeFalsy();
+      expect(mockGroundedService.generateGroundedAnswer).not.toHaveBeenCalled();
+      expect(sendMock).toHaveBeenCalledWith(
+        '919876543210',
+        '104239857281928',
+        expect.stringContaining('AgriSeva-AI వ్యవసాయ సహాయకుడు'),
+      );
     });
 
     it('getThreads retrieves real conversations from MongoDB and maps farmer names for authenticated user', async () => {
