@@ -8,6 +8,8 @@ import {
   Loader2,
   Mic,
   MicOff,
+  Pause,
+  Play,
   RefreshCw,
   RotateCcw,
   Send,
@@ -43,6 +45,7 @@ import { Skeleton } from "./atoms/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./atoms/tooltip";
 import { useTranslation } from "@/locales";
 import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
+import { useSendAudioChunk } from "@/hooks/api/context/useSendAudioChunk";
 
 export interface GroundedSourceItem {
   type: string;
@@ -60,31 +63,7 @@ export interface GeneratedQuestion {
   answer: string;
   referenceSource: string;
   status?: string;
-  confidence?: 'high' | 'medium' | 'low';
-  sources?: GroundedSourceItem[];
-  warnings?: string[];
-  language?: string;
-  generatedAt?: string;
-  questionId?: string;
-}
-
-export interface GroundedSourceItem {
-  type: string;
-  id: string;
-  title: string;
-  reference: string;
-  score?: number;
-  metadata?: Record<string, any>;
-}
-
-export interface GeneratedQuestion {
-  id: string;
-  question: string;
-  agri_specialist: string;
-  answer: string;
-  referenceSource: string;
-  status?: string;
-  confidence?: 'high' | 'medium' | 'low';
+  confidence?: "high" | "medium" | "low";
   sources?: GroundedSourceItem[];
   warnings?: string[];
   language?: string;
@@ -108,6 +87,7 @@ declare global {
   interface Window {
     webkitSpeechRecognition: any;
     SpeechRecognition: any;
+    webkitAudioContext: any;
   }
 }
 
@@ -194,17 +174,51 @@ const getSpeechRecognitionLang = (
   return langMap[code] || (code.includes("-") ? code : `${code}-IN`);
 };
 
+const getSupportedMimeType = (): string => {
+  if (typeof MediaRecorder === "undefined") return "";
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/ogg",
+    "audio/mp4",
+    "audio/aac",
+  ];
+  for (const candidate of candidates) {
+    if (MediaRecorder.isTypeSupported(candidate)) {
+      return candidate;
+    }
+  }
+  return "";
+};
+
+const formatDuration = (totalSeconds: number): string => {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+};
+
 export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
   const { t, currentLanguage } = useTranslation();
   const { data: currentUser } = useGetCurrentUser();
+
+  // Core state
   const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState(``);
+  const [transcript, setTranscript] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [sttError, setSttError] = useState<SttErrorState | null>(null);
   const [isTypingMode, setIsTypingMode] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [recordingDuration, setRecordingDuration] = useState(0);
 
-  // Synchronize language with current app localization
+  // Audio Playback state
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
+  // Language state
   const [language, setLanguage] = useState<SupportedLanguage>("auto");
   useEffect(() => {
     if (currentLanguage?.code) {
@@ -212,24 +226,31 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
     }
   }, [currentLanguage]);
 
+  // Visualizer refs
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number>(0);
   const [frequencyData, setFrequencyData] = useState<number[]>([]);
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
 
+  // Hardware capture & transcription refs
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
   const accumulatedTranscriptRef = useRef<string>("");
   const isRecordingRef = useRef(false);
   const lastTranscriptRef = useRef("");
+  const timerRef = useRef<any>(null);
+  const hasCapturedLiveSpeechRef = useRef(false);
 
+  // API hooks
   const { mutateAsync: submitTranscript, isPending } = useSubmitTranscript();
-
   const { mutateAsync: generateQuestions, isPending: isGeneratingQuestions } =
     useGenerateQuestion();
+  const { mutateAsync: sendAudioChunk } = useSendAudioChunk();
 
-  // Question suggestions triggered when transcript changes
+  // Question suggestions triggered when transcript updates
   useEffect(() => {
     if (!isRecording && !transcript) return;
     if (!transcript || transcript.trim().length <= 10) return;
@@ -258,11 +279,31 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
     animationFrameRef.current = requestAnimationFrame(updateFrequency);
   };
 
+  const toggleAudioPlay = () => {
+    if (!audioElementRef.current) return;
+    if (isPlayingAudio) {
+      audioElementRef.current.pause();
+      setIsPlayingAudio(false);
+    } else {
+      audioElementRef.current.play().catch((err) => {
+        console.warn("Audio play error:", err);
+        setIsPlayingAudio(false);
+      });
+      setIsPlayingAudio(true);
+    }
+  };
+
   const stopRecording = () => {
     isRecordingRef.current = false;
     setIsRecording(false);
     setIsListening(false);
 
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    // Safely stop live speech recognition if active
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -272,36 +313,123 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
       recognitionRef.current = null;
     }
 
+    // Stop visualizer
     if (audioContextRef.current) {
       audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
     }
-
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-    }
-
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = 0;
     }
     setFrequencyData([]);
+
+    // Stop MediaRecorder and finalize audio blob
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      const recorder = mediaRecorderRef.current;
+      recorder.onstop = async () => {
+        const mimeType = recorder.mimeType || "audio/webm";
+        const recordedBlob = new Blob(audioChunksRef.current, {
+          type: mimeType,
+        });
+        setAudioBlob(recordedBlob);
+
+        if (recordedBlob.size > 0) {
+          const url = URL.createObjectURL(recordedBlob);
+          setAudioUrl(url);
+        }
+
+        // Release mic stream tracks
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+          mediaStreamRef.current = null;
+        }
+
+        // Check if live SpeechRecognition produced text
+        const liveText = accumulatedTranscriptRef.current.trim();
+        if (liveText.length > 0) {
+          setTranscript(liveText);
+        } else if (recordedBlob.size > 200) {
+          // If browser live recognition wasn't available (Firefox/Brave/network), attempt backend STT
+          setIsTranscribing(true);
+          try {
+            const result = await sendAudioChunk({
+              file: recordedBlob,
+              lang: language,
+            });
+            if (result?.transcript?.trim()) {
+              setTranscript(result.transcript.trim());
+              accumulatedTranscriptRef.current = result.transcript.trim();
+            } else {
+              setSttError({
+                code: "STT_OFFLINE",
+                category: "transcription",
+                message: t(
+                  "voice.transcriptionOfflineAudioCaptured",
+                  "Your voice note was recorded successfully. Auto-transcription is currently offline — please type your question or submit your voice note directly."
+                ),
+                canRetry: true,
+                hasFailed: true,
+              });
+            }
+          } catch (err: any) {
+            console.warn("Backend STT fallback returned error:", err);
+            setSttError({
+              code: "STT_OFFLINE",
+              category: "transcription",
+              message: t(
+                "voice.transcriptionOfflineAudioCaptured",
+                "Your voice note was recorded successfully. Auto-transcription is currently offline — please type your question or submit your voice note directly."
+              ),
+              canRetry: true,
+              hasFailed: true,
+            });
+          } finally {
+            setIsTranscribing(false);
+          }
+        } else {
+          setSttError({
+            code: "EMPTY_AUDIO",
+            category: "audio",
+            message: t(
+              "voice.emptyAudio",
+              "No audio was captured. Please check microphone permissions and try again."
+            ),
+            canRetry: true,
+            hasFailed: true,
+          });
+        }
+      };
+
+      try {
+        recorder.stop();
+      } catch (e) {
+        console.warn("MediaRecorder stop error:", e);
+      }
+    } else {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+      }
+    }
   };
 
   const startRecording = async () => {
-    const SpeechRecognitionClass =
-      typeof window !== "undefined"
-        ? window.SpeechRecognition || window.webkitSpeechRecognition
-        : null;
-
-    if (!SpeechRecognitionClass) {
+    // Check getUserMedia availability
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
       setSttError({
-        code: "BROWSER_NOT_SUPPORTED",
+        code: "MIC_NOT_SUPPORTED",
         category: "compatibility",
         message: t(
-          "voice.browserNotSupported",
-          "Speech recognition is not supported in this browser. Please type your question directly or open AgriSeva in Google Chrome / Microsoft Edge."
+          "voice.micNotSupported",
+          "Microphone recording requires a modern browser with HTTPS or localhost connection. Please type your question."
         ),
         canRetry: false,
         hasFailed: true,
@@ -313,155 +441,176 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
     setSttError(null);
     setQuestions([]);
     setRetryCount(0);
+    setRecordingDuration(0);
     lastTranscriptRef.current = "";
+    hasCapturedLiveSpeechRef.current = false;
     accumulatedTranscriptRef.current = transcript.trim();
+    audioChunksRef.current = [];
 
-    // Start live microphone stream for frequency animation
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
-
-      const audioCtx = new AudioContext();
-      audioContextRef.current = audioCtx;
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-
-      updateFrequency();
-    } catch (err: any) {
-      console.warn("Could not start visualizer audio stream:", err);
-      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-        setSttError({
-          code: "MIC_PERMISSION_DENIED",
-          category: "permission",
-          message: t(
-            "voice.micPermissionDenied",
-            "Microphone access was denied. Please allow microphone permissions in your browser or type your question."
-          ),
-          canRetry: true,
-          hasFailed: true,
-        });
-        setIsTypingMode(false);
-        return;
-      }
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
     }
+    setAudioBlob(null);
 
-    // Initialize 100% Free Browser Native Speech Recognition
+    // 1. Request microphone access
+    let stream: MediaStream;
     try {
-      const recognition = new SpeechRecognitionClass();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
-      recognition.lang = getSpeechRecognitionLang(language, currentLanguage?.code);
-
-      recognition.onresult = (event: any) => {
-        let interim = "";
-        let finalParts = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const res = event.results[i];
-          if (res.isFinal) {
-            finalParts += res[0].transcript + " ";
-          } else {
-            interim += res[0].transcript;
-          }
-        }
-
-        if (finalParts) {
-          accumulatedTranscriptRef.current = (
-            accumulatedTranscriptRef.current + " " + finalParts
-          )
-            .replace(/\s+/g, " ")
-            .trim();
-        }
-
-        const currentFull = (
-          accumulatedTranscriptRef.current + (interim ? " " + interim : "")
-        ).trim();
-
-        setTranscript(currentFull);
-        if (sttError) {
-          setSttError(null);
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        console.warn("Speech recognition error:", event.error);
-        setIsTypingMode(false);
-        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          setSttError({
-            code: "MIC_PERMISSION_DENIED",
-            category: "permission",
-            message: t(
-              "voice.micPermissionDenied",
-              "Microphone access was denied. Please allow microphone permissions or type your question."
-            ),
-            canRetry: true,
-            hasFailed: true,
-          });
-          stopRecording();
-        } else if (event.error === "network") {
-          setSttError({
-            code: "SPEECH_NETWORK_ERROR",
-            category: "network",
-            message: t(
-              "voice.networkError",
-              "Connection issue during speech recognition. Please check your internet or type your question."
-            ),
-            canRetry: true,
-            hasFailed: true,
-          });
-          stopRecording();
-        } else if (event.error !== "no-speech") {
-          setSttError({
-            code: "SPEECH_RECOGNITION_ERROR",
-            category: "recognition",
-            message: t(
-              "voice.transcriptionFailed",
-              "Voice transcription encountered an issue. Please try again or type your question."
-            ),
-            canRetry: true,
-            hasFailed: true,
-          });
-          stopRecording();
-        }
-      };
-
-      recognition.onend = () => {
-        // Automatically resume listening if user has not clicked stop
-        if (isRecordingRef.current) {
-          try {
-            recognition.start();
-          } catch (e) {
-            // Already started or busy
-          }
-        } else {
-          setIsListening(false);
-        }
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-      isRecordingRef.current = true;
-      setIsRecording(true);
-      setIsListening(true);
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
     } catch (err: any) {
-      console.error("Failed to start speech recognition:", err);
-      setIsTypingMode(false);
+      console.warn("Microphone access error:", err);
       setSttError({
-        code: "SPEECH_START_ERROR",
-        category: "recognition",
+        code: "MIC_PERMISSION_DENIED",
+        category: "permission",
         message: t(
-          "voice.transcriptionFailed",
-          "Could not start speech recognition. Please type your question directly."
+          "voice.micPermissionDenied",
+          "Microphone access was denied. Please allow microphone permissions in your browser or type your question."
         ),
         canRetry: true,
         hasFailed: true,
       });
-      stopRecording();
+      setIsTypingMode(false);
+      return;
     }
+
+    // 2. Initialize frequency analyzer for visualizer
+    try {
+      const AudioCtx =
+        window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const audioCtx = new AudioCtx();
+        audioContextRef.current = audioCtx;
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+        updateFrequency();
+      }
+    } catch (err) {
+      console.warn("Could not start visualizer audio stream:", err);
+    }
+
+    // 3. Initialize robust MediaRecorder for direct audio capture
+    try {
+      const mimeType = getSupportedMimeType();
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.start(250);
+    } catch (recorderErr) {
+      console.error("Failed to start MediaRecorder:", recorderErr);
+    }
+
+    // 4. Initialize Progressive Web Speech Recognition (Free live transcription where supported)
+    const SpeechRecognitionClass =
+      typeof window !== "undefined"
+        ? window.SpeechRecognition || window.webkitSpeechRecognition
+        : null;
+
+    if (SpeechRecognitionClass) {
+      try {
+        const recognition = new SpeechRecognitionClass();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+        recognition.lang = getSpeechRecognitionLang(
+          language,
+          currentLanguage?.code
+        );
+
+        recognition.onresult = (event: any) => {
+          let interim = "";
+          let finalParts = "";
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const res = event.results[i];
+            if (res.isFinal) {
+              finalParts += res[0].transcript + " ";
+            } else {
+              interim += res[0].transcript;
+            }
+          }
+
+          if (finalParts) {
+            accumulatedTranscriptRef.current = (
+              accumulatedTranscriptRef.current +
+              " " +
+              finalParts
+            )
+              .replace(/\s+/g, " ")
+              .trim();
+          }
+
+          const currentFull = (
+            accumulatedTranscriptRef.current +
+            (interim ? " " + interim : "")
+          ).trim();
+
+          if (currentFull) {
+            setTranscript(currentFull);
+            hasCapturedLiveSpeechRef.current = true;
+            if (sttError) {
+              setSttError(null);
+            }
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.warn(
+            "Speech recognition notice (direct audio recording continues):",
+            event.error
+          );
+          // Never abort MediaRecorder recording on live recognition error
+        };
+
+        recognition.onend = () => {
+          if (isRecordingRef.current) {
+            try {
+              recognition.start();
+            } catch (e) {
+              // Ignore restart collisions
+            }
+          } else {
+            setIsListening(false);
+          }
+        };
+
+        recognitionRef.current = recognition;
+        try {
+          recognition.start();
+          setIsListening(true);
+        } catch (startErr) {
+          console.warn("Speech recognition start skipped:", startErr);
+        }
+      } catch (speechErr) {
+        console.warn("Speech recognition init skipped:", speechErr);
+      }
+    }
+
+    // 5. Start elapsed timer
+    timerRef.current = window.setInterval(() => {
+      setRecordingDuration((prev) => {
+        if (prev >= 60) {
+          stopRecording();
+          return 60;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+
+    isRecordingRef.current = true;
+    setIsRecording(true);
   };
 
   const handleRecordingToggle = () => {
@@ -478,6 +627,12 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
     stopRecording();
     setSttError(null);
     setTranscript("");
+    setAudioBlob(null);
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
+    setRecordingDuration(0);
     accumulatedTranscriptRef.current = "";
     lastTranscriptRef.current = "";
     setIsTypingMode(false);
@@ -488,29 +643,41 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
   useEffect(() => {
     return () => {
       stopRecording();
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
     };
   }, []);
 
-  const handleSubmit = async () => {
-    if (sttError?.hasFailed) {
+  const getLanguageLabel = (code: SupportedLanguage | "auto") => {
+    const found = supportedLanguages.find((l) => l.code === code);
+    return found ? found.label : code;
+  };
+
+  const handleSubmit = async (overrideText?: string) => {
+    const rawText = (overrideText ?? transcript).trim();
+    // If no text but an audio clip exists, formulate a clean voice question descriptor
+    const textToSubmit =
+      rawText ||
+      (audioUrl
+        ? `[Voice Question] Audio recorded (${formatDuration(
+            recordingDuration || 1
+          )}) in ${getLanguageLabel(language)}`
+        : "");
+
+    if (!textToSubmit) {
       toast.error(
         t(
-          "voice.cannotSubmitFailed",
-          "Please record again or type your question before submitting."
+          "voice.emptySubmit",
+          "Please record audio or type your question before submitting."
         )
       );
       return;
     }
 
-    const textToSubmit = transcript.trim();
-    if (!textToSubmit) {
-      toast.error(t("common.transcriptEmpty", "Transcript is empty!"));
-      return;
-    }
-
     try {
       let currentQuestions = questions;
-      if (currentQuestions.length === 0) {
+      if (currentQuestions.length === 0 && textToSubmit.length > 5) {
         const qstns = await generateQuestions(textToSubmit);
         if (qstns && qstns.length > 0) {
           currentQuestions = qstns;
@@ -547,11 +714,15 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
 
       if (isUnavailableFallback) {
         toast.info(
-          `Question saved to pipeline (ID: ${result?.questionId || "created"}). AI search unavailable — routed to expert review.`
+          `Question saved to pipeline (ID: ${
+            result?.questionId || "created"
+          }). AI search unavailable — routed to expert review.`
         );
       } else {
         toast.success(
-          `Question saved to pipeline (ID: ${result?.questionId || "created"}).`
+          `Question saved to pipeline (ID: ${
+            result?.questionId || "created"
+          }).`
         );
       }
 
@@ -560,6 +731,12 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
       setQuestions([]);
       setSttError(null);
       setIsTypingMode(false);
+      setAudioBlob(null);
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+        setAudioUrl(null);
+      }
+      setRecordingDuration(0);
       lastTranscriptRef.current = "";
     } catch (error: any) {
       console.error("Failed to submit transcript:", error);
@@ -575,6 +752,12 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
     setIsTypingMode(false);
     setRetryCount(0);
     setQuestions([]);
+    setAudioBlob(null);
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
+    setRecordingDuration(0);
     lastTranscriptRef.current = "";
   };
 
@@ -590,7 +773,10 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                     <Volume2 className="h-4 w-4 text-primary" />
                   </div>
                   <span>{t("common.voiceRecorder", "Voice Recorder")}</span>
-                  <Badge variant="outline" className="text-[11px] font-normal border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10">
+                  <Badge
+                    variant="outline"
+                    className="text-[11px] font-normal border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10"
+                  >
                     100% Free
                   </Badge>
                 </CardTitle>
@@ -603,7 +789,9 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                   <SelectTrigger className="w-full md:w-[160px] h-9">
                     <Speech className="w-4 h-4" />
                     <span className="hidden md:block text-sm">
-                      <SelectValue placeholder={t("common.selectLanguage", "Language")} />
+                      <SelectValue
+                        placeholder={t("common.selectLanguage", "Language")}
+                      />
                     </span>
                   </SelectTrigger>
                   <SelectContent>
@@ -618,6 +806,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
             </CardHeader>
 
             <CardContent className="space-y-4">
+              {/* Audio Controls Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-3 border rounded-lg bg-muted/30">
                 <Button
                   onClick={() => handleRecordingToggle()}
@@ -636,32 +825,48 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                   )}
                 </Button>
 
-                <div className="flex-1 flex items-center gap-1 h-8">
+                <div className="flex-1 flex items-center gap-2 h-8 min-w-0">
                   {isRecording ? (
-                    <div className="w-[70%] h-full flex items-end overflow-hidden">
-                      {frequencyData
-                        .filter((_, index) => index % 4 === 0)
-                        .map((level, index) => (
-                          <div
-                            key={index}
-                            className="bg-gradient-to-t from-blue-500 to-purple-500 rounded-full w-1 transition-all duration-75"
-                            style={{
-                              height: `${Math.max(level * 100, 10)}%`,
-                              opacity: 0.6 + level * 0.4,
-                              marginRight: "4px",
-                            }}
-                          />
-                        ))}
+                    <div className="flex items-center gap-3 w-full">
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />
+                        <span className="text-xs font-mono font-semibold text-red-600 dark:text-red-400">
+                          {formatDuration(recordingDuration)}
+                        </span>
+                      </div>
+                      <div className="flex-1 h-full flex items-end overflow-hidden max-w-[200px]">
+                        {frequencyData
+                          .filter((_, index) => index % 4 === 0)
+                          .map((level, index) => (
+                            <div
+                              key={index}
+                              className="bg-gradient-to-t from-emerald-500 to-teal-500 rounded-full w-1 transition-all duration-75"
+                              style={{
+                                height: `${Math.max(level * 100, 15)}%`,
+                                opacity: 0.6 + level * 0.4,
+                                marginRight: "3px",
+                              }}
+                            />
+                          ))}
+                      </div>
+                      <span className="text-[11px] text-muted-foreground hidden md:inline truncate">
+                        {t("voice.recordingActive", "Recording voice...")}
+                      </span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                      {isRecording ? (
-                        <>
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                          {t("common.recording", "Recording...")}
-                        </>
+                      {audioUrl && !transcript ? (
+                        <span>
+                          {t("voice.audioReady", "Audio note recorded.")}{" "}
+                          ({formatDuration(recordingDuration)})
+                        </span>
                       ) : (
-                        t("common.clickMicToStart", "Click microphone to start")
+                        <span>
+                          {t(
+                            "common.clickMicToStart",
+                            "Click microphone to start"
+                          )}
+                        </span>
                       )}
                     </div>
                   )}
@@ -671,14 +876,17 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                   {transcript && !isRecording && (
                     <div className="flex items-center gap-1 text-green-600">
                       <CheckCircle className="w-4 h-4" />
-                      <span className="text-xs font-medium">{t("common.done", "Done")}</span>
+                      <span className="text-xs font-medium">
+                        {t("common.done", "Done")}
+                      </span>
                     </div>
                   )}
                 </div>
               </div>
 
+              {/* MUTUALLY EXCLUSIVE STATE MACHINE - STRICTLY ONE VIEW RENDERS */}
               {sttError && sttError.hasFailed && !isTypingMode ? (
-                /* STATE 1: Error & Fallback Action Card - ONLY ONE CARD, NO DUPLICATE INPUT BELOW */
+                /* STATE 1: Error & Fallback Action Card - ZERO DUPLICATE INPUT */
                 <div
                   role="alert"
                   className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 sm:p-4 text-sm text-foreground space-y-3 animate-in fade-in-50 duration-200"
@@ -691,6 +899,40 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                       </p>
                     </div>
                   </div>
+
+                  {/* Audio Player if recording exists */}
+                  {audioUrl && (
+                    <div className="flex items-center gap-3 p-2.5 rounded-md bg-background/80 border border-amber-500/20">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={toggleAudioPlay}
+                        className="h-8 w-8 p-0 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-200"
+                      >
+                        {isPlayingAudio ? (
+                          <Pause className="h-4 w-4" />
+                        ) : (
+                          <Play className="h-4 w-4 ml-0.5" />
+                        )}
+                      </Button>
+                      <div className="flex-1 flex items-center justify-between text-xs">
+                        <span className="font-medium text-foreground">
+                          {t("voice.recordedClip", "Recorded Voice Note")}
+                        </span>
+                        <span className="font-mono text-muted-foreground">
+                          {formatDuration(recordingDuration || 1)}
+                        </span>
+                      </div>
+                      <audio
+                        ref={audioElementRef}
+                        src={audioUrl}
+                        onEnded={() => setIsPlayingAudio(false)}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap items-center gap-2 pt-1">
                     <Button
                       type="button"
@@ -705,13 +947,29 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                       <Keyboard className="h-3.5 w-3.5" />
                       {t("voice.typeQuestion", "Type your question")}
                     </Button>
+
+                    {audioUrl && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleSubmit()}
+                        disabled={isPending}
+                        className="h-8 text-xs font-medium gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                        {isPending
+                          ? t("common.sending", "Sending...")
+                          : t("voice.submitVoiceNote", "Submit Voice Note")}
+                      </Button>
+                    )}
+
                     {sttError.canRetry && (
                       <Button
                         type="button"
                         size="sm"
                         variant="ghost"
                         onClick={handleRetry}
-                        disabled={retryCount >= 1}
+                        disabled={retryCount >= 2}
                         className="h-8 text-xs font-medium gap-1.5 text-muted-foreground hover:text-foreground"
                       >
                         <RefreshCw className="h-3.5 w-3.5" />
@@ -727,11 +985,21 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                     <Label className="text-sm font-medium">
                       {t("voice.typeQuestion", "Your Question")}
                     </Label>
-                    {transcript.length > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {transcript.length} {t("common.chars", "chars")}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {audioUrl && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-none"
+                        >
+                          Voice clip attached
+                        </Badge>
+                      )}
+                      {transcript.length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {transcript.length} {t("common.chars", "chars")}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="h-40 relative">
@@ -741,11 +1009,43 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                         setTranscript(e.target.value);
                         accumulatedTranscriptRef.current = e.target.value;
                       }}
-                      placeholder={t("voice.typeYourQuestionHere", "Type your question here...")}
+                      placeholder={t(
+                        "voice.typeYourQuestionHere",
+                        "Type your question here..."
+                      )}
                       className="h-full w-full resize-none p-3 text-sm focus-visible:ring-primary rounded-md border bg-background/50"
                       autoFocus
                     />
                   </div>
+
+                  {/* Audio player in typing mode if recording is attached */}
+                  {audioUrl && (
+                    <div className="flex items-center gap-2 p-2 rounded-md bg-muted/40 border text-xs">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={toggleAudioPlay}
+                        className="h-6 w-6 p-0 rounded-full"
+                      >
+                        {isPlayingAudio ? (
+                          <Pause className="h-3 w-3" />
+                        ) : (
+                          <Play className="h-3 w-3 ml-0.5" />
+                        )}
+                      </Button>
+                      <span className="text-muted-foreground">
+                        {t("voice.audioPlayback", "Recorded audio")} (
+                        {formatDuration(recordingDuration || 1)})
+                      </span>
+                      <audio
+                        ref={audioElementRef}
+                        src={audioUrl}
+                        onEnded={() => setIsPlayingAudio(false)}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
 
                   {/* Action buttons for typing mode */}
                   <div className="flex flex-wrap items-center justify-between mt-2 gap-2">
@@ -769,7 +1069,7 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                         onClick={handleClear}
                         variant="outline"
                         size="sm"
-                        disabled={!transcript.trim()}
+                        disabled={!transcript.trim() && !audioUrl}
                         className="flex items-center gap-1"
                       >
                         <RotateCcw className="h-4 w-4" />
@@ -777,9 +1077,9 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                       </Button>
 
                       <Button
-                        onClick={handleSubmit}
+                        onClick={() => handleSubmit()}
                         disabled={
-                          !transcript.trim() ||
+                          (!transcript.trim() && !audioUrl) ||
                           isPending ||
                           isGeneratingQuestions
                         }
@@ -788,7 +1088,9 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                       >
                         <Send className="h-3 w-3" />
                         <span className="text-xs">
-                          {isPending ? t("common.sending", "Sending...") : t("common.submit", "Submit")}
+                          {isPending
+                            ? t("common.sending", "Sending...")
+                            : t("common.submit", "Submit")}
                         </span>
                       </Button>
                     </div>
@@ -801,18 +1103,36 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                     <Label className="text-sm font-medium">
                       {t("common.transcript", "Transcript")}
                     </Label>
-                    {transcript.length > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {transcript.length} {t("common.chars", "chars")}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isTranscribing && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Processing audio...
+                        </span>
+                      )}
+                      {transcript.length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {transcript.length} {t("common.chars", "chars")}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="h-40 relative">
                     <div className="h-full w-full overflow-y-auto rounded-md border bg-background/50 p-3 text-sm whitespace-pre-wrap break-words">
-                      {!transcript ? (
+                      {isTranscribing ? (
+                        <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          <p className="text-xs">
+                            Transcribing voice audio...
+                          </p>
+                        </div>
+                      ) : !transcript ? (
                         <span className="text-muted-foreground">
-                          {t("common.speechPlaceholder", "Your speech will appear here...")}
+                          {t(
+                            "common.speechPlaceholder",
+                            "Your speech will appear here..."
+                          )}
                         </span>
                       ) : (
                         <span className="text-foreground">
@@ -821,6 +1141,39 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                       )}
                     </div>
                   </div>
+
+                  {/* Audio playback pill if audio was recorded */}
+                  {audioUrl && !isRecording && (
+                    <div className="flex items-center justify-between p-2 rounded-md bg-muted/40 border border-border/60 text-xs">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={toggleAudioPlay}
+                          className="h-7 w-7 p-0 rounded-full bg-primary/10 hover:bg-primary/20 text-primary"
+                        >
+                          {isPlayingAudio ? (
+                            <Pause className="h-3.5 w-3.5" />
+                          ) : (
+                            <Play className="h-3.5 w-3.5 ml-0.5" />
+                          )}
+                        </Button>
+                        <span className="text-muted-foreground">
+                          {t("voice.audioCaptured", "Recorded Audio Clip")}
+                        </span>
+                      </div>
+                      <span className="font-mono text-muted-foreground">
+                        {formatDuration(recordingDuration || 1)}
+                      </span>
+                      <audio
+                        ref={audioElementRef}
+                        src={audioUrl}
+                        onEnded={() => setIsPlayingAudio(false)}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
 
                   {/* Action buttons for voice mode */}
                   <div className="flex flex-wrap items-center justify-between mt-2 gap-2">
@@ -836,7 +1189,9 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                         className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
                       >
                         <Keyboard className="h-3.5 w-3.5" />
-                        <span>{t("voice.typeQuestion", "Type your question")}</span>
+                        <span>
+                          {t("voice.typeQuestion", "Type your question")}
+                        </span>
                       </Button>
                     </div>
 
@@ -845,7 +1200,9 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                         onClick={handleClear}
                         variant="outline"
                         size="sm"
-                        disabled={!transcript && !isRecording}
+                        disabled={
+                          (!transcript && !audioUrl) || isRecording
+                        }
                         className="flex items-center gap-1"
                       >
                         <RotateCcw className="h-4 w-4" />
@@ -853,9 +1210,9 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                       </Button>
 
                       <Button
-                        onClick={handleSubmit}
+                        onClick={() => handleSubmit()}
                         disabled={
-                          !transcript.trim() ||
+                          (!transcript.trim() && !audioUrl) ||
                           isPending ||
                           isGeneratingQuestions ||
                           isRecording
@@ -865,7 +1222,9 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                       >
                         <Send className="h-3 w-3" />
                         <span className="text-xs">
-                          {isPending ? t("common.sending", "Sending...") : t("common.submit", "Submit")}
+                          {isPending
+                            ? t("common.sending", "Sending...")
+                            : t("common.submit", "Submit")}
                         </span>
                       </Button>
                     </div>
@@ -874,8 +1233,9 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
               )}
             </CardContent>
           </Card>
-            {/* can the incoming call box be moved here? */}
-          <Card className="min-h-[80%]  md:h-auto">
+
+          {/* Question Suggestions Preview (Right Column) */}
+          <Card className="min-h-[80%] md:h-auto">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <Tooltip>
@@ -888,14 +1248,20 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {t("common.questionsGeneratedHint", "These are questions generated from your transcript")}
+                    {t(
+                      "common.questionsGeneratedHint",
+                      "These are questions generated from your transcript"
+                    )}
                   </TooltipContent>
                 </Tooltip>
-                <Badge variant="outline">{questions?.length} {t("dashboard.questionsCount", "questions")}</Badge>
+                <Badge variant="outline">
+                  {questions?.length}{" "}
+                  {t("dashboard.questionsCount", "questions")}
+                </Badge>
               </CardTitle>
             </CardHeader>
 
-            <CardContent className=" h-full overflow-hidden">
+            <CardContent className="h-full overflow-hidden">
               {isGeneratingQuestions ? (
                 <div className="flex flex-col h-[500px] text-center text-muted-foreground space-y-4 p-4">
                   <Skeleton className="h-25 w-full rounded-md" />
@@ -908,7 +1274,10 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                     <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground">
                       <Lightbulb className="h-12 w-12 mb-4 opacity-50" />
                       <p className="text-sm">
-                        {t("common.startSpeakingHint", "Start speaking to see related questions based on your transcript")}
+                        {t(
+                          "common.startSpeakingHint",
+                          "Start speaking to see related questions based on your transcript"
+                        )}
                       </p>
                     </div>
                   ) : (
@@ -954,109 +1323,114 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                                         d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                                       />
                                     </svg>
-                                    {t("common.viewExpertAnswer", "View Expert Answer")}
+                                    {t(
+                                      "common.viewExpertAnswer",
+                                      "View Expert Answer"
+                                    )}
                                   </div>
                                 </AccordionTrigger>
-                                
+
                                 <AccordionContent className="pt-3 pb-1">
-                                   <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-lg p-3 space-y-3">
-                                     {/* Status & Qualitative Confidence Header */}
-                                     <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/80 dark:border-slate-800">
-                                       <div className="flex items-center gap-2">
-                                         <span
-                                           className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                                             qn.status === "grounded"
-                                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300"
-                                               : qn.status === "calculated"
-                                               ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300"
-                                               : qn.status === "source_unavailable"
-                                               ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300"
-                                               : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300"
-                                           }`}
-                                         >
-                                           {qn.status === "grounded"
-                                             ? "Grounded Advisory"
-                                             : qn.status === "calculated"
-                                             ? "Market Intelligence"
-                                             : qn.status === "source_unavailable"
-                                             ? "Source Unavailable"
-                                             : "Needs Expert Review"}
-                                         </span>
+                                  <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-lg p-3 space-y-3">
+                                    {/* Status & Qualitative Confidence Header */}
+                                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/80 dark:border-slate-800">
+                                      <div className="flex items-center gap-2">
+                                        <span
+                                          className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                                            qn.status === "grounded"
+                                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300"
+                                              : qn.status === "calculated"
+                                              ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300"
+                                              : qn.status === "source_unavailable"
+                                              ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300"
+                                              : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300"
+                                          }`}
+                                        >
+                                          {qn.status === "grounded"
+                                            ? "Grounded Advisory"
+                                            : qn.status === "calculated"
+                                            ? "Market Intelligence"
+                                            : qn.status === "source_unavailable"
+                                            ? "Source Unavailable"
+                                            : "Needs Expert Review"}
+                                        </span>
 
-                                         <span className="text-xs text-muted-foreground font-medium">
-                                           Confidence:{" "}
-                                           <span className="text-foreground font-semibold">
-                                             {qn.confidence === "high"
-                                               ? "Verified source"
-                                               : qn.confidence === "medium"
-                                               ? "Supported by sources"
-                                               : "Needs expert review"}
-                                           </span>
-                                         </span>
-                                       </div>
+                                        <span className="text-xs text-muted-foreground font-medium">
+                                          Confidence:{" "}
+                                          <span className="text-foreground font-semibold">
+                                            {qn.confidence === "high"
+                                              ? "Verified source"
+                                              : qn.confidence === "medium"
+                                              ? "Supported by sources"
+                                              : "Needs expert review"}
+                                          </span>
+                                        </span>
+                                      </div>
 
-                                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                         <User className="w-3 h-3" />
-                                         <span className="font-medium text-foreground">
-                                           {qn.agri_specialist}
-                                         </span>
-                                       </div>
-                                     </div>
+                                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <User className="w-3 h-3" />
+                                        <span className="font-medium text-foreground">
+                                          {qn.agri_specialist}
+                                        </span>
+                                      </div>
+                                    </div>
 
-                                     {/* Warnings / Missing Dosage Alert */}
-                                     {qn.warnings && qn.warnings.length > 0 && (
-                                       <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-md p-2.5 text-xs text-amber-800 dark:text-amber-300 space-y-1">
-                                         <span className="font-semibold block">Notice / Safety Disclaimer:</span>
-                                         {qn.warnings.map((w, idx) => (
-                                           <p key={idx}>{w}</p>
-                                         ))}
-                                       </div>
-                                     )}
+                                    {/* Warnings / Missing Dosage Alert */}
+                                    {qn.warnings && qn.warnings.length > 0 && (
+                                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-md p-2.5 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                                        <span className="font-semibold block">
+                                          Notice / Safety Disclaimer:
+                                        </span>
+                                        {qn.warnings.map((w, idx) => (
+                                          <p key={idx}>{w}</p>
+                                        ))}
+                                      </div>
+                                    )}
 
-                                     {/* Answer Body */}
-                                     <div className="px-1">
-                                       <p className="text-sm text-foreground leading-relaxed">
-                                         {qn.answer || "No response generated."}
-                                       </p>
-                                     </div>
+                                    {/* Answer Body */}
+                                    <div className="px-1">
+                                      <p className="text-sm text-foreground leading-relaxed">
+                                        {qn.answer || "No response generated."}
+                                      </p>
+                                    </div>
 
-                                     {/* Provenance Evidence Sources */}
-                                     {qn.sources && qn.sources.length > 0 && (
-                                       <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800 space-y-1.5">
-                                         <span className="text-xs font-semibold text-muted-foreground block">
-                                           Verified Evidence Sources:
-                                         </span>
-                                         <div className="flex flex-wrap gap-2">
-                                           {qn.sources.map((src, sIdx) => (
-                                             <div
-                                               key={sIdx}
-                                               className="text-xs px-2 py-1 rounded bg-background border border-border flex items-center gap-1.5"
-                                             >
-                                               <span className="font-bold text-primary">
-                                                 {src.type === "golden"
-                                                   ? "Golden Dataset"
-                                                   : src.type === "reviewer"
-                                                   ? "Expert Reviewed"
-                                                   : src.type === "market_prices"
-                                                   ? "Agmarknet Mandi"
-                                                   : src.type === "pop"
-                                                   ? "Official PoP"
-                                                   : src.type === "buyers"
-                                                   ? "Verified Buyer"
-                                                   : "Official Source"}
-                                               </span>
-                                               {src.reference && (
-                                                 <span className="text-muted-foreground truncate max-w-[200px]">
-                                                   ({src.reference})
-                                                 </span>
-                                               )}
-                                             </div>
-                                           ))}
-                                         </div>
-                                       </div>
-                                     )}
-                                   </div>
-                                 </AccordionContent>
+                                    {/* Provenance Evidence Sources */}
+                                    {qn.sources && qn.sources.length > 0 && (
+                                      <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800 space-y-1.5">
+                                        <span className="text-xs font-semibold text-muted-foreground block">
+                                          Verified Evidence Sources:
+                                        </span>
+                                        <div className="flex flex-wrap gap-2">
+                                          {qn.sources.map((src, sIdx) => (
+                                            <div
+                                              key={sIdx}
+                                              className="text-xs px-2 py-1 rounded bg-background border border-border flex items-center gap-1.5"
+                                            >
+                                              <span className="font-bold text-primary">
+                                                {src.type === "golden"
+                                                  ? "Golden Dataset"
+                                                  : src.type === "reviewer"
+                                                  ? "Expert Reviewed"
+                                                  : src.type === "market_prices"
+                                                  ? "Agmarknet Mandi"
+                                                  : src.type === "pop"
+                                                  ? "Official PoP"
+                                                  : src.type === "buyers"
+                                                  ? "Verified Buyer"
+                                                  : "Official Source"}
+                                              </span>
+                                              {src.reference && (
+                                                <span className="text-muted-foreground truncate max-w-[200px]">
+                                                  ({src.reference})
+                                                </span>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </AccordionContent>
                               </AccordionItem>
                             </Accordion>
                           </div>
@@ -1082,3 +1456,4 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
 };
 
 export default VoiceRecorderCard;
+

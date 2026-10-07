@@ -164,7 +164,8 @@ export const useShiftBasedMetrics = (
     // toDate: string;
     shift: string;
     source: string;
-    timeRange: {from:string, to: string}
+    timeRange: {from:string, to: string};
+    enabled?: boolean;
   }
 ) => {
   return useQuery({
@@ -187,6 +188,7 @@ export const useShiftBasedMetrics = (
         query.timeRange
       ),
 
+    enabled: query.enabled !== false,
     placeholderData: keepPreviousData,
   });
 };
@@ -197,7 +199,8 @@ export const useShiftBasedTrends = (
     // toDate: string;
     shift: string;
     source: string;
-    timeRange: {from:string, to: string}
+    timeRange: {from:string, to: string};
+    enabled?: boolean;
   }
 ) => {
   return useQuery({
@@ -220,6 +223,7 @@ export const useShiftBasedTrends = (
         query.timeRange
       ),
 
+    enabled: query.enabled !== false,
     placeholderData: keepPreviousData,
   });
 };
@@ -230,7 +234,8 @@ export const useShiftBasedStatusDistribution = (
     // toDate: string;
     shift: string;
     source: string;
-    timeRange: {from:string, to: string}
+    timeRange: {from:string, to: string};
+    enabled?: boolean;
   }
 ) => {
   return useQuery({
@@ -253,6 +258,7 @@ export const useShiftBasedStatusDistribution = (
         query.timeRange
       ),
 
+    enabled: query.enabled !== false,
     placeholderData: keepPreviousData,
   });
 };
@@ -264,7 +270,8 @@ export const useShiftBasedLevelDistribution = (
     // toDate: string;
     shift: string;
     source: string;
-    timeRange: {from:string, to: string}
+    timeRange: {from:string, to: string};
+    enabled?: boolean;
   }
 ) => {
   return useQuery({
@@ -287,6 +294,7 @@ export const useShiftBasedLevelDistribution = (
         query.timeRange
       ),
 
+    enabled: query.enabled !== false,
     placeholderData: keepPreviousData,
   });
 };
@@ -297,7 +305,8 @@ export const useShiftBasedTopExperts = (
     // toDate: string;
     shift: string;
     source: string;
-    timeRange: {from:string, to: string}
+    timeRange: {from:string, to: string};
+    enabled?: boolean;
   }
 ) => {
   return useQuery({
@@ -320,6 +329,7 @@ export const useShiftBasedTopExperts = (
         query.timeRange
       ),
 
+    enabled: query.enabled !== false,
     placeholderData: keepPreviousData,
   });
 };
@@ -331,7 +341,8 @@ export const useShiftBasedTopApprovingExperts = (
     // toDate: string;
     shift: string;
     source: string;
-    timeRange: {from:string, to: string}
+    timeRange: {from:string, to: string};
+    enabled?: boolean;
   }
 ) => {
   return useQuery({
@@ -354,6 +365,7 @@ export const useShiftBasedTopApprovingExperts = (
         query.timeRange
       ),
 
+    enabled: query.enabled !== false,
     placeholderData: keepPreviousData,
   });
 };
@@ -364,7 +376,8 @@ export const useShiftBasedAuditActionCounts = (
     fromDate: string;
     // toDate: string;
     shift: string;
-    timeRange: {from:string, to: string}
+    timeRange: {from:string, to: string};
+    enabled?: boolean;
   }
 ) => {
   return useQuery({
@@ -385,6 +398,7 @@ export const useShiftBasedAuditActionCounts = (
         query.timeRange
       ),
 
+    enabled: query.enabled !== false,
     placeholderData: keepPreviousData,
   });
 };

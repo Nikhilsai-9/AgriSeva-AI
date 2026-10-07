@@ -155,13 +155,18 @@ const DownloadShiftWiseReportButton = ({
   }
 };
 
+  const isReportEnabled =
+    isDateDialogOpen &&
+    (userRole === 'admin' || userRole === 'moderator' || userRole === 'tester');
+
   const { data: shiftWiseData, isFetching: isShiftWiseDataLoading } =
     useShiftBasedMetrics({
       fromDate: startDate,
       // toDate: endDate,
       shift: selectedShift,
       source,
-      timeRange: timeRange
+      timeRange: timeRange,
+      enabled: isReportEnabled,
     });
 
   const { data: shiftWiseTrends, isFetching: isShiftWiseTrendsLoading } =
@@ -170,7 +175,8 @@ const DownloadShiftWiseReportButton = ({
       // toDate: endDate,
       shift: selectedShift,
       source,
-      timeRange: timeRange
+      timeRange: timeRange,
+      enabled: isReportEnabled,
     });
 
   const {
@@ -181,7 +187,8 @@ const DownloadShiftWiseReportButton = ({
     // toDate: endDate,
     shift: selectedShift,
     source,
-    timeRange: timeRange
+    timeRange: timeRange,
+    enabled: isReportEnabled,
   });
 
   const {
@@ -192,7 +199,8 @@ const DownloadShiftWiseReportButton = ({
     // toDate: endDate,
     shift: selectedShift,
     source,
-    timeRange: timeRange
+    timeRange: timeRange,
+    enabled: isReportEnabled,
   });
 
   const { data: topExperts, isFetching: isTopExpertsLoading } =
@@ -201,7 +209,8 @@ const DownloadShiftWiseReportButton = ({
       // toDate: endDate,
       shift: selectedShift,
       source,
-      timeRange: timeRange
+      timeRange: timeRange,
+      enabled: isReportEnabled,
     });
 
   const { data: topApprovingExperts, isFetching: isTopApproversLoading } =
@@ -210,7 +219,8 @@ const DownloadShiftWiseReportButton = ({
       // toDate: endDate,
       shift: selectedShift,
       source,
-      timeRange: timeRange
+      timeRange: timeRange,
+      enabled: isReportEnabled,
     });
 
   const { data: auditActionCounts, isFetching: isAuditActionCountsLoading } =
@@ -218,7 +228,8 @@ const DownloadShiftWiseReportButton = ({
       fromDate: startDate,
       // toDate: endDate,
       shift: selectedShift,
-      timeRange: timeRange
+      timeRange: timeRange,
+      enabled: isReportEnabled,
     });
 
   const formattedAuditActionCounts = (auditActionCounts?.data ?? []).map(

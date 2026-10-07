@@ -1,6 +1,7 @@
 import { apiFetch } from "@/hooks/api/api-fetch";
 import { urlBase64ToUint8Array } from "@/utils/vapid";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import { env } from "@/config/env";
+const API_BASE_URL = env.apiBaseUrl();
 export const initializeNotifications = async () => {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
@@ -53,7 +54,7 @@ export const initializeNotifications = async () => {
       applicationServerKey: newKey,
     });
 
-    const receivedNotification = await saveSubscription(subscription);
+    await saveSubscription(subscription);
     localStorage.setItem("push_endpoint", subscription.endpoint);
   } catch (err) {
     console.error("Error initializing notifications:", err);

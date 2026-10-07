@@ -1274,6 +1274,16 @@ export const en = {
     audioTooLarge: "Audio recording is too long. Please record a shorter message or type your question.",
     rateLimited: "Voice service is busy. Please try again in a few moments or type your question.",
     cannotSubmitFailed: "Please record again or type your question before submitting.",
+    transcriptionOfflineAudioCaptured: "Your voice note was recorded successfully. Auto-transcription is currently offline — please type your question or submit your voice note directly.",
+    submitVoiceNote: "Submit Voice Note",
+    recordingActive: "Recording voice...",
+    audioReady: "Audio note recorded.",
+    audioCaptured: "Recorded Audio Clip",
+    recordedClip: "Recorded Voice Note",
+    audioPlayback: "Recorded audio",
+    emptyAudio: "No audio was captured. Please check microphone permissions and try again.",
+    micNotSupported: "Microphone recording requires a modern browser with HTTPS or localhost connection. Please type your question.",
+    emptySubmit: "Please record audio or type your question before submitting.",
   },
 };
 
