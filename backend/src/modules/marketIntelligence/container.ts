@@ -19,6 +19,7 @@ import {MarketHistoryService} from './services/MarketHistoryService.js';
 import {MarketReliabilityService} from './services/ReliabilityService.js';
 import {MarketIngestionService} from './services/MarketIngestionService.js';
 import {CommodityResolver} from './services/CommodityResolver.js';
+import {LocationResolver} from './services/LocationResolver.js';
 import {RecommendationService} from './services/RecommendationService.js';
 
 import {MarketPricesController} from './controllers/MarketPricesController.js';
@@ -43,6 +44,7 @@ export const marketIntelligenceContainerModule = new ContainerModule(options => 
   options.bind(GLOBAL_TYPES.MarketReliabilityService).to(MarketReliabilityService).inSingletonScope();
   options.bind(GLOBAL_TYPES.MarketIngestionService).to(MarketIngestionService).inSingletonScope();
   options.bind(GLOBAL_TYPES.CommodityResolver).to(CommodityResolver).inSingletonScope();
+  options.bind(GLOBAL_TYPES.LocationResolver).to(LocationResolver).inSingletonScope();
   options.bind(GLOBAL_TYPES.RecommendationService).to(RecommendationService).inSingletonScope();
 
   // Controllers

@@ -99,6 +99,11 @@ describe('Production Grounded Answer-Generation Pipeline Tests', () => {
       if (colName === 'buyers') {
         return {
           find: (filter: any) => ({
+            sort: () => ({
+              limit: () => ({
+                toArray: async () => mockBuyers,
+              }),
+            }),
             limit: () => ({
               toArray: async () => mockBuyers,
             }),

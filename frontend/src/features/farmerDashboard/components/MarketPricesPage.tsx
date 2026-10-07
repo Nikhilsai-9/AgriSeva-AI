@@ -74,26 +74,27 @@ export function MarketPricesPage() {
 
   const profileCrop = (profile.data as any)?.primaryCrops?.[0] ?? (profile.data as any)?.primaryCrop;
   const activeLotCrop = lots?.find((l) => l.status === "active")?.crop;
-  const initialCrop = profileCrop || activeLotCrop || "Tomato";
-  const initialState = (profile.data as any)?.state;
+  const initialCrop = profileCrop || activeLotCrop || "";
+  const initialState = (profile.data as any)?.state || "";
 
   const [filters, setFilters] = useState<MarketPriceQuery>({
-    commodity: initialCrop,
-    state: initialState,
+    commodity: initialCrop || undefined,
+    state: initialState || undefined,
+    district: undefined,
+    market: undefined,
   });
 
+  // When profile loads, if user hasn't selected anything yet, sync profile state/crop
   useEffect(() => {
     if (profile.data) {
       const pCrop = (profile.data as any)?.primaryCrops?.[0] ?? (profile.data as any)?.primaryCrop;
       const pState = (profile.data as any)?.state;
-      if (pCrop || pState) {
-        setFilters((prev) => ({
-          commodity: prev.commodity === "Tomato" && pCrop ? pCrop : prev.commodity,
-          state: prev.state === undefined && pState ? pState : prev.state,
-          district: prev.district,
-          market: prev.market,
-        }));
-      }
+      setFilters((prev) => ({
+        commodity: prev.commodity ?? (pCrop || undefined),
+        state: prev.state ?? (pState || undefined),
+        district: prev.district,
+        market: prev.market,
+      }));
     }
   }, [profile.data]);
 
@@ -184,23 +185,25 @@ export function MarketPricesPage() {
           <Filter className="h-4 w-4" />
           {t("farmer.prices.filters", "Filters")}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Crop Filter */}
           <label className="block">
             <span className="block text-xs font-semibold text-emerald-900/70 mb-1">
-              {t("farmer.prices.crop", "Crop")}
+              {t("farmer.prices.crop", "Crop / Commodity")}
             </span>
             <select
               className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              value={filters.commodity ?? "Tomato"}
+              value={filters.commodity ?? ""}
               onChange={(e) =>
                 setFilters(
                   (f: MarketPriceQuery): MarketPriceQuery => ({
                     ...f,
-                    commodity: e.target.value,
+                    commodity: e.target.value || undefined,
                   })
                 )
               }
             >
+              <option value="">{t("farmer.prices.allCrops", "All Commodities")}</option>
               {COMMODITIES.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -208,6 +211,8 @@ export function MarketPricesPage() {
               ))}
             </select>
           </label>
+
+          {/* State Filter — changing State cascades and clears District/Market */}
           <label className="block">
             <span className="block text-xs font-semibold text-emerald-900/70 mb-1">
               {t("farmer.prices.state", "State")}
@@ -215,15 +220,19 @@ export function MarketPricesPage() {
             <select
               className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               value={filters.state ?? ""}
-              onChange={(e) =>
+              onChange={(e) => {
+                const newState = e.target.value || undefined;
                 setFilters(
                   (f: MarketPriceQuery): MarketPriceQuery => ({
                     ...f,
-                    state: e.target.value,
+                    state: newState,
+                    district: undefined, // PHASE 10: Clear district when state changes
+                    market: undefined,   // PHASE 10: Clear market when state changes
                   })
-                )
-              }
+                );
+              }}
             >
+              <option value="">{t("farmer.prices.allStates", "All States (India)")}</option>
               {INDIAN_STATES.map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -231,6 +240,8 @@ export function MarketPricesPage() {
               ))}
             </select>
           </label>
+
+          {/* District Filter */}
           <label className="block">
             <span className="block text-xs font-semibold text-emerald-900/70 mb-1">
               {t("farmer.prices.district", "District")}
@@ -244,10 +255,32 @@ export function MarketPricesPage() {
                   (f: MarketPriceQuery): MarketPriceQuery => ({
                     ...f,
                     district: e.target.value || undefined,
+                    market: undefined, // Clear market when district changes
                   }),
                 )
               }
-              placeholder={t("farmer.prices.districtPlaceholder", "Optional")}
+              placeholder={t("farmer.prices.districtPlaceholder", "e.g. Thoothukudi, Nashik")}
+            />
+          </label>
+
+          {/* Market / APMC Filter */}
+          <label className="block">
+            <span className="block text-xs font-semibold text-emerald-900/70 mb-1">
+              {t("farmer.prices.mandi", "Mandi / APMC")}
+            </span>
+            <input
+              type="text"
+              className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              value={filters.market ?? ""}
+              onChange={(e) =>
+                setFilters(
+                  (f: MarketPriceQuery): MarketPriceQuery => ({
+                    ...f,
+                    market: e.target.value || undefined,
+                  }),
+                )
+              }
+              placeholder={t("farmer.prices.mandiPlaceholder", "e.g. APMC Lasalgaon")}
             />
           </label>
         </div>

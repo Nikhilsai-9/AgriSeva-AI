@@ -25,7 +25,10 @@ export type VerificationStatus =
   | 'unverified'
   | 'pending'
   | 'verified'
-  | 'rejected';
+  | 'rejected'
+  | 'government_enam_verified'
+  | 'agriseva_verified'
+  | 'agriseva_registered';
 
 export type QualityGrade = 'A' | 'B' | 'C';
 

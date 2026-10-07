@@ -107,7 +107,7 @@ describe('MarketInsightController', () => {
     mockHistoryService.annotateWithChange.mockClear();
   });
 
-  it('returns isDemo=true when no rows match', async () => {
+  it('returns isDemo=false when no rows match (honest empty state)', async () => {
     mockPriceRepo.findMany.mockResolvedValueOnce([]);
 
     const res = await request(app).get(
@@ -115,7 +115,7 @@ describe('MarketInsightController', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(res.body.isDemo).toBe(true);
+    expect(res.body.isDemo).toBe(false);
     expect(res.body.insight).toBeNull();
     expect(mockPriceRepo.findMany).toHaveBeenCalledWith(
       expect.objectContaining({commodity: 'Tomato', state: 'Karnataka'}),

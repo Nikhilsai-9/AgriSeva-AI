@@ -93,7 +93,7 @@ export class BuyerController {
     @Body() body: BuyerVerificationBody,
   ): Promise<{success: boolean; buyer: BuyerRecord}> {
     const status: VerificationStatus = body.verificationStatus;
-    if (!['unverified', 'pending', 'verified', 'rejected'].includes(status)) {
+    if (!['unverified', 'pending', 'verified', 'rejected', 'government_enam_verified', 'agriseva_verified', 'agriseva_registered'].includes(status)) {
       throw new BadRequestError('Invalid verification status');
     }
     const updated = await this.buyers.updateVerificationStatus(id, status);

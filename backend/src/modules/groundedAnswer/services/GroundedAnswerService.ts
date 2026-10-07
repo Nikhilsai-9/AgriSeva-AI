@@ -3,6 +3,8 @@ import { ObjectId } from 'mongodb';
 import { GLOBAL_TYPES } from '#root/types.js';
 import { MongoDatabase } from '#root/shared/index.js';
 import { aiConfig } from '#root/config/ai.js';
+import { LocationResolver } from '#root/modules/marketIntelligence/services/LocationResolver.js';
+import { MULTILINGUAL_COMMODITY_MASTER } from '#root/modules/marketIntelligence/services/CommodityResolver.js';
 import type {
   IGroundedAnswerService,
   GroundedAnswerRequest,
@@ -190,6 +192,7 @@ export class GroundedAnswerService implements IGroundedAnswerService {
     const marketKeywords = [
       'market price', 'mandi rate', 'price of', 'bhav', 'rate per quintal',
       'modal price', 'selling rate', 'mandi price', 'mandi', 'market rate',
+      'price', 'prices', 'rate', 'rates',
       // Telugu
       'ధర', 'రేటు', 'మార్కెట్ ధర', 'దర', 'మండి', 'ధరలు',
       // Hindi / Marathi
@@ -306,7 +309,7 @@ export class GroundedAnswerService implements IGroundedAnswerService {
       // Kannada
       'ಯೋಜನೆ', 'ಸಹಾಯಧನ',
       // Malayalam
-      'പദ്ധതി', 'സബ്സിഡി',
+      'പദ്ധതി', 'ಸಹಾಯಧನ',
       // Bengali
       'প্রকল্প', 'ভর্তুকি',
       // Gujarati
@@ -323,6 +326,82 @@ export class GroundedAnswerService implements IGroundedAnswerService {
     return 'GENERAL_AGRI';
   }
 
+  private readonly locationResolver = new LocationResolver();
+
+  private extractCommodityFromQuery(
+    query: string,
+    requestCrop?: string,
+  ): { canonical: string; matched: string; candidates: string[] } | null {
+    // If crop was explicitly passed in request parameters, match that first
+    if (requestCrop && requestCrop.trim()) {
+      const explicit = requestCrop.trim().toLowerCase();
+      const match = MULTILINGUAL_COMMODITY_MASTER.find(
+        m => m.canonical.toLowerCase() === explicit ||
+             m.agmarknetCanonical.toLowerCase() === explicit ||
+             m.aliases.some(a => a.toLowerCase() === explicit)
+      );
+      if (match) {
+        return {
+          canonical: match.canonical,
+          matched: requestCrop.trim(),
+          candidates: Array.from(new Set([match.canonical, match.agmarknetCanonical, requestCrop.trim()])),
+        };
+      }
+      return {
+        canonical: requestCrop.trim(),
+        matched: requestCrop.trim(),
+        candidates: [requestCrop.trim()],
+      };
+    }
+
+    if (!query || typeof query !== 'string') return null;
+    const lower = query.toLowerCase();
+
+    for (const entry of MULTILINGUAL_COMMODITY_MASTER) {
+      for (const alias of entry.aliases) {
+        const aLower = alias.toLowerCase();
+        const isNonLatin = /[\u0900-\u0D7F]/.test(aLower);
+        if (isNonLatin) {
+          if (lower.includes(aLower)) {
+            return {
+              canonical: entry.canonical,
+              matched: alias,
+              candidates: Array.from(new Set([entry.canonical, entry.agmarknetCanonical, alias])),
+            };
+          }
+        } else {
+          // Strictly require word boundaries for Latin text so "rice" doesn't match "price"
+          const escaped = aLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`(^|\\b|\\s)${escaped}(\\b|\\s|$)`, 'i');
+          if (regex.test(lower)) {
+            return {
+              canonical: entry.canonical,
+              matched: alias,
+              candidates: Array.from(new Set([entry.canonical, entry.agmarknetCanonical, alias])),
+            };
+          }
+        }
+      }
+    }
+
+    // Check if query has natural language patterns like "buyers for <crop>", "price of <crop>"
+    const patternMatch = lower.match(/(?:buyers?\s+for|price\s+of|rate\s+of|cost\s+of)\s+([a-zA-Z]+)/i);
+    if (patternMatch && patternMatch[1]) {
+      const candidate = patternMatch[1].trim();
+      const nonCrops = ['the', 'a', 'an', 'my', 'this', 'any', 'verified', 'all', 'today', 'our'];
+      if (!nonCrops.includes(candidate)) {
+        const titleCase = candidate.charAt(0).toUpperCase() + candidate.slice(1);
+        return {
+          canonical: titleCase,
+          matched: candidate,
+          candidates: [titleCase],
+        };
+      }
+    }
+
+    return null;
+  }
+
   /* =======================================================================
    * 2. MARKET PRICE HANDLER (Tier 4 Verified Agmarknet Structured Data)
    * ======================================================================= */
@@ -336,67 +415,141 @@ export class GroundedAnswerService implements IGroundedAnswerService {
     try {
       const col = await this.db.getCollection<any>('market_prices');
 
-      // Extract commodity name from query or request context
-      const knownCommodities = [
-        'Bajra', 'Jowar', 'Maize', 'Paddy', 'Wheat', 'Cotton', 'Chilli',
-        'Tomato', 'Onion', 'Potato', 'Soyabean', 'Groundnut', 'Bengal Gram'
-      ];
-
-      const detected = knownCommodities.find(c =>
-        query.toLowerCase().includes(c.toLowerCase()) ||
-        request.crop?.toLowerCase().includes(c.toLowerCase())
-      );
-
-      const filter: any = {};
-      if (detected) {
-        filter.commodity = { $regex: new RegExp(detected, 'i') };
-      }
-      if (request.state) {
-        filter.state = { $regex: new RegExp(request.state, 'i') };
+      // Step 1: Multilingual Commodity Extraction — NEVER default to Tomato!
+      const detectedCommodity = this.extractCommodityFromQuery(query, request.crop);
+      if (!detectedCommodity) {
+        return {
+          questionId,
+          answer: this.getMissingCropClarificationMessage(lang),
+          confidence: 'medium',
+          status: 'insufficient_evidence',
+          sources: [],
+          warnings: ['No commodity detected in query; prompt farmer for crop name'],
+          language: lang,
+          generatedAt: timestamp,
+        };
       }
 
-      const results = await col.find(filter).sort({ arrivalDate: -1, reportedAt: -1 }).limit(3).toArray();
+      // Step 2: Location Extraction — Recognises 37 States/UTs + Mandis
+      const loc = this.locationResolver.extractLocation(query);
+      const targetState = this.locationResolver.resolveState(request.state) || loc.state;
+      const targetMarket = loc.market;
 
+      const commodityRegex = new RegExp(detectedCommodity.canonical, 'i');
+      let results: any[] = [];
+      let locationContext = '';
+
+      // A: Mandi-specific query
+      if (targetMarket) {
+        locationContext = targetMarket;
+        const marketClean = targetMarket.replace(/\s+APMC$/i, '');
+        results = await col
+          .find({
+            commodity: commodityRegex,
+            market: { $regex: new RegExp(marketClean, 'i') },
+          })
+          .sort({ arrivalDate: -1, reportedAt: -1 })
+          .limit(3)
+          .toArray();
+      }
+
+      // B: State-level query
+      if (results.length === 0 && targetState) {
+        locationContext = targetState;
+        results = await col
+          .find({
+            commodity: commodityRegex,
+            state: { $regex: new RegExp(`^${targetState}$`, 'i') },
+          })
+          .sort({ arrivalDate: -1, reportedAt: -1 })
+          .limit(5)
+          .toArray();
+      }
+
+      // C: National / All-Mandi query when no location was specified
+      if (results.length === 0 && !targetState && !targetMarket) {
+        results = await col
+          .find({ commodity: commodityRegex })
+          .sort({ arrivalDate: -1, reportedAt: -1 })
+          .limit(4)
+          .toArray();
+      }
+
+      // Step 3: Verified Results formatting
       if (results && results.length > 0) {
-        const item = results[0];
-        const commodityName = item.commodity || item.crop || 'Commodity';
-        const modalPrice = item.modalPrice || item.maxPrice || 'N/A';
-        const minPrice = item.minPrice || modalPrice;
-        const maxPrice = item.maxPrice || modalPrice;
-        const unit = item.unit || '₹/quintal';
-        const market = item.market || item.state || 'Regional Mandi';
-        const date = item.arrivalDate || item.reportedAt || 'Recent';
+        let answer = '';
+        if (results.length === 1) {
+          const item = results[0];
+          const commodityName = item.commodity || detectedCommodity.canonical;
+          const modalPrice = item.modalPrice || item.maxPrice || 'N/A';
+          const minPrice = item.minPrice || modalPrice;
+          const maxPrice = item.maxPrice || modalPrice;
+          const unit = item.unit || '₹/quintal';
+          const market = item.market || item.state || 'Regional Mandi';
+          const date = item.arrivalDate || item.reportedAt || 'Recent';
+          answer = this.getMarketPriceAnswer(market, commodityName, date, modalPrice, minPrice, maxPrice, unit, lang);
+        } else {
+          // Multi-mandi summary (e.g. State-level or National overview)
+          const commodityName = results[0].commodity || detectedCommodity.canonical;
+          const lines = results.map((item, idx) => {
+            const mName = item.market || item.district || item.state;
+            const modal = item.modalPrice || item.maxPrice || 'N/A';
+            const min = item.minPrice || modal;
+            const max = item.maxPrice || modal;
+            const unit = item.unit || '₹/quintal';
+            const date = item.arrivalDate || item.reportedAt || '';
+            const dateStr = date ? ` (${date})` : '';
+            return `${idx + 1}. *${mName}* [${item.state}]: Modal ₹${modal} ${unit} (Range: ₹${min} - ₹${max})${dateStr}`;
+          });
 
-        const answer = this.getMarketPriceAnswer(market, commodityName, date, modalPrice, minPrice, maxPrice, unit, lang);
+          if (lang.startsWith('te')) {
+            answer = `📊 *${commodityName}* తాజా Agmarknet మార్కెట్ ధరలు (${locationContext || 'కీలక మండీలు'}):\n\n${lines.join('\n')}\n\nమూలం: భారత ప్రభుత్వ Agmarknet అధికారిక నివేదిక.`;
+          } else if (lang.startsWith('ta')) {
+            answer = `📊 *${commodityName}* சமீபத்திய Agmarknet சந்தை விலைகள் (${locationContext || 'முக்கிய சந்தைகள்'}):\n\n${lines.join('\n')}\n\nஆதாரம்: இந்திய அரசு Agmarknet அதிகாரப்பூர்வ அறிக்கை.`;
+          } else if (lang.startsWith('hi')) {
+            answer = `📊 *${commodityName}* के नवीनतम Agmarknet मंडी भाव (${locationContext || 'प्रमुख मंडियां'}):\n\n${lines.join('\n')}\n\nस्रोत: भारत सरकार Agmarknet आधिकारिक दैनिक डेटा।`;
+          } else if (lang.startsWith('kn')) {
+            answer = `📊 *${commodityName}* ನ ಇತ್ತೀಚಿನ Agmarknet ಮಾರುಕಟ್ಟೆ ದರಗಳು (${locationContext || 'ಪ್ರಮುಖ ಮಂಡಿಗಳು'}):\n\n${lines.join('\n')}\n\nಮೂಲ: ಭಾರತ ಸರ್ಕಾರದ Agmarknet ಅಧಿಕೃತ ವರದಿ.`;
+          } else if (lang.startsWith('mr')) {
+            answer = `📊 *${commodityName}* चे नवीनतम Agmarknet बाजार भाव (${locationContext || 'प्रमुख बाजार समित्या'}):\n\n${lines.join('\n')}\n\nस्रोत: भारत सरकार Agmarknet अधिकृत अहवाल.`;
+          } else {
+            answer = `📊 Verified Agmarknet Mandi Prices for *${commodityName}* (${locationContext || 'Major Markets'}):\n\n${lines.join('\n')}\n\nVerified Source: Government of India Agmarknet Official Daily Arrivals.`;
+          }
+        }
 
-        const source: GroundedSource = {
+        const sources: GroundedSource[] = results.map((item) => ({
           type: 'market_prices',
           id: String(item._id || item.recordKey || 'agmarknet-rec'),
-          title: `Agmarknet Market Price — ${commodityName} (${market})`,
+          title: `Agmarknet Market Price — ${item.commodity || detectedCommodity.canonical} (${item.market || item.state})`,
           reference: 'https://agmarknet.gov.in (Agmarknet Mandi Arrivals)',
           score: 1.0,
           metadata: {
-            arrivalDate: date,
-            modalPrice,
-            unit,
+            arrivalDate: item.arrivalDate || item.reportedAt,
+            modalPrice: item.modalPrice,
+            unit: item.unit,
             state: item.state,
+            market: item.market,
           },
-        };
+        }));
 
         return {
           questionId,
           answer,
           confidence: 'high',
           status: 'calculated',
-          sources: [source],
+          sources,
           warnings: [],
           language: lang,
           generatedAt: timestamp,
         };
       }
 
-      // No price found in database: DO NOT INVENT PRICES!
-      const noPriceMsg = this.getNoPriceMessage(lang);
+      // Step 4: Strict No-Data Response — NEVER INVENT PRICES OR RELAX FILTERS!
+      const noPriceMsg = this.getNoPriceForCropLocationMessage(
+        detectedCommodity.canonical,
+        locationContext || targetState || targetMarket,
+        lang,
+      );
 
       return {
         questionId,
@@ -404,7 +557,7 @@ export class GroundedAnswerService implements IGroundedAnswerService {
         confidence: 'low',
         status: 'insufficient_evidence',
         sources: [],
-        warnings: ['No verified market price record in Agmarknet dataset for this query'],
+        warnings: [`No verified market price record in Agmarknet for ${detectedCommodity.canonical} in ${locationContext || 'requested region'}`],
         language: lang,
         generatedAt: timestamp,
       };
@@ -423,11 +576,42 @@ export class GroundedAnswerService implements IGroundedAnswerService {
     }
   }
 
+  private getMissingCropClarificationMessage(lang: string): string {
+    if (lang.startsWith('te')) return '🌾 మీరు ఏ పంట మార్కెట్ ధర గురించి తెలుసుకోవాలనుకుంటున్నారు? దయచేసి పంట పేరు (ఉదా: టమోటా, ఉల్లిపాయ, వరి, పత్తి, మిర్చి) మరియు మండి లేదా రాష్ట్రాన్ని తెలపండి.';
+    if (lang.startsWith('hi')) return '🌾 आप किस फसल का मंडी भाव जानना चाहते हैं? कृपया फसल का नाम (जैसे टमाटर, प्याज, आलू, धान, कपास, मिर्च) और मंडी या राज्य का नाम बताएं।';
+    if (lang.startsWith('ta')) return '🌾 எந்த பயிரின் சந்தை விலையை அறிய விரும்புகிறீர்கள்? பயிரின் பெயர் (எ.கா. தக்காளி, வெங்காயம், நெல், பருத்தி, மிளகாய்) மற்றும் சந்தை அல்லது மாநிலத்தை குறிப்பிடவும்.';
+    if (lang.startsWith('kn')) return '🌾 ನೀವು ಯಾವ ಬೆಳೆಯ ಮಾರುಕಟ್ಟೆ ಬೆಲೆಯನ್ನು ತಿಳಿಯಲು ಬಯಸುತ್ತೀರಿ? ದಯವಿಟ್ಟು ಬೆಳೆಯ ಹೆಸರು (ಉದಾ: ಟೊಮೆಟೊ, ಈರುಳ್ಳಿ, ಭತ್ತ, ಹತ್ತಿ) ಮತ್ತು ಮಂಡಿ ಅಥವಾ ರಾಜ್ಯವನ್ನು ತಿಳಿಸಿ.';
+    if (lang.startsWith('mr')) return '🌾 आपण कोणत्या पिकाचा बाजार भाव जाणून घेऊ इच्छिता? कृपया पिकाचे नाव (उदा. टोमॅटो, कांदा, सोयाबीन, कापूस) आणि बाजार समिती किंवा राज्य सांगा.';
+    if (lang.startsWith('bn')) return '🌾 আপনি কোন ফসলের বাজার দর জানতে চান? অনুগ্রহ করে ফসলের নাম (যেমন টমেটো, পেঁয়াজ, আলু, ধান, তুলা) এবং বাজার বা রাজ্যের নাম উল্লেখ করুন।';
+    if (lang.startsWith('gu')) return '🌾 તમે કયા પાકના બજાર ભાવ જાણવા માંગો છો? કૃપા કરીને પાકનું નામ (જેમ કે ટામેટા, ડુંગળી, બટાકા, કપાસ) અને માર્કેટ યાર્ડ અથવા રાજ્યનું નામ જણાવો.';
+    if (lang.startsWith('pa')) return '🌾 ਤੁਸੀਂ ਕਿਸ ਫਸਲ ਦਾ ਮੰਡੀ ਭਾਅ ਜਾਣਨਾ ਚਾਹੁੰਦੇ ਹੋ? ਕਿਰਪਾ ਕਰਕੇ ਫਸਲ ਦਾ ਨਾਮ (ਜਿਵੇਂ ਟਮਾਟਰ, ਪਿਆਜ਼, ਆਲੂ, ਝੋਨਾ, ਨਰਮਾ) ਅਤੇ ਮੰਡੀ ਜਾਂ ਰਾਜ ਦਾ ਨਾਮ ਦੱਸੋ।';
+    if (lang.startsWith('ml')) return '🌾 ഏത് വിളയുടെ വിപണി വിലയാണ് അറിയാൻ ആഗ്രഹിക്കുന്നത്? ദയവായി വിളയുടെ പേരും (ഉദാ: തക്കാളി, ഉള്ളി, നെല്ല്) വിപണിയുടെയോ സംസ്ഥാനത്തിന്റെയോ പേരും വ്യക്തമാക്കുക.';
+    if (lang.startsWith('od') || lang.startsWith('or')) return '🌾 ଆପଣ କେଉଁ ଫସଲର ମଣ୍ଡି ଦର ଜାଣିବାକୁ ଚାହୁଁଛନ୍ତି? ଦୟାକରି ଫସଲର ନାମ (ଯଥା: ଟମାଟୋ, ପିଆଜ, ଧାନ, କପା) ଏବଂ ମଣ୍ଡି ବା ରାଜ୍ୟର ନାମ ଜଣାନ୍ତୁ।';
+    if (lang.startsWith('ur')) return '🌾 آپ کس فصل کا منڈی ریٹ معلوم کرنا چاہتے ہیں؟ برائے مہربانی فصل کا نام (جیسے ٹماٹر، پیاز، آلو، دھان، کپاس) اور منڈی یا ریاست کا نام بتائیں۔';
+    return '🌾 Which crop\'s mandi price would you like to know? Please specify the crop name (e.g. Tomato, Onion, Potato, Paddy, Cotton) and the market or state.';
+  }
+
+  private getNoPriceForCropLocationMessage(crop: string, location: string | undefined, lang: string): string {
+    const locStr = location ? ` in ${location}` : '';
+    if (lang.startsWith('te')) return `అధికారిక Agmarknet రికార్డులలో ${location ? `${location} లో ` : ''}${crop} కి సంబంధించిన తాజా మార్కెట్ ధరలు ప్రస్తుతం నమోదు కాలేదు. దయచేసి స్థానిక మార్కెట్ యార్డ్ (APMC) లేదా వ్యవసాయ మార్కెటింగ్ అధికారిని సంప్రదించండి.`;
+    if (lang.startsWith('ta')) return `அதிகாரப்பூர்வ Agmarknet பதிவுகளில் ${location ? `${location} பகுதியில் ` : ''}${crop} பயிருக்கான சமீபத்திய சந்தை விலைகள் தற்போது கிடைக்கவில்லை. உள்ளூர் ஒழுங்குமுறை விற்பனைக் கூடத்தை (APMC) அணுகவும்.`;
+    if (lang.startsWith('hi')) return `आधिकारिक Agmarknet डेटाबेस में ${location ? `${location} में ` : ''}${crop} के लिए आज के सत्यापित मंडी भाव उपलब्ध नहीं हैं। कृपया स्थानीय कृषि उपज मंडी (APMC) से संपर्क करें।`;
+    if (lang.startsWith('ur')) return `سرکاری Agmarknet ڈیٹا بیس میں ${location ? `${location} میں ` : ''}${crop} کے تازہ ترین منڈی ریٹ دستیاب نہیں ہیں۔ برائے مہربانی مقامی منڈی سے رجوع کریں۔`;
+    if (lang.startsWith('kn')) return `ಅಧಿಕೃತ Agmarknet ಡೇಟಾಬೇಸ್‌ನಲ್ಲಿ ${location ? `${location} ನಲ್ಲಿ ` : ''}${crop} ನ ಇತ್ತೀಚಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ಥಳೀಯ APMC ಅಥವಾ ಕೃಷಿ ಅಧಿಕಾರಿಯನ್ನು ಸಂಪರ್ಕಿಸಿ.`;
+    if (lang.startsWith('mr')) return `अधिकृत Agmarknet डेटाबेसमध्ये ${location ? `${location} मध्ये ` : ''}${crop} चे आजचे बाजार भाव उपलब्ध नाहीत. कृपया स्थानिक कृषी उत्पन्न बाजार समितीशी संपर्क साधा.`;
+    if (lang.startsWith('bn')) return `অফিসিয়াল Agmarknet ডাটাবেসে ${location ? `${location}-এ ` : ''}${crop}-এর সাম্প্রতিক বাজার দর পাওয়া যায়নি। অনুগ্রহ করে স্থানীয় APMC-তে যোগাযোগ করুন।`;
+    if (lang.startsWith('gu')) return `સત્તાવાર Agmarknet ડેટાબેઝમાં ${location ? `${location} માં ` : ''}${crop} ના તાજા બજાર ભાવ ઉપલબ્ધ નથી. કૃપા કરીને સ્થાનિક APMC નો સંપર્ક કરો.`;
+    if (lang.startsWith('pa')) return `ਸਰਕਾਰੀ Agmarknet ਡੇਟਾਬੇਸ ਵਿੱਚ ${location ? `${location} ਵਿੱਚ ` : ''}${crop} ਦੇ ਤਾਜ਼ਾ ਮੰਡੀ ਭਾਅ ਉਪਲਬਧ ਨਹੀਂ ਹਨ। ਕਿਰਪਾ ਕਰਕੇ ਸਥਾਨਕ ਮਾਰਕੀਟ ਕਮੇਟੀ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।`;
+    if (lang.startsWith('ml')) return `ഔദ്യോഗിക Agmarknet ഡാറ്റാബേസിൽ ${location ? `${location}-ൽ ` : ''}${crop} ഏറ്റവും പുതിയ വിപണി വിലകൾ ലഭ്യമല്ല. ദയവായി പ്രാദേശിക APMC യുമായി ബന്ധപ്പെടുക.`;
+    if (lang.startsWith('od') || lang.startsWith('or')) return `ସରକାରୀ Agmarknet ଡାଟାବେସରେ ${location ? `${location} ରେ ` : ''}${crop} ର ସର୍ବଶେଷ ମଣ୍ଡି ଦର ଉପଲବ୍ଧ ନାହିଁ। ଦୟାକରି ସ୍ଥାନୀୟ APMC ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।`;
+    return `Verified market price data for ${crop}${locStr} is currently not available in official Agmarknet records. Please consult your local APMC or agricultural marketing committee.`;
+  }
+
   private getMarketPriceAnswer(market: string, commodityName: string, date: string, modalPrice: any, minPrice: any, maxPrice: any, unit: string, lang: string): string {
     if (lang.startsWith('te')) return `${market} లో ${commodityName} తాజా మార్కెట్ ధరలు (${date} ప్రకారం): సగటు ధర ${modalPrice} ${unit} (కనీసం: ${minPrice}, గరిష్టం: ${maxPrice}). మూలం: Agmarknet అధికారిక నివేదిక.`;
     if (lang.startsWith('ta')) return `${market} சந்தையில் ${commodityName} சமீபத்திய விலை (${date} நிலவரப்படி): மாதிரி விலை ${modalPrice} ${unit} (குறைந்தபட்சம்: ${minPrice}, அதிகபட்சம்: ${maxPrice}). ஆதாரம்: Agmarknet அதிகாரப்பூர்வ அறிக்கை.`;
     if (lang.startsWith('hi')) return `${market} में ${commodityName} के नवीनतम मंडी भाव (${date} के अनुसार): मॉडल भाव ${modalPrice} ${unit} (न्यूनतम: ${minPrice}, अधिकतम: ${maxPrice})। स्रोत: Agmarknet आधिकारिक डेटा।`;
-    if (lang.startsWith('ur')) return `${market} میں ${commodityName} کے تازہ ترین منڈی ریٹ (${date} کے مطابق): ماڈل ریٹ ${modalPrice} ${unit} (کم سے کم: ${minPrice}، زیادہ سے زیادہ: ${maxPrice})۔ ماخذ: Agmarknet سرکاری ڈیٹا۔`;
+    if (lang.startsWith('ur')) return `${market} میں ${commodityName} کے تازہ ترین منڈی ریٹ (${date} کے مطابق): ماڈل ریٹ ${modalPrice} ${unit} (کم سے کم: ${minPrice}، زیادہ سے زیادہ: ${maxPrice})۔ ماخذ: Agmarknet سرکاری ڈیٹا।`;
     if (lang.startsWith('kn')) return `${market} ನಲ್ಲಿ ${commodityName} ನ ಇತ್ತೀಚಿನ ಮಾರುಕಟ್ಟೆ ದರಗಳು (${date} ರಂತೆ): ಸರಾಸರಿ ದರ ${modalPrice} ${unit} (ಕನಿಷ್ಠ: ${minPrice}, ಗರಿಷ್ಠ: ${maxPrice}). ಮೂಲ: Agmarknet ಅಧಿಕೃತ ವರದಿ.`;
     if (lang.startsWith('ml')) return `${market} വിപണിയിൽ ${commodityName} ഏറ്റവും പുതിയ വില (${date} പ്രകാരം): മോഡൽ വില ${modalPrice} ${unit} (കുറഞ്ഞത്: ${minPrice}, കൂടിയത്: ${maxPrice}). ഉറവിടം: Agmarknet ഔദ്യോഗിക റിപ്പോർട്ട്.`;
     if (lang.startsWith('mr')) return `${market} मध्ये ${commodityName} चे नवीनतम बाजार भाव (${date} नुसार): सरासरी भाव ${modalPrice} ${unit} (किमान: ${minPrice}, कमाल: ${maxPrice})। स्रोत: Agmarknet अधिकृत डेटा.`;
@@ -444,19 +628,18 @@ export class GroundedAnswerService implements IGroundedAnswerService {
     if (lang.startsWith('ta')) return 'கோரப்பட்ட பயிர் மற்றும் பகுதிக்கான சரிபார்க்கப்பட்ட சந்தை விலை தரவு அக்மார்க்நெட் (Agmarknet) பதிவுகளில் தற்போது கிடைக்கவில்லை. உள்ளூர் வேளாண் விற்பனைக் குழுவை அணுகவும்.';
     if (lang.startsWith('hi')) return 'अनुरोधित फसल और स्थान के लिए आधिकारिक मंडी भाव वर्तमान में Agmarknet डेटाबेस में उपलब्ध नहीं हैं। कृपया नजदीकी कृषि उपज मंडी से संपर्क करें।';
     if (lang.startsWith('ur')) return 'اس فصل اور علاقے کے لیے تصدیق شدہ منڈی ریٹ فی الحال سرکاری ایگ مارک نیٹ (Agmarknet) ڈیٹا بیس میں دستیاب نہیں ہے۔ برائے مہربانی قریبی منڈی یا زرعی افسر سے رابطہ کریں۔';
-    if (lang.startsWith('kn')) return 'ಕೋರಲಾದ ಬೆಳೆ ಮತ್ತು ಪ್ರದೇಶಕ್ಕೆ ಅಧಿಕೃತ ಮಾರುಕಟ್ಟೆ ಬೆಲೆ ವಿವರಗಳು Agmarknet ಡೇಟಾಬೇಸ್‌ನಲ್ಲಿ ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ಥಳೀಯ ಎಪಿಎಂಸಿ ಅಥವಾ ಕೃಷಿ ಮಾರುಕಟ್ಟೆ ಅಧಿಕಾರಿಯನ್ನು ಸಂಪರ್ಕಿಸಿ.';
-    if (lang.startsWith('ml')) return 'ആവശ്യപ്പെട്ട വിളയ്ക്കും പ്രദേശത്തിനുമുള്ള ഔദ്യോഗിക മാർക്കറ്റ് വില വിവരങ്ങൾ Agmarknet ഡാറ്റാബേസിൽ ലഭ്യമല്ല. ദയവായി പ്രാദേശിക മാർക്കറ്റ് കമ്മിറ്റിയുമായി ബന്ധപ്പെടുക.';
-    if (lang.startsWith('mr')) return 'विनंती केलेल्या पिकासाठी आणि बाजारासाठी अधिकृत बाजार भाव Agmarknet डेटाबेसमध्ये उपलब्ध नाहीत. कृपया स्थानिक कृषी उत्पन्न बाजार समितीशी संपर्क साधा.';
-    if (lang.startsWith('bn')) return 'অনুরোধকৃত ফসল এবং অঞ্চলের জন্য যাচাইকৃত বাজার মূল্যের তথ্য Agmarknet ডাটাবেসে পাওয়া যায়নি। অনুগ্রহ করে স্থানীয় কৃষি বিপণন দপ্তরে যোগাযোগ করুন।';
-    if (lang.startsWith('gu')) return 'વિનંતી કરેલ પાક અને વિસ્તાર માટે સત્તાવાર બજાર ભાવ Agmarknet ડેટાબેઝમાં ઉપલબ્ધ નથી. કૃપા કરીને સ્થાનિક APMC નો સંપર્ક કરો.';
-    if (lang.startsWith('pa')) return 'ਇਸ ਫਸਲ ਅਤੇ ਖੇਤਰ ਲਈ ਸਰਕਾਰੀ ਮੰਡੀ ਰੇਟ Agmarknet ਡੇਟਾਬੇਸ ਵਿੱਚ ਉਪਲਬਧ ਨਹੀਂ ਹਨ। ਕਿਰਪਾ ਕਰਕੇ ਸਥਾਨਕ ਮਾਰਕੀਟ ਕਮੇਟੀ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।';
-    if (lang.startsWith('od') || lang.startsWith('or')) return 'ଅନୁରୋଧ କରାଯାଇଥିବା ଫସଲ ଏବଂ ଅଞ୍ଚଳ ପାଇଁ ସରକାରୀ ମଣ୍ଡି ଦର Agmarknet ଡାଟାବେସରେ ଉପଲବ୍ଧ ନାହିଁ। ଦୟାକରି ସ୍ଥାନୀୟ ମଣ୍ଡି କର୍ତ୍ତୃପକ୍ଷଙ୍କ ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।';
-    if (lang.startsWith('as')) return 'অনুৰোধ কৰা শস্য আৰু অঞ্চলৰ বাবে চৰকাৰী বজাৰ দৰ Agmarknet ডাটাবেচত উপলব্ধ নহয়। অনুগ্ৰহ কৰি স্থানীয় কৃষি বিষয়াৰ সৈতে যোগাযোগ কৰক।';
-    return 'Verified market price data for the requested crop and region is currently not available in official Agmarknet records. Please consult your local APMC / agricultural marketing committee.';
+    if (lang.startsWith('kn')) return 'ವಿನಂತಿಸಿದ ಬೆಳೆ ಮತ್ತು ಪ್ರದೇಶಕ್ಕೆ ಅಧಿಕೃತ Agmarknet ಮಾರುಕಟ್ಟೆ ದರಗಳು ಸದ್ಯ ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ಥಳೀಯ APMC ಅಥವಾ ಕೃಷಿ ಅಧಿಕಾರಿಯನ್ನು ಸಂಪರ್ಕಿಸಿ.';
+    if (lang.startsWith('ml')) return 'ആവശ്യപ്പെട്ട വിളയ്ക്കും പ്രദേശത്തിനും ഔദ്യോഗിക Agmarknet വിപണി വിലകൾ നിലവിൽ ലഭ്യമല്ല. ദയവായി പ്രാദേശിക APMC അല്ലെങ്കിൽ കാർഷിക ഉദ്യോഗസ്ഥരുമായി ബന്ധപ്പെടുക.';
+    if (lang.startsWith('mr')) return 'मागणी केलेल्या पिकासाठी आणि क्षेत्रासाठी अधिकृत Agmarknet बाजार भाव सध्या उपलब्ध नाहीत. कृपया स्थानिक APMC किंवा कृषी अधिकाऱ्यांशी संपर्क साधा.';
+    if (lang.startsWith('bn')) return 'অনুরোধ করা ফসল ও অঞ্চলের জন্য সরকারি Agmarknet বাজার দর বর্তমানে উপলব্ধ নেই। অনুগ্রহ করে স্থানীয় APMC বা কৃষি কর্মকর্তার সাথে যোগাযোগ করুন।';
+    if (lang.startsWith('gu')) return 'વિનંતી કરેલ પાક અને વિસ્તાર માટે સત્તાવાર Agmarknet બજાર ભાવ હાલમાં ઉપલબ્ધ નથી. કૃપા કરીને સ્થાનિક APMC અથવા કૃષિ અધિકારીનો સંપર્ક કરો.';
+    if (lang.startsWith('pa')) return 'ਮੰਗੀ ਗਈ ਫਸਲ ਅਤੇ ਖੇਤਰ ਲਈ ਸਰਕਾਰੀ Agmarknet ਮੰਡੀ ਭਾਅ ਫਿਲਹਾਲ ਉਪਲਬਧ ਨਹੀਂ ਹਨ। ਕਿਰਪਾ ਕਰਕੇ ਸਥਾਨਕ APMC ਜਾਂ ਖੇਤੀਬਾੜੀ ਅਧਿਕਾਰੀ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।';
+    if (lang.startsWith('od') || lang.startsWith('or')) return 'ଅନୁରୋଧିତ ଫସଲ ଏବଂ ଅଞ୍ଚଳ ପାଇଁ ସରକାରୀ Agmarknet ବଜାର ଦର ବର୍ତ୍ତମାନ ଉପଲବ୍ଧ ନାହିଁ। ଦୟାକରି ସ୍ଥାନୀୟ APMC ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।';
+    return 'Official market price records for the requested crop and region are not available in Agmarknet. Please contact your local agricultural marketing committee.';
   }
 
   private getMarketServiceUnavailableMessage(lang: string): string {
-    if (lang.startsWith('te')) return 'మార్కెట్ ధరల సమాచార సేవ తాత్కాలికంగా అందుబాటులో లేదు. దయచేసి స్థానిక మార్కెట్ అధికారులను సంప్రదించండి.';
+    if (lang.startsWith('te')) return 'మార్కెట్ ఇంటెలిజెన్స్ సేవ తాత్కాలికంగా అందుబాటులో లేదు. స్థానిక మండి అధికారులతో సంప్రదించండి.';
     if (lang.startsWith('ta')) return 'சந்தை நுண்ணறிவு சேவை தற்காலிகமாக கிடைக்கவில்லை. உள்ளூர் சந்தை அதிகாரிகளிடம் சரிபார்க்கவும்.';
     if (lang.startsWith('hi')) return 'मंडी भाव सेवा वर्तमान में अनुपलब्ध है। कृपया स्थानीय मंडी अधिकारियों से संपर्क करें।';
     if (lang.startsWith('ur')) return 'منڈی ریٹ سروس فی الحال دستیاب نہیں ہے۔ برائے مہربانی مقامی منڈی افسران سے تصدیق کریں۔';
@@ -482,23 +665,70 @@ export class GroundedAnswerService implements IGroundedAnswerService {
   ): Promise<GroundedAnswerResponse> {
     try {
       const col = await this.db.getCollection<any>('buyers');
+
+      // 1. Resolve crop and location from query and request
+      const detectedCommodity = this.extractCommodityFromQuery(query, request.crop);
+      const loc = this.locationResolver.extractLocation(query);
+      const targetState = this.locationResolver.resolveState(request.state) || loc.state;
+
       const filter: any = {};
-      if (request.state) {
-        filter.state = { $regex: new RegExp(request.state, 'i') };
+      if (detectedCommodity) {
+        filter.cropsInterested = { $regex: new RegExp(detectedCommodity.canonical, 'i') };
+      }
+      if (targetState) {
+        filter.state = { $regex: new RegExp(`^${targetState}$`, 'i') };
       }
 
-      const buyers = await col.find(filter).limit(3).toArray();
+      // Query state-level verified buyers first
+      let buyers = await col.find(filter).sort({ verificationStatus: 1, rating: -1 }).limit(3).toArray();
+      let stateFallback = false;
+
+      // If no buyers found in exact state, but crop specified, find verified buyers in neighboring / national scope
+      if (buyers.length === 0 && targetState && detectedCommodity) {
+        buyers = await col
+          .find({ cropsInterested: { $regex: new RegExp(detectedCommodity.canonical, 'i') } })
+          .sort({ verificationStatus: 1, rating: -1 })
+          .limit(3)
+          .toArray();
+        if (buyers.length > 0) {
+          stateFallback = true;
+        }
+      }
+
+      // If no crop was specified, find verified buyers in state:
+      if (buyers.length === 0 && targetState && !detectedCommodity) {
+        buyers = await col
+          .find({ state: { $regex: new RegExp(`^${targetState}$`, 'i') } })
+          .sort({ verificationStatus: 1, rating: -1 })
+          .limit(3)
+          .toArray();
+      }
+
+      // If still no buyers found and no specific filters:
+      if (buyers.length === 0 && !targetState && !detectedCommodity) {
+        buyers = await col
+          .find({})
+          .sort({ verificationStatus: 1, rating: -1 })
+          .limit(3)
+          .toArray();
+      }
 
       if (buyers && buyers.length > 0) {
-        const buyerNames = buyers.map(b => `${b.businessName || b.name} (${b.district || b.state || 'Verified Buyer'})`).join(', ');
-        const answer = this.getBuyerAnswer(buyerNames, lang);
+        const answer = this.formatBuyerAnswer(buyers, lang, stateFallback);
 
-        const sources: GroundedSource[] = buyers.map(b => ({
+        const sources: GroundedSource[] = buyers.map((b) => ({
           type: 'buyers',
-          id: String(b.id || b._id),
-          title: b.businessName || b.name || 'Verified Buyer',
-          reference: `/buyers/${b.id || b._id}`,
-          score: 0.95,
+          id: String(b._id || b.id || 'buyer'),
+          title: `${b.businessName || b.name} (${this.getVerificationBadgeLabel(b.verificationStatus)})`,
+          reference: `/buyers/${b._id || b.id}`,
+          score: b.verificationStatus === 'government_enam_verified' ? 1.0 : 0.95,
+          metadata: {
+            verificationStatus: b.verificationStatus,
+            district: b.district,
+            state: b.state,
+            cropsInterested: b.cropsInterested,
+            phone: b.phone,
+          },
         }));
 
         return {
@@ -513,7 +743,9 @@ export class GroundedAnswerService implements IGroundedAnswerService {
         };
       }
 
-      const noBuyerMsg = this.getNoBuyerMessage(lang);
+      // Honest No-Buyer response:
+      const cropName = detectedCommodity ? detectedCommodity.canonical : undefined;
+      const noBuyerMsg = this.getNoBuyerForCropLocationMessage(cropName, targetState, lang);
 
       return {
         questionId,
@@ -521,7 +753,7 @@ export class GroundedAnswerService implements IGroundedAnswerService {
         confidence: 'low',
         status: 'expert_review',
         sources: [],
-        warnings: ['No verified buyer record in database'],
+        warnings: [`No verified buyers found in database for ${cropName || 'crop'} in ${targetState || 'region'}`],
         language: lang,
         generatedAt: timestamp,
       };
@@ -540,18 +772,88 @@ export class GroundedAnswerService implements IGroundedAnswerService {
     }
   }
 
+  private getVerificationBadgeLabel(status: string): string {
+    if (status === 'government_enam_verified') return 'Government/eNAM Verified';
+    if (status === 'agriseva_verified' || status === 'verified') return 'AgriSeva Verified';
+    if (status === 'agriseva_registered') return 'AgriSeva Registered';
+    return 'Unverified';
+  }
+
+  private formatBuyerAnswer(buyers: any[], lang: string, stateFallback = false): string {
+    const formattedList = buyers
+      .map((b, i) => {
+        let badge = '⚠️ Unverified';
+        if (b.verificationStatus === 'government_enam_verified') badge = '🏛️ Government/eNAM Verified';
+        else if (b.verificationStatus === 'agriseva_verified' || b.verified) badge = '✅ AgriSeva Verified';
+        else if (b.verificationStatus === 'agriseva_registered') badge = '📋 AgriSeva Registered';
+
+        const crops = Array.isArray(b.cropsInterested) ? b.cropsInterested.join(', ') : '';
+        const phoneStr = b.phone ? ` • 📞 ${b.phone}` : '';
+        return `${i + 1}. *${b.businessName || b.name}* [${badge}]\n   📍 ${b.district ? `${b.district}, ` : ''}${b.state}\n   🌾 Crops: ${crops}${phoneStr}`;
+      })
+      .join('\n\n');
+
+    if (lang.startsWith('te')) {
+      const intro = stateFallback
+        ? 'మీ ప్రాంతంలో ప్రత్యక్ష కొనుగోలుదారులు నమోదు కాలేదు, కానీ సమీప ప్రాంతాలలోని ధృవీకరించబడిన కొనుగోలుదారులు:'
+        : 'ధృవీకరించబడిన వాణిజ్య కొనుగోలుదారులు:';
+      return `${intro}\n\n${formattedList}\n\nలావాదేవీ రక్షణ మరియు చెల్లింపు భద్రత కోసం AgriSeva పోర్టల్ ద్వారా సంప్రదించండి.`;
+    }
+    if (lang.startsWith('hi')) {
+      const intro = stateFallback
+        ? 'आपके राज्य में तत्काल खरीदार नहीं हैं, परंतु निकटवर्ती क्षेत्रों के सत्यापित खरीदार:'
+        : 'सत्यापित वाणिज्यिक खरीदार:';
+      return `${intro}\n\n${formattedList}\n\nसुरक्षित अनुबंध और भुगतान गारंटी के लिए AgriSeva पोर्टल से जुड़ें।`;
+    }
+    if (lang.startsWith('ta')) {
+      const intro = stateFallback
+        ? 'உங்கள் மாநிலத்தில் நேரடி வாங்குபவர்கள் இல்லை, ஆனால் அண்டை பகுதிகளின் சரிபார்க்கப்பட்ட வாங்குபவர்கள்:'
+        : 'சரிபார்க்கப்பட்ட வணிக வாங்குபவர்கள்:';
+      return `${intro}\n\n${formattedList}\n\nபாதுகாப்பான கட்டண உத்தரவாதத்திற்கு AgriSeva போர்ட்டலை அணுகவும்.`;
+    }
+    if (lang.startsWith('kn')) {
+      const intro = stateFallback
+        ? 'ನಿಮ್ಮ ರಾಜ್ಯದಲ್ಲಿ ನೇರ ಖರೀದಿದಾರರಿಲ್ಲ, ಆದರೆ ನೆರೆಯ ಪ್ರದೇಶಗಳ ದೃಢೀಕರಿಸಿದ ಖರೀದಿದಾರರು:'
+        : 'ದೃಢೀಕರಿಸಿದ ವಾಣಿಜ್ಯ ಖರೀದಿದಾರರು:';
+      return `${intro}\n\n${formattedList}\n\nಸುರಕ್ಷಿತ ಒಪ್ಪಂದಗಳಿಗಾಗಿ AgriSeva ಪೋರ್ಟಲ್ ಸಂಪರ್ಕಿಸಿ.`;
+    }
+    if (lang.startsWith('mr')) {
+      const intro = stateFallback
+        ? 'आपल्या राज्यात थेट खरेदीदार उपलब्ध नाहीत, परंतु लगतच्या भागातील सत्यापित खरेदीदार:'
+        : 'सत्यापित व्यावसायिक खरेदीदार:';
+      return `${intro}\n\n${formattedList}\n\nसुरक्षित व्यवहारांसाठी AgriSeva पोर्टलशी संपर्क साधा.`;
+    }
+    const intro = stateFallback
+      ? 'No direct buyers registered in your exact state, but verified buyers procuring this crop in neighboring regions:'
+      : 'Verified Commercial Buyers:';
+    return `${intro}\n\n${formattedList}\n\nConnect through the AgriSeva portal for secure digital contracts and payment guarantees.`;
+  }
+
+  private getNoBuyerForCropLocationMessage(crop: string | undefined, state: string | undefined, lang: string): string {
+    if (lang.startsWith('te')) return `${state ? `${state} లో ` : ''}${crop || 'ఈ పంట'}కు సంబంధించి ధృవీకరించబడిన కొనుగోలుదారులు ప్రస్తుతం AgriSeva డేటాబేస్‌లో నమోదు కాలేదు. మీ పంట వివరాలను నమోదు చేయడానికి Farmer Dashboard లో "New Lot" సృష్టించండి.`;
+    if (lang.startsWith('ta')) return `${state ? `${state} மாநிலத்தில் ` : ''}${crop || 'இந்த பயிருக்கு'} சரிபார்க்கப்பட்ட வாங்குபவர்கள் தற்போது கிடைக்கவில்லை. உங்கள் பயிரை விற்க உழவர் போர்ட்டலில் "New Lot" உருவாக்கவும்.`;
+    if (lang.startsWith('hi')) return `${state ? `${state} में ` : ''}${crop || 'इस फसल'} के लिए वर्तमान में कोई सत्यापित खरीदार पंजीकृत नहीं हैं। अपनी फसल बेचने के लिए फार्मर डैशबोर्ड में "New Lot" बनाएं।`;
+    if (lang.startsWith('ur')) return `${state ? `${state} میں ` : ''}${crop || 'اس فصل'} کے لیے فی الحال کوئی تصدیق شدہ خریदार رجسٹرڈ نہیں ہے۔ اپنی फसल فروخت کرنے کے لیے فارمر ڈیش بورڈ پر لاٹ درج کریں۔`;
+    if (lang.startsWith('kn')) return `${state ? `${state} ನಲ್ಲಿ ` : ''}${crop || 'ಈ ಬೆಳೆಗೆ'} ದೃಢೀಕರಿಸಿದ ಖರೀದಿದಾರರು ಪ್ರಸ್ತುತ ಲಭ್ಯವಿಲ್ಲ. ನಿಮ್ಮ ಬೆಳೆಯನ್ನು ಮಾರಾಟ ಮಾಡಲು Farmer Dashboard ನಲ್ಲಿ "New Lot" ರಚಿಸಿ.`;
+    if (lang.startsWith('mr')) return `${state ? `${state} मध्ये ` : ''}${crop || 'या पिकासाठी'} सध्या कोणतेही सत्यापित खरेदीदार नोंदणीकृत नाहीत. आपले पीक विक्रीसाठी डॅशबोर्डवर "New Lot" नोंदवा.`;
+    if (lang.startsWith('bn')) return `${state ? `${state}-এ ` : ''}${crop || 'এই ফসলের জন্য'} কোনো যাচাইকৃত ক্রেতা বর্তমানে নিবন্ধিত নেই। আপনার ফসল বিক্রির জন্য ড্যাশবোর্ডে "New Lot" তৈরি করুন।`;
+    if (lang.startsWith('gu')) return `${state ? `${state} માં ` : ''}${crop || 'આ પાક માટે'} હાલમાં કોઈ ચકાસાયેલ ખરીદદાર નોંધાયેલ નથી. પાક વેચવા માટે "New Lot" બનાવો.`;
+    if (lang.startsWith('pa')) return `${state ? `${state} ਵਿੱਚ ` : ''}${crop || 'ਇਸ ਫਸਲ ਲਈ'} ਕੋਈ ਤਸਦੀਕਸ਼ੁਦਾ ਖਰੀਦਦਾਰ ਰਜਿਸਟਰਡ ਨਹੀਂ ਹਨ। ਫਸਲ ਵੇਚਣ ਲਈ "New Lot" ਦਰਜ ਕਰੋ।`;
+    if (lang.startsWith('ml')) return `${state ? `${state}-ൽ ` : ''}${crop || 'ഈ വിളയ്ക്കായി'} സ്ഥിരീകരിച്ച വാങ്ങലുകാർ ഇപ്പോൾ ലഭ്യമല്ല. വിൽക്കാൻ "New Lot" ചേർക്കുക.`;
+    if (lang.startsWith('od') || lang.startsWith('or')) return `${state ? `${state} ରେ ` : ''}${crop || 'ଏହି ଫସଲ ପାଇଁ'} କୌଣସି ଯାଞ୍ଚ ହୋଇଥିବା କ୍ରେତା ପଞ୍ଜୀକୃତ ହୋଇନାହାଁନ୍ତି। ବିକ୍ରି ପାଇଁ "New Lot" ଯୋଡନ୍ତୁ।`;
+    return `No verified buyers are currently registered for ${crop || 'this crop'}${state ? ` in ${state}` : ''}. You can create a lot on the Farmer Dashboard to receive procurement bids.`;
+  }
+
   private getBuyerAnswer(buyerNames: string, lang: string): string {
     if (lang.startsWith('te')) return `ధృవీకరించబడిన కొనుగోలుదారులు: ${buyerNames}. అధికారిక లావాదేవీలు మరియు చెల్లింపు భద్రత కోసం రైతు సేవా పోర్టల్ ద్వారా సంప్రదించండి.`;
     if (lang.startsWith('ta')) return `சரிபார்க்கப்பட்ட வாங்குபவர்கள்: ${buyerNames}. பாதுகாப்பான ஒப்பந்தம் மற்றும் கட்டண உத்தரவாதத்திற்காக அக்ரிசேவா போர்டல் மூலம் இணைக்கவும்.`;
     if (lang.startsWith('hi')) return `सत्यापित खरीदार: ${buyerNames}। सुरक्षित डिजिटल अनुबंध और भुगतान गारंटी के लिए एग्रीसेवा पोर्टल के माध्यम से जुड़ें।`;
-    if (lang.startsWith('ur')) return `تصدیق شدہ خریدار: ${buyerNames}۔ محفوظ ڈیجیٹل معاہدے اور ادائیگی کی ضمانت کے لیے ایگری سیوا پورٹل کے ذریعے رابطہ کریں۔`;
+    if (lang.startsWith('ur')) return `تصدیق شدہ خریदार: ${buyerNames}۔ محفوظ ڈیجیٹل معاہدے اور ادائیگی کی ضمانت کے لیے ایگری سیوا پورٹل کے ذریعے رابطہ کریں۔`;
     if (lang.startsWith('kn')) return `ದೃಢೀಕರಿಸಿದ ಖರೀದಿದಾರರು: ${buyerNames}. ಸುರಕ್ಷಿತ ವಹಿವಾಟುಗಳಿಗಾಗಿ ಅಗ್ರಿಸೇವಾ ಪೋರ್ಟಲ್ ಮೂಲಕ ಸಂಪರ್ಕಿಸಿ.`;
     if (lang.startsWith('ml')) return `സ്ഥിരീകരിച്ച വാങ്ങലുകാർ: ${buyerNames}. സുരക്ഷിത കരാറുകൾക്കായി അഗ്രിസേവ പോർട്ടൽ വഴി ബന്ധപ്പെടുക.`;
     if (lang.startsWith('mr')) return `सत्यापित खरेदीदार: ${buyerNames}। सुरक्षित व्यवहारांसाठी ॲग्रीसेवा पोर्टलद्वारे संपर्क साधा.`;
     if (lang.startsWith('bn')) return `যাচাইকৃত ক্রেতা: ${buyerNames}। নিরাপদ ডিজিটাল চুক্তির জন্য এগ্রিসেবা পোর্টালের মাধ্যমে যোগাযোগ করুন।`;
     if (lang.startsWith('gu')) return `ચકાસાયેલ ખરીદદારો: ${buyerNames}. સુરક્ષિત વ્યવહારો માટે એગ્રીસેવા પોર્ટલ દ્વારા જોડાઓ.`;
-    if (lang.startsWith('pa')) return `ਪ੍ਰਮਾਣਿਤ ਖਰੀਦਦਾਰ: ${buyerNames}। ਸੁਰੱਖਿਅਤ ਸੌਦਿਆਂ ਲਈ ਐਗਰੀਸੇਵਾ ਪੋਰਟਲ ਰਾਹੀਂ ਸੰਪਰਕ ਕਰੋ।`;
-    if (lang.startsWith('od') || lang.startsWith('or')) return `ଯାଞ୍ଚ ହୋଇଥିବା କ୍ରେତା: ${buyerNames}। ସୁରକ୍ଷିତ କାରବାର ପାଇଁ ଏଗ୍ରିସେବା ପୋର୍ଟାଲ ମାଧ୍ୟମରେ ଯୋଗାଯୋଗ କରନ୍ତୁ।`;
     return `Verified procurement buyers available in your region: ${buyerNames}. Connect through the AgriSeva portal for secure digital contract and payment guarantee.`;
   }
 
@@ -578,12 +880,13 @@ export class GroundedAnswerService implements IGroundedAnswerService {
     if (lang.startsWith('kn')) return 'ಖರೀದಿದಾರರ ಡೈರೆಕ್ಟರಿ ಸೇವೆ ತಾತ್ಕಾಲಿಕವಾಗಿ ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ಥಳೀಯ FPO ಅಧಿಕಾರಿಗಳನ್ನು ಸಂಪರ್ಕಿಸಿ.';
     if (lang.startsWith('ml')) return 'വാങ്ങലുകാരുടെ വിവര ശേഖരം ഇപ്പോൾ ലഭ്യമല്ല. ദയവായി പ്രാദേശിക FPO നേതൃത്വവുമായി ബന്ധപ്പെടുക.';
     if (lang.startsWith('mr')) return 'खरेदीदार निर्देशिका सध्या अनुपलब्ध आहे. कृपया स्थानिक FPO शी संपर्क साधा.';
-    if (lang.startsWith('bn')) return 'ক্রেতা তালিকা সেবা সাময়িকভাবে অনুপলব্ধ। অনুগ্রহ করে স্থানীয় FPO নেতৃত্বের সাথে যোগাযোগ করুন।';
+    if (lang.startsWith('bn')) return 'ক্রেতা তালিকা সেবা সাময়িকভাবে অনুপলব্ধ। অনুগ্রহ করে स्थानीय FPO নেতৃত্বের সাথে যোগাযোগ করুন।';
     if (lang.startsWith('gu')) return 'ખરીદદાર ડિરેક્ટરી હાલમાં અનુપલબ્ધ છે. કૃપા કરીને સ્થાનિક FPO નો સંપર્ક કરો.';
     if (lang.startsWith('pa')) return 'ਖਰੀਦਦਾਰ ਡਾਇਰੈਕਟਰੀ ਫਿਲਹਾਲ ਉਪਲਬਧ ਨਹੀਂ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਸਥਾਨਕ FPO ਨਾਲ ਸੰਪਰਕ ਕਰੋ।';
     if (lang.startsWith('od') || lang.startsWith('or')) return 'କ୍ରେତା ଡାଇରେକ୍ଟୋରୀ ଅସ୍ଥାୟୀ ଭାବେ ଅନୁପଲବ୍ଧ। ଦୟାକରି ସ୍ଥାନୀୟ FPO ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ।';
     return 'Verified buyer directory is temporarily unreachable. Please check with local FPO leadership.';
   }
+
 
   /* =======================================================================
    * 3B. WEATHER SERVICE HANDLER (Real Meteorological Verification / Fail-Safe)

@@ -30,7 +30,7 @@ import {
 class BuyerListQuery {
   @JSONSchema({description: 'Filter by verification status'})
   @IsOptional()
-  @IsIn(['unverified', 'pending', 'verified', 'rejected'])
+  @IsIn(['unverified', 'pending', 'verified', 'rejected', 'government_enam_verified', 'agriseva_verified', 'agriseva_registered'])
   verificationStatus?: VerificationStatus;
 
   @JSONSchema({description: 'Filter by state'})
@@ -62,7 +62,7 @@ class BuyerIdParam {
 
 class BuyerVerificationBody {
   @JSONSchema({description: 'New verification status'})
-  @IsIn(['unverified', 'pending', 'verified', 'rejected'])
+  @IsIn(['unverified', 'pending', 'verified', 'rejected', 'government_enam_verified', 'agriseva_verified', 'agriseva_registered'])
   verificationStatus!: VerificationStatus;
 }
 

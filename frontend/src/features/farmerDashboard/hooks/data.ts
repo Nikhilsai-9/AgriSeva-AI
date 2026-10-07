@@ -372,13 +372,12 @@ const buildResponseFromBackend = (
   data: BackendMarketPricesResponse,
   commodity: string,
 ): MarketPriceResponse => {
-  const filtered = data.prices.filter((p) =>
-    commodity
-      ? p.commodity.toLowerCase().includes(commodity.toLowerCase()) ||
+  const displayRows = commodity
+    ? data.prices.filter((p) =>
+        p.commodity.toLowerCase().includes(commodity.toLowerCase()) ||
         (p.crop && p.crop.toLowerCase().includes(commodity.toLowerCase()))
-      : true,
-  );
-  const displayRows = filtered.length > 0 ? filtered : data.prices;
+      )
+    : data.prices;
   const uiRows = displayRows.map(toUiMarketPrice);
   const best = [...uiRows].sort((a, b) => (b.modalPrice ?? 0) - (a.modalPrice ?? 0))[0] ?? null;
   return {

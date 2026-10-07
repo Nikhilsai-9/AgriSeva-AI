@@ -87,8 +87,8 @@ export class RecommendationService {
     if (input.state) filter.state = input.state;
 
     let all = await this.priceRepo.findMany(filter, 200);
-    if (all.length === 0 && input.state) {
-      all = await this.priceRepo.findMany({commodity: input.commodity}, 200);
+    if (input.state) {
+      all = all.filter(r => r.state && r.state.toLowerCase() === input.state!.toLowerCase());
     }
     const annotated = this.historyService.annotateWithChange(all);
 

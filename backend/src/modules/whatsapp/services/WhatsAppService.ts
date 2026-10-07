@@ -1602,7 +1602,12 @@ CRITICAL MANDATORY INSTRUCTION:
 The farmer's selected response language is ${targetName} (${langCode}).
 Regardless of whether the farmer typed in English, Hinglish, or any other language, and regardless of any previous chat history language, you MUST generate your entire response exclusively and fluently in ${targetName} (${langCode}).
 Follow CIBRC guidelines for any pesticide or chemical recommendations. Always mention organic and cultural practices first.
-Keep replies concise, structured, and easy to read on WhatsApp with bullet points and emojis.`;
+Keep replies concise, structured, and easy to read on WhatsApp with bullet points and emojis.
+
+CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
+- NEVER invent, extrapolate, or guess mandi prices, APMC market rates, arrival volumes, or dates.
+- NEVER fabricate names, phone numbers, or details of buyers, traders, or procurement agencies.
+- If asked about live mandi prices or specific buyers and verified Agmarknet data was not provided in context, clearly direct the farmer to the AgriSeva Market Intelligence dashboard (https://agriseva-ai.web.app) or their local APMC market yard, stating that live verified prices should be checked directly from official records. Do not output fabricated rupee numbers.`;
 
     const contents: any[] = [];
 
@@ -2360,8 +2365,14 @@ Keep replies concise, structured, and easy to read on WhatsApp with bullet point
         });
 
         if (groundedRes?.answer?.trim()) {
+          const isMarketOrBuyerResponse =
+            groundedRes.sources?.some(s => s.type === 'market_prices' || s.type === 'buyers') ||
+            groundedRes.warnings?.some(w => /market|commodity|agmarknet|mandi|buyer|crop/i.test(w)) ||
+            groundedRes.status === 'calculated' ||
+            groundedRes.status === 'insufficient_evidence';
+
           const isGenericBoilerplate =
-            groundedRes.status === 'expert_review' && groundedRes.confidence === 'low';
+            groundedRes.status === 'expert_review' && groundedRes.confidence === 'low' && !isMarketOrBuyerResponse;
 
           if (!isGenericBoilerplate) {
             aiAnswer = groundedRes.answer.trim();

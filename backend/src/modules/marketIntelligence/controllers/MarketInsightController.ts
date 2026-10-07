@@ -73,18 +73,18 @@ export class MarketInsightController {
 
     let rows = (await this.priceRepo.findMany(filter, 20)) ?? [];
 
-    if (rows.length === 0 && filter.commodity && (filter.state || filter.market)) {
-      // Relax state/market filter to return active mandis across India for this commodity
-      const relaxedFilter = { ...filter };
-      delete relaxedFilter.state;
-      delete relaxedFilter.market;
-      rows = (await this.priceRepo.findMany(relaxedFilter, 20)) ?? [];
+    // Strict filter matching:
+    if (query.state) {
+      rows = rows.filter(r => r.state && r.state.toLowerCase() === query.state!.toLowerCase());
+    }
+    if (query.market) {
+      rows = rows.filter(r => r.market && r.market.toLowerCase() === query.market!.toLowerCase());
     }
 
     if (rows.length === 0) {
       return {
         success: true,
-        isDemo: true,
+        isDemo: false,
         fetchedAt: new Date().toISOString(),
         insight: null,
       };

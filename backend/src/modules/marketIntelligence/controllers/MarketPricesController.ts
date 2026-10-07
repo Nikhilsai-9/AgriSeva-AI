@@ -105,12 +105,17 @@ export class MarketPricesController {
     if (query.arrivalDate) filter.arrivalDate = query.arrivalDate;
 
     let rows = await this.priceRepo.findMany(filter, limit);
-    if (rows.length === 0 && filter.commodity && (filter.state || filter.district)) {
-      // Relax state/district filter to return active mandis across India for this commodity
-      const relaxedFilter = { ...filter };
-      delete relaxedFilter.state;
-      delete relaxedFilter.district;
-      rows = await this.priceRepo.findMany(relaxedFilter, limit);
+
+    // PHASE 12: Strict Server-Side Filter Match Validation
+    // Never relax filters, never substitute another state or commodity.
+    if (query.state) {
+      rows = rows.filter(r => r.state && r.state.toLowerCase() === query.state!.toLowerCase());
+    }
+    if (query.district) {
+      rows = rows.filter(r => r.district && r.district.toLowerCase() === query.district!.toLowerCase());
+    }
+    if (query.market) {
+      rows = rows.filter(r => r.market && r.market.toLowerCase() === query.market!.toLowerCase());
     }
 
     const annotated = this.historyService.annotateWithChange(rows);
@@ -123,7 +128,7 @@ export class MarketPricesController {
 
     return {
       success: true,
-      isDemo: sanitized.length === 0,
+      isDemo: false,
       source:
         sanitized.length === 0
           ? 'none'

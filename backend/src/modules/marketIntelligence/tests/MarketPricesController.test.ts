@@ -207,14 +207,14 @@ describe('MarketPricesController', () => {
       );
     });
 
-    it('marks isDemo=true when no rows are returned', async () => {
+    it('marks isDemo=false when no rows are returned (honest empty state)', async () => {
       mockPriceRepo.findMany.mockResolvedValueOnce([]);
       mockHistoryService.annotateWithChange.mockReturnValueOnce([]);
 
       const res = await request(app).get('/market-prices?state=Atlantis');
 
       expect(res.status).toBe(200);
-      expect(res.body.isDemo).toBe(true);
+      expect(res.body.isDemo).toBe(false);
       expect(res.body.total).toBe(0);
       expect(res.body.source).toBe('none');
     });

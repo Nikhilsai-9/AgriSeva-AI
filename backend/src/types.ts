@@ -51,6 +51,7 @@ const TYPES = {
   MarketHistoryService: Symbol.for('MarketHistoryService'),
   MarketReliabilityService: Symbol.for('MarketReliabilityService'),
   CommodityResolver: Symbol.for('CommodityResolver'),
+  LocationResolver: Symbol.for('LocationResolver'),
   RecommendationService: Symbol.for('RecommendationService'),
   AgmarknetMcpClient: Symbol.for('AgmarknetMcpClient'),
   EnamMcpClient: Symbol.for('EnamMcpClient'),
