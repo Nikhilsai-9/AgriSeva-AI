@@ -1458,16 +1458,50 @@ export class QuestionService extends BaseService implements IQuestionService {
       source = 'AGRI_EXPERT';
     }
 
-    // 3. Derive details from actual user/agent context if available, otherwise empty values (never fabricate!)
+    // 3. Derive details from actual user/agent context if available, otherwise extract from query (never fabricate!)
     const userKvk = options?.user?.kvkCovered?.[0];
     const farmerProf = options?.user?.farmerProfile;
     const rawDetails = options?.details || {};
 
-    const state = (rawDetails.state || userKvk?.state || farmerProf?.state || '').toString().trim();
-    const district = (rawDetails.district || userKvk?.district || farmerProf?.district || '').toString().trim();
-    const crop = (rawDetails.crop || farmerProf?.primaryCrops?.[0] || '').toString().trim();
-    const season = (rawDetails.season || '').toString().trim();
-    const domain = Array.isArray(rawDetails.domain) ? rawDetails.domain : [];
+    let state = (rawDetails.state || userKvk?.state || farmerProf?.state || '').toString().trim();
+    let district = (rawDetails.district || userKvk?.district || farmerProf?.district || '').toString().trim();
+    let crop = (rawDetails.crop || farmerProf?.primaryCrops?.[0] || '').toString().trim();
+    let season = (rawDetails.season || '').toString().trim();
+    let domain = Array.isArray(rawDetails.domain) ? rawDetails.domain : [];
+
+    // Dynamic crop extraction from query if not already provided
+    if (!crop) {
+      const knownCrops = [
+        'Tomato', 'Paddy', 'Rice', 'Wheat', 'Cotton', 'Chilli', 'Chilli / Mirchi',
+        'Onion', 'Potato', 'Maize', 'Soyabean', 'Groundnut', 'Bengal Gram',
+        'Sugarcane', 'Turmeric', 'Banana', 'Mango', 'Mustard', 'Gram', 'Pulses'
+      ];
+      const lower = trimmedText.toLowerCase();
+      const matched = knownCrops.find(c => lower.includes(c.toLowerCase()));
+      if (matched) crop = matched;
+    }
+
+    // Dynamic domain extraction from query intent if not provided
+    if (domain.length === 0) {
+      const lower = trimmedText.toLowerCase();
+      if (/(yellow|leaf|leaves|curl|spot|rot|blight|wilt|fungus|disease|virus|బాధ|తెగులు|వ్యాధి|रोग|धब्बा|कीट)/i.test(lower)) {
+        domain = ['Disease Management'];
+      } else if (/(pest|worm|caterpillar|borer|insect|aphid|spray|pesticide|పురుగు|కీటకం|कीड़ा|कीटनाशक)/i.test(lower)) {
+        domain = ['Insect - Pest Management'];
+      } else if (/(price|mandi|rate|cost|msp|market|ధర|రేటు|మండి|भाव|दाम|कीमत)/i.test(lower)) {
+        domain = ['Market Prices, MSP & Marketing'];
+      } else if (/(water|drip|irrigate|irrigation|నీరు|నీటి|सिंचाई|पानी)/i.test(lower)) {
+        domain = ['Irrigation and Water Management'];
+      } else if (/(soil|urea|fertilizer|npk|zinc|nitrogen|ఎరువు|యూరియా|खाद|उर्वरक)/i.test(lower)) {
+        domain = ['Soil Health and Nutrient Management'];
+      } else if (/(weather|rain|monsoon|storm|వర్షం|వాతావరణం|मौसम|बारिश)/i.test(lower)) {
+        domain = ['Climate, Weather & Stress Management'];
+      } else if (/(scheme|subsidy|pm-kisan|rythu bandhu|పథకం|योजना|सब्सिडी)/i.test(lower)) {
+        domain = ['Agricultural Schemes & Subsidies'];
+      } else {
+        domain = ['Cultural and Crop Management Practices'];
+      }
+    }
 
     const details: IQuestion['details'] = {
       state: state ? toTitleCase(state) : '',
@@ -1489,10 +1523,32 @@ export class QuestionService extends BaseService implements IQuestionService {
       }
     }
 
-    // 5. Initial status according to existing question workflow (Safe Fix 4)
-    // AGRISEVA_AI questions start as 'pending'; AGRI_EXPERT questions start as 'open'
-    const status = source === 'AGRISEVA_AI' || source === 'WHATSAPP' ? 'pending' : 'open';
     const questionLanguage = detectLanguageFromText(trimmedText, options?.language);
+
+    // 5. Generate Grounded AI Answer using canonical GroundedAnswerService (same as WhatsApp)
+    let aiAnswer = '';
+    let sources: any[] = [];
+    try {
+      const service =
+        this.groundedAnswerService ||
+        new GroundedAnswerService(this.mongoDatabase);
+      const groundedResult = await service.generateGroundedAnswer({
+        query: trimmedText,
+        language: questionLanguage,
+        crop: details.crop as string,
+        state: details.state,
+        userContext: {
+          role: 'farmer',
+          userId: userId?.toString(),
+        },
+      });
+      if (groundedResult?.answer) {
+        aiAnswer = groundedResult.answer;
+        sources = groundedResult.sources || [];
+      }
+    } catch (err: any) {
+      console.warn('[createQuestionFromContext] AI Grounding unavailable:', err?.message);
+    }
 
     const baseQuestion: IQuestion = {
       userId: userId && ObjectId.isValid(userId) ? new ObjectId(userId) : null,
@@ -1500,11 +1556,12 @@ export class QuestionService extends BaseService implements IQuestionService {
       originalQuestion: trimmedText,
       priority: 'medium',
       source,
-      status,
-      totalAnswersCount: 0,
+      status: 'open',
+      totalAnswersCount: aiAnswer ? 1 : 0,
+      aiInitialAnswer: aiAnswer || undefined,
       contextId: contextId && ObjectId.isValid(contextId) ? new ObjectId(contextId) : null,
       details,
-      isAutoAllocate: !(source === 'AGRISEVA_AI' || source === 'WHATSAPP'),
+      isAutoAllocate: true,
       autoAllocateGateKeeper: true,
       autoAllocateAuditor: true,
       autoAllocateModerator: true,
@@ -1536,7 +1593,33 @@ export class QuestionService extends BaseService implements IQuestionService {
     };
     await this.questionSubmissionRepo.addSubmission(submissionData, session);
 
-    // 8. Kick off existing background processing (single-allocation cron or timebound flow)
+    // 8. Save AI Answer in AnswerRepository (ensures persistent answers across all channels)
+    if (aiAnswer) {
+      try {
+        const answerSourceItems: SourceItem[] = sources.map((s: any) => ({
+          source: s.reference || s.title || 'AgriSeva Knowledge Base',
+          sourceName: s.title || s.type || 'ICAR Advisory',
+          sourceType: 'hyper_local',
+        }));
+
+        await this.answerRepo.addAnswer(
+          questionId,
+          userId?.toString() || 'SYSTEM_AI',
+          aiAnswer,
+          answerSourceItems,
+          [],
+          false,
+          1,
+          session,
+          'ai_initial',
+          'AI-generated initial answer via Canonical Grounded Pipeline',
+        );
+      } catch (err: any) {
+        console.warn('[createQuestionFromContext] Failed to store answer record:', err?.message);
+      }
+    }
+
+    // 9. Kick off background processing
     setImmediate(() => {
       this.processQuestionInBackground({
         questionId,
@@ -1549,7 +1632,10 @@ export class QuestionService extends BaseService implements IQuestionService {
       );
     });
 
-    return savedQuestion;
+    return {
+      ...savedQuestion,
+      aiInitialAnswer: aiAnswer || savedQuestion.aiInitialAnswer,
+    };
   }
 
   /**
@@ -1848,15 +1934,10 @@ export class QuestionService extends BaseService implements IQuestionService {
             );
             console.log('threadValidation ', threadValidation);
             if (!threadValidation.isValid) {
-              console.log('Not valid thread');
-              logData.outcome = 'TESTING_THREAD_ID';
+              console.log('[processQuestionInBackground] External thread validation unverified, proceeding as normal open question without test flag');
+              logData.outcome = 'PROCEEDING_NORMAL';
               logData.threadValidationReason = threadValidation.reason;
-              chatbotSimilarityLogger.warn('ADD_QUESTION_LOG', logData);
-
-              await this.questionRepo.updateQuestion(questionId, {
-                isTesting: true,
-              });
-              return;
+              chatbotSimilarityLogger.info('ADD_QUESTION_LOG', logData);
             }
           }
           /* else {
@@ -10470,4 +10551,56 @@ if (filters.endDate) {
     success: true,
   };
 }
+
+  /**
+   * Request Expert Review for a specific canonical questionId.
+   * Only triggers when user explicitly requests it.
+   * Preserves existing AI answer and questionId.
+   */
+  async requestExpertReview(
+    questionId: string,
+    user: IUser,
+  ): Promise<{ success: boolean; questionId: string; pae_review: boolean }> {
+    if (!questionId || !ObjectId.isValid(questionId)) {
+      throw new BadRequestError('Valid questionId is required');
+    }
+
+    const question = await this.questionRepo.getById(questionId);
+    if (!question) {
+      throw new BadRequestError(`Question with ID ${questionId} not found`);
+    }
+
+    // Verify ownership: user must own the question or be staff
+    const privilegedRoles = [
+      'admin', 'moderator', 'expert', 'pae_expert', 'call_agent',
+      'gate_keeper', 'auditor', 'district_coordinator', 'block_coordinator'
+    ];
+    const isStaff = privilegedRoles.includes(user.role as string) || !!user.special_task_force;
+    const isOwner = question.userId && user._id && question.userId.toString() === user._id.toString();
+
+    if (!isStaff && !isOwner) {
+      const userPhone = user.mobile || user.farmerProfile?.phone;
+      const phoneDigits = userPhone ? userPhone.replace(/\D/g, '').slice(-10) : '';
+      const threadDigits = question.threadId ? question.threadId.replace(/\D/g, '').slice(-10) : '';
+      if (!phoneDigits || phoneDigits !== threadDigits) {
+        throw new ForbiddenError('You are not authorized to request expert review for this question');
+      }
+    }
+
+    // Update the question record with expert review flag on the SAME questionId
+    await this.questionRepo.updateQuestion(questionId, {
+      pae_review: true,
+      expertReviewRequested: true,
+      expertReviewRequestedAt: new Date(),
+      expertReviewRequestedBy: user._id ? new ObjectId(user._id.toString()) : undefined,
+    } as any);
+
+    console.log(`[QuestionService] Expert review requested on questionId=${questionId} by user=${user._id}`);
+
+    return {
+      success: true,
+      questionId,
+      pae_review: true,
+    };
+  }
 }

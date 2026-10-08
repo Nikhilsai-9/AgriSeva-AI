@@ -1642,6 +1642,19 @@ export class QuestionController {
     }
   }
 
+  @Post('/:questionId/request-expert-review')
+  @HttpCode(200)
+  @Authorized()
+  @OpenAPI({ summary: 'Request expert review on a canonical question' })
+  async requestExpertReview(
+    @Params() params: QuestionIdParam,
+    @CurrentUser() user: IUser,
+  ): Promise<{ success: boolean; questionId: string; pae_review: boolean }> {
+    verifyNotTester(user);
+    const { questionId } = params;
+    return this.questionService.requestExpertReview(questionId, user);
+  }
+
   @Post('/:questionId/allocate-experts')
   @HttpCode(200)
   @Authorized()
