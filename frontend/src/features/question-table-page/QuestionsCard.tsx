@@ -104,15 +104,24 @@ const QuestionsCard: React.FC<QuestionsCardProps> = ({
 
   const statusBadge = useMemo(() => {
     // const status = q.status || "NIL";
+    const isAnswered = Boolean(
+      q.status === "answered" ||
+      q.status === "completed" ||
+      q.aiInitialAnswer ||
+      (q.totalAnswersCount ?? 0) > 0
+    );
+
     const effectiveStatus =
-      timer === "00:00:00" && q.status == "open"&&q.pae_review!=true
+      !isAnswered && timer === "00:00:00" && q.status == "open" && q.pae_review != true
         ? "delayed"
         : q.status || "NIL";
 
     const formatted = effectiveStatus.replace("_", " ");
 
     const colorClass =
-      effectiveStatus === "in-review"
+      effectiveStatus === "answered" || effectiveStatus === "completed"
+        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+        : effectiveStatus === "in-review"
         ? "bg-green-500/10 text-green-600 border-green-500/30"
         : effectiveStatus === "open"
           ? "bg-amber-500/10 text-amber-600 border-amber-500/30"
@@ -127,7 +136,7 @@ const QuestionsCard: React.FC<QuestionsCardProps> = ({
         {formatted}
       </Badge>
     );
-  }, [q.status, timer]);
+  }, [q.status, timer, q.aiInitialAnswer, q.totalAnswersCount, q.pae_review]);
 
   const priorityBadge = useMemo(() => {
     if (!q.priority) {

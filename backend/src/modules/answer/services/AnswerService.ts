@@ -1970,6 +1970,11 @@ answer: ${updates.answer}`;
               : 'closed'
           : 'closed';
 
+      const isPushedToGolden =
+        updates.closeIntent === 'gdb' ||
+        Boolean(question.isGolden) ||
+        (closeStatus === 'closed' && isDuplicateClose);
+
       // DUPLICATE / DYNAMIC QUESTION FLOW
       // Create final approved answer directly from LLM answer
       if (
@@ -2001,6 +2006,14 @@ answer: ${updates.answer}`;
 
         answerId = answer.insertedId.toString();
 
+        if (isPushedToGolden) {
+          await this.answerRepo.updateAnswer(
+            answerId,
+            { isGolden: true, verified: true },
+            session,
+          );
+        }
+
         await this.questionRepo.updateQuestion(
           questionId,
           {
@@ -2008,6 +2021,10 @@ answer: ${updates.answer}`;
             embedding: questionEmbedding,
             status: closeStatus,
             closedAt: new Date(),
+            isGolden: isPushedToGolden,
+            isVerified: true,
+            aiApprovedAnswer: updates.answer,
+            aiApprovedSources: updates.sources,
           },
           session,
           true,
@@ -2065,6 +2082,10 @@ answer: ${updates.answer}`;
           embedding: questionEmbedding,
           status: closeStatus,
           closedAt: new Date(),
+          isGolden: isPushedToGolden,
+          isVerified: true,
+          aiApprovedAnswer: updates.answer,
+          aiApprovedSources: updates.sources,
         },
         session,
         true,
@@ -2089,6 +2110,8 @@ answer: ${updates.answer}`;
         embedding: answerEmbedding,
         isFinalAnswer: true,
         status: 'approved',
+        isGolden: isPushedToGolden,
+        verified: true,
       };
 
       const result = await this.answerRepo.updateAnswer(

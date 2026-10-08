@@ -142,6 +142,9 @@ interface GateKeeperAuditorDashboardProps {
 
 const statusBadgeClass = (status: string) => {
   switch (status) {
+    case "answered":
+    case "completed":
+      return "bg-emerald-500/10 text-emerald-600 border-emerald-500/30";
     case "closed":
     case "dynamic_closed":
     case "duplicate_closed":

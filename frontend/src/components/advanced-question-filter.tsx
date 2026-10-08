@@ -78,7 +78,7 @@ export { STATES, CROPS, DOMAINS };
 import { DateRangeFilter } from "./DateRangeFilter";
 import { TopRightBadge } from "./NewBadge";
 
-export type QuestionFilterStatus = "all" | "open" | "in-review" | "closed" | "pae_submitted" | "draft" | "hold" | "dynamic" | "auditor_review" | "queue_duplicate";
+export type QuestionFilterStatus = "all" | "open" | "in-review" | "closed" | "pae_submitted" | "draft" | "hold" | "dynamic" | "auditor_review" | "queue_duplicate" | "answered" | "completed";
 export type QuestionDateRangeFilter =
   | "all"
   | "today"
@@ -273,6 +273,26 @@ export const AdvanceFilterDialog: React.FC<AdvanceFilterDialogProps> = ({
           <Eye className="w-4 h-4 text-primary" />
           <span>All Statuses</span>
           <TopRightBadge label="new" />
+        </div>
+      ),
+    },
+    {
+      value: "answered",
+      searchText: "Answered",
+      children: (
+        <div className="flex items-center gap-2">
+          <BadgeCheck className="w-4 h-4 text-emerald-500" />
+          <span>Answered</span>
+        </div>
+      ),
+    },
+    {
+      value: "completed",
+      searchText: "Completed",
+      children: (
+        <div className="flex items-center gap-2">
+          <BadgeCheck className="w-4 h-4 text-emerald-500" />
+          <span>Completed</span>
         </div>
       ),
     },

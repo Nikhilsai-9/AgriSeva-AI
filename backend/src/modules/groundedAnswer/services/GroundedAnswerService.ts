@@ -145,6 +145,30 @@ export class GroundedAnswerService implements IGroundedAnswerService {
       };
     }
 
+    // Step 0: Check existing Golden Dataset for a trusted matching question first
+    const goldenMatch = await this.findTrustedGoldenDatasetMatch(normalizedQuery, request);
+    if (goldenMatch) {
+      return {
+        questionId,
+        answer: goldenMatch.answer,
+        confidence: 'high',
+        status: 'grounded',
+        sources: [
+          {
+            type: 'golden',
+            id: goldenMatch.id,
+            title: goldenMatch.title,
+            reference: 'Golden Dataset (Database Record)',
+            score: 1.0,
+            metadata: goldenMatch.metadata,
+          },
+        ],
+        warnings: ['Matched trusted Golden Dataset entry; returned verified answer directly.'],
+        language: lang,
+        generatedAt: timestamp,
+      };
+    }
+
     // Step 1: Query Normalization & Intent Classification
     const intent = this.classifyIntent(normalizedQuery);
 
@@ -1181,19 +1205,22 @@ export class GroundedAnswerService implements IGroundedAnswerService {
       try {
         const questionsCol = await this.db.getCollection<any>('questions');
 
-        // Search questions collection for matching closed / verified answers
+        // Search questions collection for matching closed / verified / golden answers
         const cleanQuery = query.replace(/[.*+?^${}()|[\]\\]/g, ' ');
         const terms = cleanQuery.split(/\s+/).filter(t => t.length > 2).slice(0, 4);
         if (terms.length > 0) {
           const regexQuery = terms.map(t => `(?=.*${t})`).join('');
           const mongoMatches = await questionsCol.find({
             question: { $regex: new RegExp(regexQuery, 'i') },
-            status: { $in: ['closed', 'verified'] },
-            'answers.0': { $exists: true },
+            $or: [
+              { status: { $in: ['closed', 'verified'] } },
+              { isGolden: true },
+              { isVerified: true },
+            ],
           }).limit(3).toArray();
 
           for (const m of mongoMatches) {
-            const bestAns = m.answers?.[0]?.answer || m.answer || '';
+            const bestAns = await this.resolveAnswerForQuestionDoc(m);
             if (bestAns) {
               sources.push({
                 type: m.isGolden ? 'golden' : 'reviewer',
@@ -1383,5 +1410,100 @@ Synthesize a helpful, grounded explanation for the farmer adhering strictly to t
     }
 
     return true;
+  }
+
+  /**
+   * Check Golden Dataset for an authoritative, verified answer before running full AI pipeline.
+   * Uses exact and normalized keyword matching to prevent unreliable fuzzy matches.
+   */
+  private async findTrustedGoldenDatasetMatch(
+    query: string,
+    request: GroundedAnswerRequest,
+  ): Promise<{ id: string; answer: string; title: string; metadata?: any } | null> {
+    if (!this.db || typeof this.db.getCollection !== 'function') return null;
+    try {
+      const questionsCol = await this.db.getCollection<any>('questions');
+      if (!questionsCol || typeof questionsCol.findOne !== 'function') return null;
+      const cleanQuery = query.replace(/[.*+?^${}()|[\]\\]/g, ' ').trim();
+      if (!cleanQuery) return null;
+
+      // 1. Exact match (case-insensitive) on verified/golden questions
+      const exactEscaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const exactDoc = await questionsCol.findOne({
+        question: { $regex: new RegExp(`^${exactEscaped}$`, 'i') },
+        $or: [{ isGolden: true }, { isVerified: true }, { status: 'closed' }],
+      });
+
+      if (exactDoc) {
+        const ans = await this.resolveAnswerForQuestionDoc(exactDoc);
+        if (ans) {
+          return {
+            id: String(exactDoc._id),
+            answer: ans,
+            title: exactDoc.question,
+            metadata: exactDoc.details,
+          };
+        }
+      }
+
+      // 2. High-precision normalized term match for explicit Golden Dataset entries (isGolden: true)
+      const terms = cleanQuery.split(/\s+/).filter(t => t.length > 2).slice(0, 5);
+      if (terms.length >= 2) {
+        const regexQuery = terms.map(t => `(?=.*${t})`).join('');
+        const goldenDoc = await questionsCol.findOne({
+          question: { $regex: new RegExp(regexQuery, 'i') },
+          isGolden: true,
+        });
+
+        if (goldenDoc) {
+          const ans = await this.resolveAnswerForQuestionDoc(goldenDoc);
+          if (ans) {
+            return {
+              id: String(goldenDoc._id),
+              answer: ans,
+              title: goldenDoc.question,
+              metadata: goldenDoc.details,
+            };
+          }
+        }
+      }
+
+      return null;
+    } catch (err) {
+      console.warn('[findTrustedGoldenDatasetMatch] Error querying golden dataset:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Resolves the best approved/verified answer for a question doc, checking both
+   * the document itself and the answers collection.
+   */
+  private async resolveAnswerForQuestionDoc(doc: any): Promise<string> {
+    if (doc.aiApprovedAnswer?.trim()) return doc.aiApprovedAnswer.trim();
+    if (doc.aiInitialAnswer?.trim()) return doc.aiInitialAnswer.trim();
+    if (doc.answers?.[0]?.answer?.trim()) return doc.answers[0].answer.trim();
+    if (doc.answer?.trim()) return doc.answer.trim();
+
+    // Check answers collection in MongoDB
+    try {
+      if (this.db && typeof this.db.getCollection === 'function') {
+        const answersCol = await this.db.getCollection<any>('answers');
+        const ansDoc = await answersCol.findOne({
+          questionId: doc._id,
+          $or: [{ isFinalAnswer: true }, { status: 'approved' }, { isGolden: true }],
+        });
+        if (ansDoc?.answer?.trim()) {
+          return ansDoc.answer.trim();
+        }
+        const anyAns = await answersCol.findOne({ questionId: doc._id });
+        if (anyAns?.answer?.trim()) {
+          return anyAns.answer.trim();
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    return '';
   }
 }

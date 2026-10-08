@@ -129,7 +129,7 @@ describe('Safe Pipeline Fixes Verification Tests', () => {
     expect(savedQuestion.originalQuestion).toBe(transcript);
     expect(savedQuestion.contextId?.toString()).toBe(result.insertedId);
     expect(savedQuestion.source).toBe('AGRISEVA_AI');
-    expect(savedQuestion.status).toBe('pending');
+    expect(savedQuestion.status).toBe('answered');
     expect(savedQuestion.userId?.toString()).toBe(USER_ID);
 
     // Verify submission record
@@ -173,7 +173,7 @@ describe('Safe Pipeline Fixes Verification Tests', () => {
     const qC = storedQuestions.get(resC.questionId!);
     expect(qC).toBeDefined();
     expect(qC.question).toBe('TEST_QUESTION_C_003');
-    expect(qC.status).toBe('pending');
+    expect(qC.status).toBe('answered');
   });
 
   it('Idempotency: Re-submitting for same contextId does not duplicate question record', async () => {

@@ -2727,11 +2727,31 @@ export class QuestionRepository implements IQuestionRepository {
 
       // const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
 
+      // Automatically ensure questions with existing answers are marked 'answered' and not left as 'delayed' or 'open'
+      await this.QuestionCollection.updateMany(
+        {
+          status: { $in: ['open', 'delayed', 'pending'] },
+          $or: [
+            { aiInitialAnswer: { $exists: true, $ne: '' } },
+            { totalAnswersCount: { $gt: 0 } },
+          ],
+          pae_review: { $ne: true },
+        },
+        {
+          $set: {
+            status: 'answered',
+            isDelayed: false,
+          },
+        },
+      );
+
       const result = await this.QuestionCollection.updateMany(
         {
           status: { $in: ['open'] },
           isOnHold: { $ne: true },
           pae_review: { $ne: true },
+          aiInitialAnswer: { $in: [null, undefined, ''] },
+          totalAnswersCount: { $in: [0, null, undefined] },
         },
         [
           {
@@ -3342,7 +3362,7 @@ export class QuestionRepository implements IQuestionRepository {
     };
 
     const closedMatchCondition: any = {
-      status: 'closed',
+      $or: [{ status: 'closed' }, { isGolden: true }, { isVerified: true }],
       closedAt: {
         $gte: startDate,
         $lt: endDate,
@@ -3463,7 +3483,19 @@ export class QuestionRepository implements IQuestionRepository {
             _id: { month: { $month: '$createdAt' } },
             totalEntries: { $sum: 1 },
             totalVerified: {
-              $sum: { $cond: [{ $eq: ['$status', 'closed'] }, 1, 0] },
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ['$status', 'closed'] },
+                      { $eq: ['$isGolden', true] },
+                      { $eq: ['$isVerified', true] },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
             },
           },
         },
@@ -4455,7 +4487,7 @@ export class QuestionRepository implements IQuestionRepository {
     };
 
     const closedMatchCondition: any = {
-      status: 'closed',
+      $or: [{ status: 'closed' }, { isGolden: true }, { isVerified: true }],
       closedAt: {
         $gte: startDate,
         $lt: endDate,
@@ -4581,7 +4613,19 @@ export class QuestionRepository implements IQuestionRepository {
             _id: { week: '$weekOfMonth' },
             totalEntries: { $sum: 1 },
             totalVerified: {
-              $sum: { $cond: [{ $eq: ['$status', 'closed'] }, 1, 0] },
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ['$status', 'closed'] },
+                      { $eq: ['$isGolden', true] },
+                      { $eq: ['$isVerified', true] },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
             },
           },
         },
@@ -4745,7 +4789,7 @@ export class QuestionRepository implements IQuestionRepository {
     };
 
     const closedMatchCondition: any = {
-      status: 'closed',
+      $or: [{ status: 'closed' }, { isGolden: true }, { isVerified: true }],
       closedAt: {
         $gte: startDate,
         $lt: endDate,
@@ -4870,7 +4914,19 @@ export class QuestionRepository implements IQuestionRepository {
             _id: { day: '$dayOfWeek' },
             totalEntries: { $sum: 1 },
             totalVerified: {
-              $sum: { $cond: [{ $eq: ['$status', 'closed'] }, 1, 0] },
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ['$status', 'closed'] },
+                      { $eq: ['$isGolden', true] },
+                      { $eq: ['$isVerified', true] },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
             },
           },
         },
@@ -5050,7 +5106,7 @@ export class QuestionRepository implements IQuestionRepository {
     };
 
     const closedMatchCondition: any = {
-      // status: 'closed',
+      $or: [{ status: 'closed' }, { isGolden: true }, { isVerified: true }],
       closedAt: {
         $gte: startDate,
         $lt: endDate,
@@ -5185,7 +5241,19 @@ export class QuestionRepository implements IQuestionRepository {
             _id: '$hourOfDay',
             totalEntries: { $sum: 1 },
             totalVerified: {
-              $sum: { $cond: [{ $eq: ['$status', 'closed'] }, 1, 0] },
+              $sum: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ['$status', 'closed'] },
+                      { $eq: ['$isGolden', true] },
+                      { $eq: ['$isVerified', true] },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
             },
           },
         },

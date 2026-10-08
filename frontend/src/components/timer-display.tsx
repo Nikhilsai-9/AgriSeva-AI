@@ -62,8 +62,8 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
     );
   }
 
-  // Allow timer to show for all statuses except closed
-  if (status === "closed" || !timer) return null;
+  // Allow timer to show for all statuses except closed, answered, and completed
+  if (status === "closed" || status === "answered" || status === "completed" || !timer) return null;
 
 
   // if (hours === 0 && minutes < criticalThreshold) {

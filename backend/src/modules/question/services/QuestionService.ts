@@ -580,79 +580,6 @@ export class QuestionService extends BaseService implements IQuestionService {
     language?: string,
   ): Promise<GeneratedQuestionResponse[]> {
     try {
-      const payload: any = { query: context };
-      if (state) payload.state = state;
-      if (crop) payload.crop = crop;
-      if (language) payload.language = language;
-
-      const agentSearchResponse = await axios.post(
-        `${aiConfig.agentSearchUrl}/search`,
-        payload,
-        { timeout: 5000 },
-      ).catch(() => null);
-
-      const data = agentSearchResponse?.data || {};
-
-      // Send this in the appropriate format expected by the frontend
-      let formattedResponse: any[] = [];
-
-      if (
-        data &&
-        (Array.isArray(data.reviewer) ||
-          Array.isArray(data.golden) ||
-          Array.isArray(data.pop))
-      ) {
-        formattedResponse = [
-          ...(data.reviewer || []).map((item: any) => ({
-            question: item.question,
-            answer: item.answer || item.text,
-            agri_specialist:
-              item.agri_expert ||
-              item.agri_specialist ||
-              item.source ||
-              'AGRI_EXPERT',
-            referenceSource: 'reviewer',
-            id: item.id || new ObjectId().toString(),
-          })),
-          ...(data.golden || []).map((item: any) => ({
-            question: item.question,
-            answer: item.answer || item.text,
-            agri_specialist:
-              item.agri_expert ||
-              item.agri_specialist ||
-              item.metadata?.['Agri Specialist'] ||
-              'Unknown',
-            referenceSource: 'golden',
-            id: item.id || new ObjectId().toString(),
-          })),
-          ...(data.pop || []).map((item: any) => ({
-            question: 'Reference Information',
-            answer: item.text,
-            agri_specialist: 'POP_DOCUMENT',
-            referenceSource: 'pop',
-            id: item.id || new ObjectId().toString(),
-          })),
-        ];
-      } else if (data && Array.isArray(data.results)) {
-        formattedResponse = data.results.map((item: any) => ({
-          question: item.question || data.extracted_question || context,
-          answer: item.answer || item.text || 'Answer not available',
-          agri_specialist: item.source || 'AGRI_EXPERT',
-          referenceSource: 'agent_search',
-          id: item.id || new ObjectId().toString(),
-        }));
-      }
-
-      if (formattedResponse.length > 0) {
-        return Array.from(
-          new Map(formattedResponse.map(q => [q.question, q])).values(),
-        ).map(q => ({
-          ...q,
-          id: q.id || new ObjectId().toString(),
-        }));
-      }
-
-      // If upstream search service had no results or was offline, use GroundedAnswerService
       const service =
         this.groundedAnswerService ||
         new GroundedAnswerService(this.mongoDatabase);
@@ -664,22 +591,26 @@ export class QuestionService extends BaseService implements IQuestionService {
         language,
       });
 
+      const specialistLabel =
+        groundedResult.status === 'calculated'
+          ? 'Agmarknet Market Intelligence'
+          : groundedResult.status === 'grounded'
+          ? 'Grounded AgriSeva Advisor'
+          : 'AgriSeva Expert Routing';
+
+      const referenceSourceLabel =
+        groundedResult.sources[0]?.type ||
+        (groundedResult.status === 'source_unavailable'
+          ? 'source_unavailable'
+          : 'expert_review');
+
       return [
         {
           id: new ObjectId().toString(),
           question: context,
           answer: groundedResult.answer,
-          agri_specialist:
-            groundedResult.status === 'calculated'
-              ? 'Agmarknet Market Intelligence'
-              : groundedResult.status === 'grounded'
-              ? 'Grounded AgriSeva Advisor'
-              : 'AgriSeva Expert Routing',
-          referenceSource:
-            groundedResult.sources[0]?.type ||
-            (groundedResult.status === 'source_unavailable'
-              ? 'source_unavailable'
-              : 'expert_review'),
+          agri_specialist: specialistLabel,
+          referenceSource: referenceSourceLabel,
           status: groundedResult.status,
           confidence: groundedResult.confidence,
           sources: groundedResult.sources,
@@ -1316,10 +1247,12 @@ export class QuestionService extends BaseService implements IQuestionService {
           priority,
           source,
           status:
-            source === 'AGRISEVA_AI' || source === 'WHATSAPP'
-              ? 'pending'
-              : 'open',
-          totalAnswersCount: 0,
+            aiInitialAnswer
+              ? 'answered'
+              : source === 'AGRISEVA_AI' || source === 'WHATSAPP'
+                ? 'pending'
+                : 'open',
+          totalAnswersCount: aiInitialAnswer ? 1 : 0,
           contextId,
           details,
           isAutoAllocate: !(source === 'AGRISEVA_AI' || source === 'WHATSAPP'),
@@ -1551,7 +1484,11 @@ export class QuestionService extends BaseService implements IQuestionService {
     }
 
     const status: QuestionStatus =
-      source === 'AGRISEVA_AI' || source === 'WHATSAPP' ? 'pending' : 'open';
+      aiAnswer
+        ? 'answered'
+        : source === 'AGRISEVA_AI' || source === 'WHATSAPP'
+          ? 'pending'
+          : 'open';
 
     const baseQuestion: IQuestion = {
       userId: userId && ObjectId.isValid(userId) ? new ObjectId(userId) : null,
@@ -1562,12 +1499,13 @@ export class QuestionService extends BaseService implements IQuestionService {
       status,
       totalAnswersCount: aiAnswer ? 1 : 0,
       aiInitialAnswer: aiAnswer || undefined,
+      aiApprovedSources: sources,
       contextId: contextId && ObjectId.isValid(contextId) ? new ObjectId(contextId) : null,
       details,
-      isAutoAllocate: !(source === 'AGRISEVA_AI' || source === 'WHATSAPP'),
+      isAutoAllocate: false,
       autoAllocateGateKeeper: true,
       autoAllocateAuditor: true,
-      autoAllocateModerator: true,
+      autoAllocateModerator: false,
       embedding: textEmbedding,
       metrics: null,
       text: formattedText,
@@ -1826,14 +1764,14 @@ export class QuestionService extends BaseService implements IQuestionService {
       originalQuestion: trimmedText,
       priority: 'medium',
       source: params.source,
-      status: 'open',
+      status: aiAnswer ? 'answered' : 'open',
       totalAnswersCount: aiAnswer ? 1 : 0,
       contextId: params.contextId && ObjectId.isValid(params.contextId) ? new ObjectId(params.contextId) : null,
       details,
-      isAutoAllocate: true,
+      isAutoAllocate: false,
       autoAllocateGateKeeper: true,
       autoAllocateAuditor: true,
-      autoAllocateModerator: true,
+      autoAllocateModerator: false,
       embedding: textEmbedding,
       metrics: null,
       text: formattedText,
@@ -2098,48 +2036,67 @@ export class QuestionService extends BaseService implements IQuestionService {
               return;
             }
 
+            const isAnswered = Boolean(
+              baseQuestion.status === 'answered' ||
+              baseQuestion.status === 'completed' ||
+              baseQuestion.aiInitialAnswer
+            );
+
             await this.questionRepo.updateQuestion(questionId, {
-              status: 'open',
-              isAutoAllocate: true,
+              status: isAnswered ? 'answered' : 'open',
+              isAutoAllocate: !isAnswered,
             });
           } catch (pipelineError: any) {
             console.error(
-              '[processQuestionInBackground] duplicate/queue pipeline failed, proceeding as open:',
+              '[processQuestionInBackground] duplicate/queue pipeline failed, proceeding:',
               pipelineError?.message,
             );
+            const isAnswered = Boolean(
+              baseQuestion.status === 'answered' ||
+              baseQuestion.status === 'completed' ||
+              baseQuestion.aiInitialAnswer
+            );
             await this.questionRepo.updateQuestion(questionId, {
-              status: 'open',
-              isAutoAllocate: true,
+              status: isAnswered ? 'answered' : 'open',
+              isAutoAllocate: !isAnswered,
             });
           }
         }
 
-        const [allModerators, taskForceModerators] = await Promise.all([
-          this.userRepo.findModerators(),
-          this.userRepo.getSpecialTaskForceModerators(),
-        ]);
-        const sourceLabel = source === 'AGRISEVA_AI' ? 'AgriSeva-AI' : 'WhatsApp';
-        const message = `A new question has been received from ${sourceLabel} and needs your attention.`;
-        const notificationType =
-          source === 'AGRISEVA_AI'
-            ? 'question_from_agriseva'
-            : 'question_from_whatsapp';
-
-        const moderators = [...allModerators, ...taskForceModerators].filter(
-          (moderator) => moderator.isTrainingUser !== true,
+        const isAnswered = Boolean(
+          baseQuestion.status === 'answered' ||
+          baseQuestion.status === 'completed' ||
+          baseQuestion.aiInitialAnswer
         );
 
-        await Promise.all(
-          moderators.map((moderator: any) =>
-            this.notificationService.saveTheNotifications(
-              message,
-              'New Question Received',
-              questionId,
-              moderator._id.toString(),
-              notificationType,
+        if (!isAnswered) {
+          const [allModerators, taskForceModerators] = await Promise.all([
+            this.userRepo.findModerators(),
+            this.userRepo.getSpecialTaskForceModerators(),
+          ]);
+          const sourceLabel = source === 'AGRISEVA_AI' ? 'AgriSeva-AI' : 'WhatsApp';
+          const message = `A new question has been received from ${sourceLabel} and needs your attention.`;
+          const notificationType =
+            source === 'AGRISEVA_AI'
+              ? 'question_from_agriseva'
+              : 'question_from_whatsapp';
+
+          const moderators = [...allModerators, ...taskForceModerators].filter(
+            (moderator) => moderator.isTrainingUser !== true,
+          );
+
+          await Promise.all(
+            moderators.map((moderator: any) =>
+              this.notificationService.saveTheNotifications(
+                message,
+                'New Question Received',
+                questionId,
+                moderator._id.toString(),
+                notificationType,
+              ),
             ),
-          ),
-        );
+          );
+        }
 
         // Time-bound expert allocation is handled exclusively by the
         // reallocateTimeBoundQuestions cron to avoid double-allocation races.
@@ -10596,6 +10553,9 @@ if (filters.endDate) {
       expertReviewRequested: true,
       expertReviewRequestedAt: new Date(),
       expertReviewRequestedBy: user._id ? new ObjectId(user._id.toString()) : undefined,
+      status: 'in-review',
+      isAutoAllocate: true,
+      autoAllocateModerator: true,
     } as any);
 
     console.log(`[QuestionService] Expert review requested on questionId=${questionId} by user=${user._id}`);

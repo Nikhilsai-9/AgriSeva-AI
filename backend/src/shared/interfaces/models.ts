@@ -1,7 +1,7 @@
 import { ObjectId } from 'mongodb';
 
 export type UserRole = 'admin' | 'moderator' | 'expert' | 'pae_expert' | 'tester' | 'district_coordinator' | 'block_coordinator' | 'village_volunteer' | 'call_agent' | 'gate_keeper' | 'auditor' | 'user';
-export type QuestionStatus = 'open' | 'in-review' | 'closed' | 'delayed' | 're-routed' | 'hold' | 'pae_submitted' | 'draft' | 'pass' | 'duplicate' | 'non_agri' | 'pending' | 'dynamic' | 'queue_progress' | 'auditor_review' | 'dynamic_closed'|'queue_duplicate' | 'duplicate_confirmed' | 'duplicate_closed'
+export type QuestionStatus = 'open' | 'in-review' | 'closed' | 'delayed' | 're-routed' | 'hold' | 'pae_submitted' | 'draft' | 'pass' | 'duplicate' | 'non_agri' | 'pending' | 'dynamic' | 'queue_progress' | 'auditor_review' | 'dynamic_closed'|'queue_duplicate' | 'duplicate_confirmed' | 'duplicate_closed' | 'answered' | 'completed'
 export type Tags = 'dynamic' | 'static_dynamic'
 export interface IPreference {
   state?: string;
@@ -245,6 +245,8 @@ export interface IQuestion {
   isExact?: boolean;
   saved_to_draft?: boolean;
   pae_review?: boolean;
+  isGolden?: boolean;
+  isVerified?: boolean;
   firstAllocationAt?: Date;
   /** Whether this question is eligible to be auto-allocated to a moderator by the
    *  moderator-queue cron. New questions default to true; existing questions were
@@ -347,6 +349,8 @@ export interface IAnswer {
   modifications?: PreviousAnswersItem[];
   sources: SourceItem[];
   embedding: number[];
+  isGolden?: boolean;
+  verified?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

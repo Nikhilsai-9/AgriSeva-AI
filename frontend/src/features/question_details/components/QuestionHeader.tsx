@@ -393,15 +393,17 @@ export const QuestionHeader = ({ question, goBack, currentUser, isQuestionAlloca
               <>
                 <Badge
                   className={
-                    question.status === "in-review"
-                      ? "bg-green-500/10 text-green-600 border-green-500/30"
-                      : question.status === "open"
-                        ? "bg-amber-500/10 text-amber-600 border-amber-500/30"
-                        : question.status === "closed"
-                          ? "bg-gray-500/10 text-gray-600 border-gray-500/30"
-                          : question.status === "pae_submitted"
-                            ? "bg-amber-600/10 text-amber-700 border-amber-600/30"
-                            : "bg-muted text-foreground"
+                    question.status === "answered" || question.status === "completed"
+                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                      : question.status === "in-review"
+                        ? "bg-green-500/10 text-green-600 border-green-500/30"
+                        : question.status === "open"
+                          ? "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                          : question.status === "closed"
+                            ? "bg-gray-500/10 text-gray-600 border-gray-500/30"
+                            : question.status === "pae_submitted"
+                              ? "bg-amber-600/10 text-amber-700 border-amber-600/30"
+                              : "bg-muted text-foreground"
                   }
                 >
                   {question.status.replace("_", " ")}

@@ -2321,16 +2321,16 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
                   userId: userObjId,
                   question: caption || '📷 [Crop Disease Image Diagnosis]',
                   originalQuestion: caption || 'Crop Disease Image Diagnosis',
-                  status: 'open',
+                  status: 'answered',
                   source: 'WHATSAPP',
                   imageUrl: buffer ? `data:${mimeType};base64,${buffer.toString('base64')}` : undefined,
                   messageId: imgMsgId,
                   threadId: canonicalPhone,
                   totalAnswersCount: 1,
                   isAutoAllocate: false,
-                  autoAllocateGateKeeper: true,
-                  autoAllocateAuditor: true,
-                  autoAllocateModerator: true,
+                  autoAllocateGateKeeper: false,
+                  autoAllocateAuditor: false,
+                  autoAllocateModerator: false,
                   embedding: [],
                   metrics: null,
                   priority: 'medium',
@@ -2509,7 +2509,19 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
         $or: [{ messageId: msgId }, { $and: [{ threadId: canonicalPhone }, { question: userQuery }] }],
       });
 
-      if (!existingQ) {
+      if (existingQ) {
+        await questionsCol.updateOne(
+          { _id: existingQ._id },
+          {
+            $set: {
+              status: 'answered',
+              aiInitialAnswer: finalLocalizedAnswer,
+              totalAnswersCount: Math.max(existingQ.totalAnswersCount || 0, 1),
+              updatedAt: new Date(),
+            },
+          },
+        );
+      } else {
         const qId = new ObjectId();
         const userObjId = session.userId ? new ObjectId(session.userId.toString()) : undefined;
 
@@ -2551,7 +2563,7 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
           userId: userObjId,
           question: userQuery,
           originalQuestion: userQuery,
-          status: 'open',
+          status: 'answered',
           source: 'WHATSAPP',
           messageId: msgId,
           threadId: canonicalPhone,
@@ -2559,7 +2571,7 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
           isAutoAllocate: false,
           autoAllocateGateKeeper: true,
           autoAllocateAuditor: true,
-          autoAllocateModerator: true,
+          autoAllocateModerator: false,
           embedding: [],
           metrics: null,
           priority: 'medium',

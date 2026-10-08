@@ -227,6 +227,14 @@ export const QuestionRow: React.FC<QuestionRowProps> = ({
   };
 
   const STATUS_CONFIG = {
+    answered: {
+      icon: BadgeCheck,
+      className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
+    },
+    completed: {
+      icon: BadgeCheck,
+      className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
+    },
     "in-review": {
       icon: User,
       className: "bg-green-500/10 text-green-600 border-green-500/30",
@@ -250,8 +258,15 @@ export const QuestionRow: React.FC<QuestionRowProps> = ({
   } as const;
   const statusBadge = useMemo(() => {
     // const status = q.status || "NIL";
+    const isAnswered = Boolean(
+      q.status === "answered" ||
+      q.status === "completed" ||
+      q.aiInitialAnswer ||
+      (q.totalAnswersCount ?? 0) > 0
+    );
+
     const effectiveStatus =
-      timer === "00:00:00" && q.status == "open"&&q.pae_review!=true
+      !isAnswered && timer === "00:00:00" && q.status == "open" && q.pae_review != true
         ? "delayed"
         : q.status || "NIL";
 
@@ -260,7 +275,9 @@ export const QuestionRow: React.FC<QuestionRowProps> = ({
     const Icon = config?.icon ?? Circle;
 
     const colorClass =
-      effectiveStatus === "in-review"
+      effectiveStatus === "answered" || effectiveStatus === "completed"
+        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+        : effectiveStatus === "in-review"
         ? "bg-green-500/10 text-green-600 border-green-500/30"
         : effectiveStatus === "open"
           ? "bg-amber-500/10 text-amber-600 border-amber-500/30"
@@ -278,7 +295,7 @@ export const QuestionRow: React.FC<QuestionRowProps> = ({
         {formatted}
       </Badge>
     );
-  }, [q.status, timer]);
+  }, [q.status, timer, q.aiInitialAnswer, q.totalAnswersCount, q.pae_review]);
 
   const hasSelectedQuestions =
     selectedQuestionIds && selectedQuestionIds.length > 0;
