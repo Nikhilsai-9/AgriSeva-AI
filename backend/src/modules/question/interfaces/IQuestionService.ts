@@ -823,4 +823,9 @@ export interface IQuestionService {
   ): Promise<{
     success: boolean;
   }>;
+
+  requestExpertReview(
+    questionId: string,
+    user: IUser,
+  ): Promise<{ success: boolean; questionId: string; pae_review: boolean }>;
 }
