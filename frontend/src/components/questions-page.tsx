@@ -50,11 +50,16 @@ export const QuestionsPage = ({
       sourceFromUrl === "AGRISEVA_AI" ||
       sourceFromUrl === "AGRI_EXPERT" ||
       sourceFromUrl === "OUTREACH" ||
-      sourceFromUrl === "WHATSAPP"
+      sourceFromUrl === "WHATSAPP" ||
+      sourceFromUrl === "AGENT_INTERFACE" ||
+      sourceFromUrl === "VOICE" ||
+      sourceFromUrl === "IMAGE" ||
+      sourceFromUrl === "AI_ASSISTANT" ||
+      sourceFromUrl === "FARMER_DASHBOARD"
     ) {
       return sourceFromUrl;
     }
-    return "AGRISEVA_AI";
+    return "all";
   };
 
   //grid or table
@@ -152,7 +157,11 @@ export const QuestionsPage = ({
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    url.searchParams.set("source", source);
+    if (source && source !== "all") {
+      url.searchParams.set("source", source);
+    } else {
+      url.searchParams.delete("source");
+    }
     window.history.replaceState({}, "", url.toString());
 
     return () => {

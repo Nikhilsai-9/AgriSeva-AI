@@ -508,6 +508,28 @@ export class WhatsAppService implements IWhatsAppService {
     return this.isSessionOwnedByUser(session, user);
   }
 
+  /**
+   * Safely persists or updates a WhatsApp session document without modifying immutable _id.
+   */
+  public async persistSession(session: IWhatsAppSession, canonicalPhone: string): Promise<void> {
+    const sessionsCol = await this.getSessionsCollection();
+    const { _id, ...sessionData } = session;
+    const query = session._id
+      ? { $or: [{ phoneNumber: canonicalPhone }, { _id: session._id }] }
+      : { phoneNumber: canonicalPhone };
+    await sessionsCol.updateOne(
+      query,
+      {
+        $set: {
+          ...sessionData,
+          phoneNumber: canonicalPhone,
+          updatedAt: new Date(),
+        },
+      },
+      { upsert: true },
+    );
+  }
+
   async getThreads(user: IUser, page?: number, limit?: number, search?: string): Promise<Thread[]> {
     try {
       const sessionsCol = await this.getSessionsCollection();
@@ -698,6 +720,9 @@ export class WhatsAppService implements IWhatsAppService {
           { rawFrom: cleanPhone },
           { rawFrom: domestic10 },
           { phoneNumber: `+91${domestic10}` },
+          { phoneNumber: `91${domestic10}` },
+          { rawFrom: `+91${domestic10}` },
+          { rawFrom: `91${domestic10}` },
           ...(ObjectId.isValid(phoneNumber) ? [{ _id: new ObjectId(phoneNumber) }] : []),
         ],
       });
@@ -1793,7 +1818,7 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
       console.log(`[WhatsAppService:Diag] User ${from} requested language selection menu via shortcut "${norm}". Setting awaitingLanguageSelection = true`);
       session.awaitingLanguageSelection = true;
       session.updatedAt = new Date();
-      await sessionsCol.updateOne({ phoneNumber: canonicalPhone }, { $set: session }, { upsert: true });
+      await this.persistSession(session, canonicalPhone);
       await this.sendLanguageSelectionMenu(from, targetPhoneId, 1);
       return;
     }
@@ -1926,11 +1951,7 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
         timestamp: new Date(),
       };
       session.awaitingLanguageSelection = true;
-      await sessionsCol.updateOne(
-        { phoneNumber: canonicalPhone },
-        { $set: session },
-        { upsert: true },
-      );
+      await this.persistSession(session, canonicalPhone);
 
       console.log(`[WhatsAppService] Preserved first message from new user ${from}. Sending language selector.`);
       await this.sendLanguageSelectionMenu(from, targetPhoneId, 1);
@@ -1982,7 +2003,7 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
         session.lastMessageAt = new Date();
         session.updatedAt = new Date();
 
-        await sessionsCol.updateOne({ phoneNumber: canonicalPhone }, { $set: session }, { upsert: true });
+        await this.persistSession(session, canonicalPhone);
         await this.sendTextMessage(from, targetPhoneId, warningMsg);
         console.warn(`[WhatsAppService] Safety violation (Warning 1) sent to ${from}`);
         return;
@@ -2020,7 +2041,7 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
         session.lastMessageAt = new Date();
         session.updatedAt = new Date();
 
-        await sessionsCol.updateOne({ phoneNumber: canonicalPhone }, { $set: session }, { upsert: true });
+        await this.persistSession(session, canonicalPhone);
         await this.sendTextMessage(from, targetPhoneId, blockMsg);
         console.warn(`[WhatsAppService] Safety violation: Blocked number ${from}`);
         return;
@@ -2146,7 +2167,7 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
         });
         session.lastMessageAt = new Date();
         session.updatedAt = new Date();
-        await sessionsCol.updateOne({ phoneNumber: canonicalPhone }, { $set: session }, { upsert: true });
+        await this.persistSession(session, canonicalPhone);
         return;
       }
 
@@ -2180,7 +2201,7 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
         });
         session.lastMessageAt = new Date();
         session.updatedAt = new Date();
-        await sessionsCol.updateOne({ phoneNumber: canonicalPhone }, { $set: session }, { upsert: true });
+        await this.persistSession(session, canonicalPhone);
         return;
       }
     }
@@ -2285,7 +2306,7 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
               timestamp: new Date(),
             });
             session.lastMessageAt = new Date();
-            await sessionsCol.updateOne({ phoneNumber: canonicalPhone }, { $set: session }, { upsert: true });
+            await this.persistSession(session, canonicalPhone);
 
             // Persist WhatsApp crop diagnosis image to "All Questions" pipeline
             try {
@@ -2330,7 +2351,27 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
                   createdAt: new Date(),
                   updatedAt: new Date(),
                 });
-                console.log(`[WhatsAppService] Persisted WhatsApp crop image question (id: ${imgQId}, msgId: ${imgMsgId})`);
+
+                const answersCol = await this.mongoDatabase.getCollection('answers');
+                await answersCol.insertOne({
+                  questionId: imgQId,
+                  answer: translatedDiagnosis,
+                  status: 'published',
+                  sources: [
+                    {
+                      source: 'AgriSeva Vision Disease Diagnostics',
+                      domain: 'Disease Management',
+                      text: 'Multimodal Crop Disease AI Engine',
+                    },
+                  ],
+                  verified: false,
+                  verifiedBy: null,
+                  upvotes: 0,
+                  downvotes: 0,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                });
+                console.log(`[WhatsAppService] Persisted WhatsApp crop image question and answer (id: ${imgQId}, msgId: ${imgMsgId})`);
               }
             } catch (imgQErr: any) {
               console.warn('[WhatsAppService] Could not persist crop image question to questions collection:', imgQErr.message);
@@ -2457,7 +2498,7 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
     session.lastMessageAt = new Date();
     session.updatedAt = new Date();
 
-    await sessionsCol.updateOne({ phoneNumber: canonicalPhone }, { $set: session }, { upsert: true });
+    await this.persistSession(session, canonicalPhone);
 
     // Step 11: Persist to "All Questions" pipeline (source: WHATSAPP)
     // Ensures questions asked via WhatsApp reliably appear in All Questions with complete metadata
@@ -2541,7 +2582,27 @@ CRITICAL ZERO-HALLUCINATION DIRECTIVE FOR MARKET INTELLIGENCE & BUYERS:
           updatedAt: new Date(),
         });
 
-        console.log(`[WhatsAppService] Persisted WhatsApp question (id: ${qId}, msgId: ${msgId}, userId: ${session.userId})`);
+        const answersCol = await this.mongoDatabase.getCollection('answers');
+        await answersCol.insertOne({
+          questionId: qId,
+          answer: finalLocalizedAnswer,
+          status: 'published',
+          sources: [
+            {
+              source: 'AgriSeva Knowledge Base',
+              domain: domains[0] || 'Crop Management',
+              text: 'Grounded Agricultural AI Service',
+            },
+          ],
+          verified: false,
+          verifiedBy: null,
+          upvotes: 0,
+          downvotes: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        console.log(`[WhatsAppService] Persisted WhatsApp question and answer (id: ${qId}, msgId: ${msgId}, userId: ${session.userId})`);
       }
     } catch (qErr: any) {
       console.warn('[WhatsAppService] Could not persist question to questions collection:', qErr.message);

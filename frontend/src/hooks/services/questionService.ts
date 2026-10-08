@@ -1323,4 +1323,14 @@ export class QuestionService {
     );
   }
 
+  async requestExpertReview(
+    questionId: string
+  ): Promise<{ success: boolean; questionId: string; pae_review: boolean }> {
+    return apiFetch<{ success: boolean; questionId: string; pae_review: boolean }>(
+      `${this._baseUrl}/${questionId}/request-expert-review`,
+      {
+        method: "POST",
+      }
+    );
+  }
 }

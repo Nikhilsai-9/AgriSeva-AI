@@ -58,15 +58,9 @@ export function useWhatsAppHistory() {
 
   // Requirement 15 & 16: Prevent stale cross-user selectedThreadId from persisting across logout/login
   useEffect(() => {
-    if (!isLoadingThreads && selectedThreadId && threads.length > 0) {
-      const exists = threads.some(
-        (t) =>
-          t.id === selectedThreadId ||
-          t.phoneNumber === selectedThreadId ||
-          t.phoneNumber.replace(/\D/g, '') === selectedThreadId.replace(/\D/g, '')
-      );
-      if (!exists) {
-        // Automatically switch to this user's first available thread
+    if (!isLoadingThreads && threads.length > 0) {
+      if (!selectedThreadId) {
+        // Automatically select first thread if none is selected
         const first = threads[0];
         navigate({
           to: '/whatsapp-history',
@@ -76,6 +70,25 @@ export function useWhatsAppHistory() {
             date: first.lastMessageDate || todayIST,
           }),
         });
+      } else {
+        const exists = threads.some(
+          (t) =>
+            t.id === selectedThreadId ||
+            t.phoneNumber === selectedThreadId ||
+            t.phoneNumber.replace(/\D/g, '') === selectedThreadId.replace(/\D/g, '')
+        );
+        if (!exists) {
+          // Automatically switch to this user's first available thread
+          const first = threads[0];
+          navigate({
+            to: '/whatsapp-history',
+            search: (prev: Record<string, string>) => ({
+              ...prev,
+              threadId: first.id,
+              date: first.lastMessageDate || todayIST,
+            }),
+          });
+        }
       }
     } else if (!isLoadingThreads && threads.length === 0 && selectedThreadId) {
       // Clear threadId if this user has 0 conversations

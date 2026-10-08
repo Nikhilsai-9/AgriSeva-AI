@@ -22,36 +22,18 @@ export function useSendMessage(threadId: string | undefined, phoneNumber: string
     },
     onMutate: async (messageText: string) => {
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-      await queryClient.cancelQueries({ queryKey: ['whatsapp-thread-details', threadId] });
+      await queryClient.cancelQueries({ queryKey: ['whatsapp-thread-details'] });
 
-      // Snapshot the previous value
-      const previousMessages = queryClient.getQueryData<Message[]>(['whatsapp-thread-details', threadId]);
-
-      // Optimistically update to the new value
-      if (previousMessages) {
-        const optimisticMessage: Message = {
-          id: `temp-${Date.now()}`,
-          role: 'assistant',
-          content: messageText,
-          timestamp: new Date(),
-          status: 'sending'
-        };
-        queryClient.setQueryData(['whatsapp-thread-details', threadId], [...previousMessages, optimisticMessage]);
-      }
-
-      return { previousMessages };
+      return { messageText };
     },
     onSuccess: () => {
       toast.success('Message sent to user successfully!');
-      queryClient.invalidateQueries({ queryKey: ['whatsapp-thread-details', threadId] });
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-thread-details'] });
       queryClient.invalidateQueries({ queryKey: ['whatsapp-threads'] });
     },
-    onError: (err, newMessage, context) => {
+    onError: (err) => {
       toast.error(`Failed to send message to user: ${err.message}`);
-      // Rollback to the previous value
-      if (context?.previousMessages) {
-        queryClient.setQueryData(['whatsapp-thread-details', threadId], context.previousMessages);
-      }
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-thread-details'] });
     },
   });
 }

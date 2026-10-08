@@ -16,12 +16,13 @@ import { useConfirmDuplicate } from "@/hooks/api/answer/useConfirmDuplicate";
 import { Textarea } from "@/components/atoms/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/atoms/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/atoms/dialog";
-import { CircleCheck, GitCompareArrows, History } from "lucide-react";
+import { CircleCheck, GitCompareArrows, History, UserCheck } from "lucide-react";
 import { diffWords } from "@/utils/wordDifference";
 import { AuditTrailModal } from "./AuditTrailModal";
 import { isEnglishCharacters } from "@/features/questions/utils/checkLanguage";
 import { QuestionLifecycleTable } from "@/features/chatbotDashboard/QuestionLifeCycle";
 import { useSelectedQuestion } from "@/hooks/api/question/useSelectedQuestion";
+import { useRequestExpertReview } from "@/hooks/api/question/useRequestExpertReview";
 
 interface QuestionHeaderProps {
   question: IQuestionFullData;
@@ -33,6 +34,20 @@ interface QuestionHeaderProps {
 export const QuestionHeader = ({ question, goBack, currentUser, isQuestionAllocatedToExpert }: QuestionHeaderProps) => {
   //translation state
   const [translatedText, setTranslatedText] = useState<string>("");
+  const { mutateAsync: requestExpertReview, isPending: isRequestingReview } =
+    useRequestExpertReview();
+  const [expertReviewRequested, setExpertReviewRequested] = useState(
+    Boolean(question.pae_review || (question as any).expertReviewRequested)
+  );
+
+  const handleRequestReview = async (qId: string) => {
+    try {
+      await requestExpertReview(qId);
+      setExpertReviewRequested(true);
+    } catch (err: any) {
+      console.error("Failed to request expert review:", err);
+    }
+  };
 
   const isDuplicate = Boolean(
     question?.similarityScore &&
@@ -411,6 +426,24 @@ export const QuestionHeader = ({ question, goBack, currentUser, isQuestionAlloca
             <span className="text-sm text-muted-foreground whitespace-nowrap">
               Total answers: {question.totalAnswersCount}
             </span>
+
+            {expertReviewRequested ? (
+              <Badge className="bg-purple-500/10 text-purple-700 border-purple-500/30 gap-1 text-xs">
+                <CircleCheck className="h-3 w-3" />
+                Expert Review Requested
+              </Badge>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isRequestingReview}
+                onClick={() => handleRequestReview(question._id!)}
+                className="h-6 text-xs px-2.5 gap-1 border-purple-300 text-purple-700 hover:bg-purple-50"
+              >
+                <UserCheck className="h-3 w-3" />
+                Request Expert Review
+              </Button>
+            )}
           </div>
           {/* {(question?.status === "closed" &&
             (currentUser.role === "moderator" ||

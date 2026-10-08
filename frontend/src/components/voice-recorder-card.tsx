@@ -15,6 +15,7 @@ import {
   Send,
   Speech,
   User,
+  UserCheck,
   Volume2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./atoms/tooltip";
 import { useTranslation } from "@/locales";
 import { useGetCurrentUser } from "@/hooks/api/user/useGetCurrentUser";
 import { useSendAudioChunk } from "@/hooks/api/context/useSendAudioChunk";
+import { useRequestExpertReview } from "@/hooks/api/question/useRequestExpertReview";
 
 export interface GroundedSourceItem {
   type: string;
@@ -315,6 +317,20 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
   const { mutateAsync: generateQuestions, isPending: isGeneratingQuestions } =
     useGenerateQuestion();
   const { mutateAsync: sendAudioChunk } = useSendAudioChunk();
+  const { mutateAsync: requestExpertReview, isPending: isRequestingReview } =
+    useRequestExpertReview();
+  const [requestedReviewIds, setRequestedReviewIds] = useState<Set<string>>(
+    new Set()
+  );
+
+  const handleRequestExpertReview = async (qId: string) => {
+    try {
+      await requestExpertReview(qId);
+      setRequestedReviewIds((prev) => new Set(prev).add(qId));
+    } catch (err: any) {
+      console.error("Failed to request expert review:", err);
+    }
+  };
 
   // Question suggestions triggered when transcript updates
   useEffect(() => {
@@ -793,13 +809,27 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
         domain: [],
       };
 
+      const effectiveSource =
+        !isTypingMode && audioBlob ? "VOICE" : "AGENT_INTERFACE";
+
       const result = await submitTranscript({
         transcript: textToSubmit,
         language,
         submissionId,
         details: derivedDetails,
-        source: "VOICE",
+        source: effectiveSource as any,
       });
+
+      const assignedQuestionId = result?.questionId || result?.insertedId;
+
+      if (assignedQuestionId && currentQuestions.length > 0) {
+        setQuestions(
+          currentQuestions.map((q) => ({
+            ...q,
+            questionId: assignedQuestionId,
+          }))
+        );
+      }
 
       const isUnavailableFallback = currentQuestions.some(
         (q) => q.referenceSource === "advisory_fallback_service_unavailable"
@@ -808,20 +838,20 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
       if (isUnavailableFallback) {
         toast.info(
           `Question saved to pipeline (ID: ${
-            result?.questionId || "created"
+            assignedQuestionId || "created"
           }). AI search unavailable — routed to expert review.`
         );
       } else {
         toast.success(
           `Question saved to pipeline (ID: ${
-            result?.questionId || "created"
+            assignedQuestionId || "created"
           }).`
         );
       }
 
       setTranscript("");
       accumulatedTranscriptRef.current = "";
-      setQuestions([]);
+      // Keep questions visible so the farmer/agent can view answers and request expert review
       setSttError(null);
       setIsTypingMode(false);
       setAudioBlob(null);
@@ -1528,6 +1558,42 @@ export const VoiceRecorderCard = ({}: VoiceRecorderCardProps) => {
                                 </AccordionContent>
                               </AccordionItem>
                             </Accordion>
+
+                            {qn.questionId && (
+                              <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground font-mono">
+                                  ID: {qn.questionId.slice(-6)}
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant={
+                                    requestedReviewIds.has(qn.questionId)
+                                      ? "secondary"
+                                      : "outline"
+                                  }
+                                  disabled={
+                                    requestedReviewIds.has(qn.questionId) ||
+                                    isRequestingReview
+                                  }
+                                  onClick={() =>
+                                    handleRequestExpertReview(qn.questionId!)
+                                  }
+                                  className="text-xs h-8 px-3"
+                                >
+                                  {requestedReviewIds.has(qn.questionId) ? (
+                                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                                      <CheckCircle className="w-3.5 h-3.5" />
+                                      Expert Review Requested
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1.5 font-medium">
+                                      <UserCheck className="w-3.5 h-3.5" />
+                                      Request Expert Review
+                                    </span>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

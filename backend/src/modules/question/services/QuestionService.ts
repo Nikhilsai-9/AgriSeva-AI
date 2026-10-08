@@ -1550,18 +1550,21 @@ export class QuestionService extends BaseService implements IQuestionService {
       console.warn('[createQuestionFromContext] AI Grounding unavailable:', err?.message);
     }
 
+    const status: QuestionStatus =
+      source === 'AGRISEVA_AI' || source === 'WHATSAPP' ? 'pending' : 'open';
+
     const baseQuestion: IQuestion = {
       userId: userId && ObjectId.isValid(userId) ? new ObjectId(userId) : null,
       question: trimmedText,
       originalQuestion: trimmedText,
       priority: 'medium',
       source,
-      status: 'open',
+      status,
       totalAnswersCount: aiAnswer ? 1 : 0,
       aiInitialAnswer: aiAnswer || undefined,
       contextId: contextId && ObjectId.isValid(contextId) ? new ObjectId(contextId) : null,
       details,
-      isAutoAllocate: true,
+      isAutoAllocate: !(source === 'AGRISEVA_AI' || source === 'WHATSAPP'),
       autoAllocateGateKeeper: true,
       autoAllocateAuditor: true,
       autoAllocateModerator: true,
@@ -1594,7 +1597,7 @@ export class QuestionService extends BaseService implements IQuestionService {
     await this.questionSubmissionRepo.addSubmission(submissionData, session);
 
     // 8. Save AI Answer in AnswerRepository (ensures persistent answers across all channels)
-    if (aiAnswer) {
+    if (aiAnswer && this.answerRepo && typeof this.answerRepo.addAnswer === 'function') {
       try {
         const answerSourceItems: SourceItem[] = sources.map((s: any) => ({
           source: s.reference || s.title || 'AgriSeva Knowledge Base',

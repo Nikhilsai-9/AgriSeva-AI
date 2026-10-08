@@ -687,21 +687,50 @@ export class QuestionRepository implements IQuestionRepository {
           { userId: userObjectId },
           { userId: userStrId },
         ];
-        if (activeUser.mobile) {
-          userOwnershipMatch.push({ threadId: activeUser.mobile });
-          userOwnershipMatch.push({ 'farmerProfile.phone': activeUser.mobile });
+
+        const phoneVariants = new Set<string>();
+        const collectPhoneVariants = (phoneStr?: string | null) => {
+          if (!phoneStr) return;
+          const trimmed = phoneStr.trim();
+          if (!trimmed) return;
+          phoneVariants.add(trimmed);
+          const digitsOnly = trimmed.replace(/\D/g, '');
+          if (digitsOnly) {
+            phoneVariants.add(digitsOnly);
+            const d10 = digitsOnly.slice(-10);
+            if (d10 && d10.length === 10) {
+              phoneVariants.add(d10);
+              phoneVariants.add(`+91${d10}`);
+              phoneVariants.add(`91${d10}`);
+            }
+          }
+        };
+
+        collectPhoneVariants(activeUser.mobile);
+        if (activeUser.farmerProfile?.phone) {
+          collectPhoneVariants(activeUser.farmerProfile.phone);
         }
+
+        const phoneList = Array.from(phoneVariants);
+        if (phoneList.length > 0) {
+          userOwnershipMatch.push({ threadId: { $in: phoneList } });
+          userOwnershipMatch.push({ 'farmerProfile.phone': { $in: phoneList } });
+        }
+
         if (!filter.$and) filter.$and = [];
         filter.$and.push({ $or: userOwnershipMatch });
       }
-      if (pae_review) {
+
+      if (String(pae_review) === 'true') {
         filter.pae_review = { $eq: true };
-      }
-      if (!pae_review) {
-        filter.$or = [
-          { pae_review: { $eq: false } },
-          { pae_review: { $exists: false } },
-        ];
+      } else if (String(pae_review) === 'false') {
+        if (!filter.$and) filter.$and = [];
+        filter.$and.push({
+          $or: [
+            { pae_review: { $eq: false } },
+            { pae_review: { $exists: false } },
+          ],
+        });
       }
 
       // --- Hidden question filter ---
@@ -6974,10 +7003,13 @@ export class QuestionRepository implements IQuestionRepository {
     );
 
     // Apply pae_review filter exactly matching findDetailedQuestions logic
-    if (query.pae_review) {
+    if (String(query.pae_review) === 'true') {
       filter.pae_review = { $eq: true };
-    } else {
-      filter.$or = [{ pae_review: { $eq: false } }, { pae_review: { $exists: false } }];
+    } else if (String(query.pae_review) === 'false') {
+      if (!filter.$and) filter.$and = [];
+      filter.$and.push({
+        $or: [{ pae_review: { $eq: false } }, { pae_review: { $exists: false } }],
+      });
     }
 
     // Apply is_non_agri / dynamic filter exactly matching findDetailedQuestions logic
